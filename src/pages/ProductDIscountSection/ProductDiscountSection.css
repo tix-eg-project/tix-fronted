@@ -1,0 +1,140 @@
+.products {
+  background-color: #f9f9f9 !important;
+}
+.product_card img {
+  width: 100%;
+  height: 220px;
+  object-fit: contain !important;
+}
+.product_card {
+  background-color: var(--basic-color);
+  box-shadow: #f9f9f9 !important;
+}
+.product_services .swiper-button-prev,
+.product_services .swiper-button-next {
+  height: 50px;
+  width: 50px;
+  border-radius: 50%;
+  background-color: var(--main-color);
+}
+.product_services .swiper-button-prev::after,
+.product_services .swiper-button-next::after {
+  color: var(--basic-color);
+  font-size: 14px;
+}
+.product_services .show_more {
+  padding: 5px 20px 8px;
+  border-radius: 25px;
+  border: 1px solid #ddd;
+  display: inline-block;
+  background-color: var(--basic-color);
+  color: #000;
+  box-shadow: 0px 3px 3px 0px rgba(0, 0, 0, 0.1);
+  margin: 20px 0;
+  transition: all 0.3s ease-in-out;
+}
+.product_services .show_more:hover {
+  background-color: var(--main-color);
+  color: var(--basic-color);
+}
+.product_card .view_details {
+  display: block;
+  background-color: var(--main-color);
+  color: var(--basic-color);
+  height: 25px;
+  width: 25px;
+  border-radius: 50%;
+  text-align: center;
+  line-height: 2em;
+  box-shadow: var(--box-shadow);
+}
+.products .nav-tabs {
+  border: none;
+  padding-inline: 15px;
+}
+.products .nav-tabs .nav-link {
+  font-size: small;
+  color: #000;
+  border-radius: 5px;
+  border: none;
+  border-bottom: 2px solid transparent;
+}
+.products .nav-tabs .nav-link.active {
+  background: transparent;
+  color: var(--main-color);
+  border-bottom: 2px solid var(--main-color);
+  border-radius: 0;
+  font-weight: bold;
+}
+[data-theme="dark"] {
+  .products {
+    background-color: var(--sub-dark-color);
+  }
+  .product_card {
+    background-color: var(--dark-color);
+    color: var(--basic-color);
+    border-color: var(--sub-dark-color);
+  }
+  .products .nav-tabs .nav-link {
+    color: var(--basic-color);
+  }
+  .products .nav-tabs .nav-link.active {
+    color: var(--main-color);
+  }
+}
+/* dir ltr */
+[dir="ltr"] {
+  .product_services .show_more {
+    padding: 7px 20px 5px;
+  }
+}
+
+.btn-categories {
+  padding: 8px 25px;
+  background-color: var(--main-color);
+  color: white;
+  border: none;
+  border-radius: 30px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+}
+
+/* التأكد من المحاذاة الصحيحة في كلا الاتجاهين */
+[dir="rtl"] .btn-categories-container {
+  float: left;
+  margin-right: auto;
+}
+[dir="ltr"] .btn-categories-container {
+  float: right;
+  margin-left: auto;
+}
+
+/* حل بديل باستخدام CSS فقط */
+.align-by-direction {
+  margin-inline-start: auto;
+  display: block;
+}
+
+
+.sliderWidth{
+    width: 85%;
+}
+
+
+
+/* New explicit white swiper variant */
+.white-swiper,
+.white-swiper .swiper,
+.white-swiper .swiper-wrapper,
+.white-swiper .swiper-slide {
+  background: #f9f9f9 !important;
+  box-shadow: #f9f9f9 !important;
+  border-radius: 16px !important;
+  height: 450px !important;
+  margin: 7px !important;
+}
+
+
+

@@ -1,0 +1,136 @@
+.breadcrumb {
+  padding: 10px 0;
+  background: #0000000d;
+}
+
+.profile-settings-container {
+  margin-top: 32px;
+  margin-bottom: 32px;
+}
+
+.profile-settings-sidebar {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 2px 16px rgba(10, 110, 88, 0.07);
+  padding: 32px 20px 24px 20px;
+  min-height: 350px;
+}
+
+.profile-settings-title {
+  font-size: 1.3rem;
+  font-weight: bold;
+  color: #e13124;
+  border-bottom: 2px solid #e13124;
+  padding-bottom: 12px;
+  margin-bottom: 24px;
+  letter-spacing: 1px;
+  text-align: center;
+}
+
+.profile-settings-tabs {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.profile-settings-tab-btn {
+  background: none;
+  border: none;
+  color: #e13124;
+  font-weight: 600;
+  font-size: 1.08rem;
+  padding: 10px 0;
+  border-radius: 8px;
+  transition: background 0.2s, color 0.2s;
+  text-align: left;
+}
+
+.profile-settings-tab-btn.active,
+.profile-settings-tab-btn:hover {
+  background: #e1312412;
+  color: #fff;
+  background: linear-gradient(90deg, #e13124 60%, #e13124 100%);
+}
+
+.profile-settings-content {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 2px 16px rgba(10, 110, 88, 0.07);
+  padding: 32px 24px 24px 24px;
+  min-height: 350px;
+}
+
+.profile-settings-avatar-wrapper {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 24px;
+}
+
+.profile-settings-avatar {
+  width: 110px;
+  height: 110px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid #e13124;
+  box-shadow: 0 2px 8px #e1312420;
+  background: #fff;
+}
+
+.profile-settings-form .profile-settings-label {
+  color: #e13124;
+  font-weight: 600;
+  margin-bottom: 6px;
+  display: block;
+  font-size: 1rem;
+}
+
+.profile-settings-input {
+  border-radius: 8px;
+  border: 1.5px solid #e1312430;
+  font-size: 1rem;
+  color: #222;
+  background: #f8f9fa;
+  margin-bottom: 8px;
+  transition: border 0.2s;
+}
+
+.profile-settings-input:focus {
+  border-color: #e13124;
+  box-shadow: 0 0 0 2px #e1312420;
+  background: #fff;
+}
+
+.profile-settings-save-btn {
+  background: #e13124;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 36px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  transition: background 0.2s, box-shadow 0.2s;
+  box-shadow: 0 2px 8px #e1312420;
+}
+
+.profile-settings-save-btn:hover {
+  background: #095c4a;
+  color: #fff;
+}
+
+@media (max-width: 991px) {
+  .profile-settings-content,
+  .profile-settings-sidebar {
+    margin-bottom: 24px;
+  }
+}
+
+@media (max-width: 576px) {
+  .profile-settings-content,
+  .profile-settings-sidebar {
+    padding: 16px 6px;
+  }
+  .profile-settings-avatar {
+    width: 70px;
+    height: 70px;
+  }
+}

@@ -1,0 +1,30 @@
+.ads img {
+  display: block;
+  border-radius: 20px;
+}
+
+.ads-loading,
+.ads-error,
+.ads-empty {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 200px;
+  text-align: center;
+}
+
+.ads-loading .spinner-border {
+  width: 3rem;
+  height: 3rem;
+}
+
+.ads-error p {
+  font-size: 1.1rem;
+  margin: 0;
+}
+
+.ads-empty p {
+  font-size: 1.1rem;
+  margin: 0;
+  color: #6c757d;
+}

@@ -1,0 +1,36 @@
+
+
+.breadcrumb h4,
+.breadcrumb-item,
+.breadcrumb-text {
+  font-size: 12px; /* force 10px */
+  color: #000;
+  transition: color 0.3s ease;
+}
+
+
+.breadcrumb-text {
+  color: #e13124;
+}
+
+/* Dark mode styles */
+@media (prefers-color-scheme: dark) {
+  .breadcrumb {
+    background: #e13124;
+  }
+
+
+  .breadcrumb-item {
+    color: #e13124;
+  }
+}
+
+/* Manual dark mode class */
+.dark-mode .breadcrumb {
+  background: #e13124;
+}
+
+.dark-mode .breadcrumb-text {
+  color: #e13124;
+}
+

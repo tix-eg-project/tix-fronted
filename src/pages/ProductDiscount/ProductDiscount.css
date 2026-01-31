@@ -1,0 +1,38 @@
+.title{
+  font-size: 2rem !important;
+  font-weight: bold;
+}
+.product-discount-slider {
+  display: flex;
+  transition: transform 0.3s ease-in-out;
+}
+
+.product-discount-slide {
+  flex: 0 0 auto;
+  box-sizing: border-box;
+}
+
+/* Responsive adjustments */
+@media (max-width: 576px) {
+  .product-discount-slide {
+    width: 100%;
+  }
+}
+
+@media (max-width: 768px) {
+  .product-discount-slide {
+    width: 50%;
+  }
+}
+
+@media (max-width: 992px) {
+  .product-discount-slide {
+    width: 33.333%;
+  }
+}
+
+@media (min-width: 993px) {
+  .product-discount-slide {
+    width: 25%;
+  }
+}

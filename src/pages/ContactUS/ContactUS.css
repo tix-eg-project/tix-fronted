@@ -1,0 +1,311 @@
+.contact-section {
+  position: relative;
+  padding: 80px 0;
+  background: linear-gradient(
+      rgba(255, 255, 255, 0.9),
+      rgba(255, 255, 255, 0.582)
+    ),
+    url("../../assests/imgs/Mask Group 1.png") center/cover no-repeat;
+}
+
+.contact-form {
+  background: white;
+  padding: 40px;
+  border-radius: 10px;
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+}
+
+.contact-form h4 {
+  color: #e13124;
+  font-size: 28px;
+  font-weight: 700;
+  margin-bottom: 30px;
+}
+
+/* RTL/LTR specific alignment for form title */
+[dir="rtl"] .contact-form h4 {
+  text-align: right;
+}
+
+[dir="ltr"] .contact-form h4 {
+  text-align: left;
+}
+
+.contact-form .form-control {
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 12px 15px;
+  margin-bottom: 20px;
+  font-size: 16px;
+  transition: all 0.3s;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Form control text alignment is handled via inline styles in React component */
+.contact-form .form-control:focus {
+  border-color: #e13124;
+  box-shadow: 0 0 0 0.25rem rgba(225, 49, 36, 0.25);
+  outline: none;
+}
+
+.contact-form textarea.form-control {
+  min-height: 150px;
+  resize: vertical;
+}
+
+.contact-form button {
+  background-color: #e13124;
+  color: white;
+  border: none;
+  padding: 12px 30px;
+  border-radius: 6px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  display: block;
+}
+
+/* Button alignment for RTL/LTR */
+[dir="rtl"] .contact-form button {
+  margin-left: auto;
+  margin-right: 0;
+}
+
+[dir="ltr"] .contact-form button {
+  margin-right: auto;
+  margin-left: 0;
+}
+
+.contact-form button:hover {
+  background-color: #088f6e;
+  transform: translateY(-3px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.contact-info {
+  background: white;
+  padding: 40px;
+  border-radius: 10px;
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+  height: 100%;
+}
+
+.contact-info h6 {
+  color: #e13124;
+  font-size: 22px;
+  font-weight: 700;
+  margin-bottom: 25px;
+}
+
+/* Contact info title alignment */
+[dir="rtl"] .contact-info h6 {
+  text-align: right;
+}
+
+[dir="ltr"] .contact-info h6 {
+  text-align: left;
+}
+
+.contact-info p {
+  color: #555;
+  font-size: 16px;
+  line-height: 1.8;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* RTL specific styling for contact info paragraphs */
+[dir="rtl"] .contact-info p {
+  flex-direction: row-reverse;
+  text-align: right;
+}
+
+[dir="ltr"] .contact-info p {
+  flex-direction: row;
+  text-align: left;
+}
+
+/* Contact icons styling */
+.contact-icon {
+  color: #e13124;
+  font-size: 18px;
+  flex-shrink: 0;
+  min-width: 18px;
+}
+
+/* Links styling */
+.contact-info a {
+  color: #555;
+  text-decoration: underline;
+  transition: color 0.3s;
+}
+
+.contact-info a:hover {
+  color: #e13124;
+}
+
+/* Email link specific styling (always LTR) */
+.contact-info p[dir="ltr"] {
+  flex-direction: row;
+  text-align: left;
+}
+
+/* Responsive adjustments */
+@media (max-width: 992px) {
+  .contact-form,
+  .contact-info {
+    padding: 30px;
+  }
+
+  .contact-info {
+    margin-top: 30px;
+  }
+}
+
+@media (max-width: 768px) {
+  .contact-section {
+    padding: 60px 0;
+  }
+
+  .contact-form h4,
+  .contact-info h6 {
+    font-size: 24px;
+  }
+
+  .contact-form .form-control {
+    padding: 10px 12px;
+    font-size: 15px;
+  }
+}
+
+@media (max-width: 576px) {
+  .contact-form h4,
+  .contact-info h6 {
+    font-size: 20px;
+  }
+
+  .contact-form,
+  .contact-info {
+    padding: 20px;
+  }
+
+  .contact-form button {
+    width: 100%;
+    margin-left: 0;
+    margin-right: 0;
+  }
+
+  .contact-info p {
+    gap: 8px;
+  }
+}
+
+/* Additional RTL/LTR specific adjustments */
+[dir="rtl"] .row {
+  direction: rtl;
+}
+
+[dir="ltr"] .row {
+  direction: ltr;
+}
+
+/* Form input placeholder styling for better RTL support */
+[dir="rtl"] .contact-form .form-control::placeholder {
+  text-align: right;
+  direction: rtl;
+  font-family: inherit;
+}
+
+[dir="ltr"] .contact-form .form-control::placeholder {
+  text-align: left;
+  direction: ltr;
+  font-family: inherit;
+}
+
+/* Additional placeholder browser compatibility */
+[dir="rtl"] .contact-form .form-control::-webkit-input-placeholder {
+  text-align: right;
+  direction: rtl;
+}
+
+[dir="rtl"] .contact-form .form-control::-moz-placeholder {
+  text-align: right;
+  direction: rtl;
+}
+
+[dir="rtl"] .contact-form .form-control:-ms-input-placeholder {
+  text-align: right;
+  direction: rtl;
+}
+
+[dir="rtl"] .contact-form .form-control:-moz-placeholder {
+  text-align: right;
+  direction: rtl;
+}
+
+[dir="ltr"] .contact-form .form-control::-webkit-input-placeholder {
+  text-align: left;
+  direction: ltr;
+}
+
+[dir="ltr"] .contact-form .form-control::-moz-placeholder {
+  text-align: left;
+  direction: ltr;
+}
+
+[dir="ltr"] .contact-form .form-control:-ms-input-placeholder {
+  text-align: left;
+  direction: ltr;
+}
+
+[dir="ltr"] .contact-form .form-control:-moz-placeholder {
+  text-align: left;
+  direction: ltr;
+}
+
+/* Placeholder color and opacity for better visibility */
+.contact-form .form-control::placeholder {
+  color: #999;
+  opacity: 1;
+  font-size: 15px;
+}
+
+.contact-form .form-control::-webkit-input-placeholder {
+  color: #999;
+  opacity: 1;
+}
+
+.contact-form .form-control::-moz-placeholder {
+  color: #999;
+  opacity: 1;
+}
+
+.contact-form .form-control:-ms-input-placeholder {
+  color: #999;
+  opacity: 1;
+}
+
+.contact-form .form-control:-moz-placeholder {
+  color: #999;
+  opacity: 1;
+}
+
+/* RTL specific placeholder adjustments */
+[dir="rtl"] .contact-form .form-control {
+  padding-right: 15px;
+  padding-left: 15px;
+}
+
+[dir="ltr"] .contact-form .form-control {
+  padding-left: 15px;
+  padding-right: 15px;
+}
+
+/* Improve contrast for better accessibility */
+.contact-info .text-muted {
+  color: #666;
+}

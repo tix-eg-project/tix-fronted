@@ -1,0 +1,175 @@
+body {
+  overflow-x: hidden;
+}
+.about-us-section {
+  position: relative;
+  padding: 80px 0;
+  background: linear-gradient(
+      rgba(255, 255, 255, 0.9),
+      rgba(255, 255, 255, 0.384)
+    ),
+    url("../../assests/imgs/Mask Group 1.png") center/cover no-repeat;
+  overflow-x: hidden;
+}
+
+/* تعميم على كل العناصر داخل القسم لمنع تجاوز العرض */
+.about-us-section *,
+.about-us-section *::before,
+.about-us-section *::after {
+  box-sizing: border-box;
+  overflow-x: hidden;
+  word-break: break-word;
+}
+
+/* المحتوى */
+.about-content {
+  position: relative;
+  z-index: 2;
+}
+
+.about-content h6 {
+  color: #e13124;
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 15px;
+}
+
+.about-content h2 {
+  color: #333;
+  font-size: 36px;
+  font-weight: 700;
+  margin-bottom: 20px;
+  line-height: 1.3;
+  word-break: break-word;
+}
+
+.about-content p {
+  color: #555;
+  font-size: 16px;
+  line-height: 1.8;
+  margin-bottom: 20px;
+  word-break: break-word;
+}
+
+/* المميزات */
+.about-features {
+  margin-top: 30px;
+}
+
+.about-features p {
+  font-weight: 600;
+  color: #e13124;
+  margin-bottom: 15px;
+}
+
+.about-features ul {
+  list-style: none;
+  padding-left: 0;
+  padding-right: 0;
+  margin: 0;
+}
+
+.about-features li {
+  display: flex;
+  align-items: center;
+  color: #555;
+  font-size: 16px;
+  line-height: 1.6;
+  margin-bottom: 15px;
+  gap: 10px;
+  word-break: break-word;
+}
+
+/* إزالة العلامة القديمة ✓ */
+.about-features li:before {
+  display: none;
+}
+
+/* الصورة */
+.about-image {
+  /* padding: 20px; */
+  text-align: center;
+}
+
+.about-image img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 10px;
+  display: block;
+  margin: 0 auto;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+}
+
+/* أيقونات */
+.feature-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background-color: #e13124;
+  color: white;
+  border-radius: 50%;
+  flex-shrink: 0;
+  font-size: 12px;
+}
+
+/* ----------------------------- */
+/* الشاشات الصغيرة */
+/* ----------------------------- */
+
+@media (max-width: 992px) {
+  .about-content h2 {
+    font-size: 30px;
+  }
+
+  .about-image {
+    margin-top: 30px;
+  }
+
+  .about-features li {
+    font-size: 15px;
+  }
+}
+
+@media (max-width: 768px) {
+  .about-us-section {
+    padding: 60px 0;
+  }
+
+  .about-content h2 {
+    font-size: 26px;
+  }
+
+  .about-content p,
+  .about-features li {
+    font-size: 15px;
+  }
+
+  .feature-icon {
+    width: 22px;
+    height: 22px;
+    font-size: 11px;
+  }
+}
+
+@media (max-width: 576px) {
+  .about-content h2 {
+    font-size: 22px;
+  }
+
+  .about-content p,
+  .about-features li {
+    font-size: 14px;
+  }
+
+  .feature-icon {
+    width: 20px;
+    height: 20px;
+    font-size: 10px;
+  }
+
+  .about-image {
+    padding: 10px;
+  }
+}
