@@ -5,9 +5,9 @@
 @layer base {
   :root {
     /* Primary - Orange */
-    --color-primary: #FF8C00;
-    --color-primary-hover: #E67E00;
-    --color-primary-active: #D96F00;
+    --color-primary: #ff8c00;
+    --color-primary-hover: #e67e00;
+    --color-primary-active: #d96f00;
     --color-primary-light: rgba(255, 140, 0, 0.1);
 
     /* Dark - Black */
@@ -15,11 +15,11 @@
     --color-dark-light: #1a1a1a;
 
     /* Surfaces */
-    --color-bg: #FFFFFF;
-    --color-surface: #FFFFFF;
-    --color-surface-2: #F5F5F5;
-    --color-border: #E0E0E0;
-    --color-divider: #E0E0E0;
+    --color-bg: #ffffff;
+    --color-surface: #ffffff;
+    --color-surface-2: #f5f5f5;
+    --color-border: #e0e0e0;
+    --color-divider: #e0e0e0;
 
     /* Text */
     --color-text: #212121;
@@ -27,10 +27,10 @@
     --color-text-faint: #999999;
 
     /* Semantic */
-    --color-success: #4CAF50;
-    --color-error: #F44336;
-    --color-warning: #FF8C00;
-    --color-info: #2196F3;
+    --color-success: #4caf50;
+    --color-error: #f44336;
+    --color-warning: #ff8c00;
+    --color-info: #2196f3;
 
     /* Radius */
     --radius-sm: 4px;
@@ -46,7 +46,6 @@
   body {
     background-color: var(--color-bg);
     color: var(--color-text);
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif;
     direction: rtl;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -91,23 +90,37 @@
 
   /* Responsive typography */
   @media (max-width: 1024px) {
-    body { font-size: 15px; }
-    h1 { font-size: 32px; }
-    h2 { font-size: 28px; }
+    body {
+      font-size: 15px;
+    }
+    h1 {
+      font-size: 32px;
+    }
+    h2 {
+      font-size: 28px;
+    }
   }
   @media (max-width: 768px) {
-    body { font-size: 14px; }
-    h1 { font-size: 24px; }
-    h2 { font-size: 22px; }
-    h3 { font-size: 20px; }
+    body {
+      font-size: 14px;
+    }
+    h1 {
+      font-size: 24px;
+    }
+    h2 {
+      font-size: 22px;
+    }
+    h3 {
+      font-size: 20px;
+    }
   }
 }
 
 @layer components {
   /* ── Buttons ── */
   .btn-primary {
-    background-color: #FF8C00;
-    color: #FFFFFF;
+    background-color: #ff8c00;
+    color: #ffffff;
     border: none;
     padding: 8px 12px;
     border-radius: 8px;
@@ -123,12 +136,12 @@
     text-decoration: none;
   }
   .btn-primary:hover {
-    background-color: #E67E00;
+    background-color: #e67e00;
     box-shadow: 0 4px 12px rgba(255, 140, 0, 0.4);
     transform: translateY(-2px);
   }
   .btn-primary:active {
-    background-color: #D96F00;
+    background-color: #d96f00;
     transform: scale(0.98);
   }
   .btn-primary:disabled {
@@ -139,9 +152,9 @@
   }
 
   .btn-secondary {
-    background-color: #F5F5F5;
+    background-color: #f5f5f5;
     color: #212121;
-    border: 2px solid #E0E0E0;
+    border: 2px solid #e0e0e0;
     padding: 8px 12px;
     border-radius: 8px;
     font-size: 16px;
@@ -155,14 +168,14 @@
     text-decoration: none;
   }
   .btn-secondary:hover {
-    background-color: #E8E8E8;
-    border-color: #FF8C00;
+    background-color: #e8e8e8;
+    border-color: #ff8c00;
   }
 
   .btn-outline {
     background-color: transparent;
-    color: #FF8C00;
-    border: 2px solid #FF8C00;
+    color: #ff8c00;
+    border: 2px solid #ff8c00;
     padding: 8px 12px;
     border-radius: 8px;
     font-size: 16px;
@@ -177,7 +190,7 @@
   }
   .btn-outline:hover {
     background-color: rgba(255, 140, 0, 0.1);
-    border-color: #E67E00;
+    border-color: #e67e00;
   }
 
   .btn-ghost {
@@ -194,13 +207,13 @@
   }
   .btn-ghost:hover {
     color: #212121;
-    background-color: #F5F5F5;
+    background-color: #f5f5f5;
   }
 
   /* ── Cards ── */
   .card {
-    background-color: #FFFFFF;
-    border: 1px solid #E0E0E0;
+    background-color: #ffffff;
+    border: 1px solid #e0e0e0;
     border-radius: 8px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     transition: all 0.3s ease-in-out;
@@ -213,8 +226,8 @@
   .input-field {
     width: 100%;
     height: 44px;
-    background-color: #FFFFFF;
-    border: 2px solid #E0E0E0;
+    background-color: #ffffff;
+    border: 2px solid #e0e0e0;
     padding: 10px 12px;
     border-radius: 8px;
     font-size: 16px;
@@ -226,7 +239,7 @@
     color: #999999;
   }
   .input-field:focus {
-    border-color: #FF8C00;
+    border-color: #ff8c00;
     box-shadow: 0 0 8px rgba(255, 140, 0, 0.2);
   }
 
@@ -241,23 +254,23 @@
   }
   .badge-primary {
     @apply badge;
-    background-color: #FF8C00;
-    color: #FFFFFF;
+    background-color: #ff8c00;
+    color: #ffffff;
   }
   .badge-error {
     @apply badge;
-    background-color: #F44336;
-    color: #FFFFFF;
+    background-color: #f44336;
+    color: #ffffff;
   }
   .badge-success {
     @apply badge;
-    background-color: #4CAF50;
-    color: #FFFFFF;
+    background-color: #4caf50;
+    color: #ffffff;
   }
   .badge-warning {
     @apply badge;
-    background-color: #FF8C00;
-    color: #FFFFFF;
+    background-color: #ff8c00;
+    color: #ffffff;
   }
 
   /* ── Section title ── */
@@ -277,7 +290,7 @@
   .price-current {
     font-size: 18px;
     font-weight: 700;
-    color: #FF8C00;
+    color: #ff8c00;
   }
   .price-original {
     font-size: 14px;
@@ -288,13 +301,18 @@
 
   /* ── Skeleton ── */
   .skeleton {
-    background-color: #F5F5F5;
+    background-color: #f5f5f5;
     border-radius: 8px;
     animation: pulse 1.5s ease-in-out infinite;
   }
   @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.5; }
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.5;
+    }
   }
 
   /* Hide scrollbar */
