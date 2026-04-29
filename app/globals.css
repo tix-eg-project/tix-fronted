@@ -1,0 +1,314 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Primary - Orange */
+    --color-primary: #FF8C00;
+    --color-primary-hover: #E67E00;
+    --color-primary-active: #D96F00;
+    --color-primary-light: rgba(255, 140, 0, 0.1);
+
+    /* Dark - Black */
+    --color-dark: #000000;
+    --color-dark-light: #1a1a1a;
+
+    /* Surfaces */
+    --color-bg: #FFFFFF;
+    --color-surface: #FFFFFF;
+    --color-surface-2: #F5F5F5;
+    --color-border: #E0E0E0;
+    --color-divider: #E0E0E0;
+
+    /* Text */
+    --color-text: #212121;
+    --color-text-muted: #666666;
+    --color-text-faint: #999999;
+
+    /* Semantic */
+    --color-success: #4CAF50;
+    --color-error: #F44336;
+    --color-warning: #FF8C00;
+    --color-info: #2196F3;
+
+    /* Radius */
+    --radius-sm: 4px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+    --radius-full: 9999px;
+  }
+
+  * {
+    border-color: var(--color-border);
+  }
+
+  body {
+    background-color: var(--color-bg);
+    color: var(--color-text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif;
+    direction: rtl;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-size: 16px;
+    line-height: 1.5;
+  }
+
+  h1 {
+    font-size: 40px;
+    font-weight: 700;
+    line-height: 1.2;
+    margin-bottom: 20px;
+  }
+  h2 {
+    font-size: 32px;
+    font-weight: 700;
+    line-height: 1.25;
+    margin-bottom: 16px;
+  }
+  h3 {
+    font-size: 24px;
+    font-weight: 600;
+    line-height: 1.33;
+    margin-bottom: 12px;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: var(--color-surface-2);
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-text-faint);
+    border-radius: var(--radius-full);
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--color-text-muted);
+  }
+
+  /* Responsive typography */
+  @media (max-width: 1024px) {
+    body { font-size: 15px; }
+    h1 { font-size: 32px; }
+    h2 { font-size: 28px; }
+  }
+  @media (max-width: 768px) {
+    body { font-size: 14px; }
+    h1 { font-size: 24px; }
+    h2 { font-size: 22px; }
+    h3 { font-size: 20px; }
+  }
+}
+
+@layer components {
+  /* ── Buttons ── */
+  .btn-primary {
+    background-color: #FF8C00;
+    color: #FFFFFF;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(255, 140, 0, 0.3);
+    transition: all 0.3s ease-in-out;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    text-decoration: none;
+  }
+  .btn-primary:hover {
+    background-color: #E67E00;
+    box-shadow: 0 4px 12px rgba(255, 140, 0, 0.4);
+    transform: translateY(-2px);
+  }
+  .btn-primary:active {
+    background-color: #D96F00;
+    transform: scale(0.98);
+  }
+  .btn-primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+  }
+
+  .btn-secondary {
+    background-color: #F5F5F5;
+    color: #212121;
+    border: 2px solid #E0E0E0;
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease-in-out;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    text-decoration: none;
+  }
+  .btn-secondary:hover {
+    background-color: #E8E8E8;
+    border-color: #FF8C00;
+  }
+
+  .btn-outline {
+    background-color: transparent;
+    color: #FF8C00;
+    border: 2px solid #FF8C00;
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease-in-out;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    text-decoration: none;
+  }
+  .btn-outline:hover {
+    background-color: rgba(255, 140, 0, 0.1);
+    border-color: #E67E00;
+  }
+
+  .btn-ghost {
+    background-color: transparent;
+    color: #666666;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease-in-out;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .btn-ghost:hover {
+    color: #212121;
+    background-color: #F5F5F5;
+  }
+
+  /* ── Cards ── */
+  .card {
+    background-color: #FFFFFF;
+    border: 1px solid #E0E0E0;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease-in-out;
+  }
+  .card:hover {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  }
+
+  /* ── Inputs ── */
+  .input-field {
+    width: 100%;
+    height: 44px;
+    background-color: #FFFFFF;
+    border: 2px solid #E0E0E0;
+    padding: 10px 12px;
+    border-radius: 8px;
+    font-size: 16px;
+    color: #212121;
+    transition: all 0.3s ease-in-out;
+    outline: none;
+  }
+  .input-field::placeholder {
+    color: #999999;
+  }
+  .input-field:focus {
+    border-color: #FF8C00;
+    box-shadow: 0 0 8px rgba(255, 140, 0, 0.2);
+  }
+
+  /* ── Badges ── */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 700;
+  }
+  .badge-primary {
+    @apply badge;
+    background-color: #FF8C00;
+    color: #FFFFFF;
+  }
+  .badge-error {
+    @apply badge;
+    background-color: #F44336;
+    color: #FFFFFF;
+  }
+  .badge-success {
+    @apply badge;
+    background-color: #4CAF50;
+    color: #FFFFFF;
+  }
+  .badge-warning {
+    @apply badge;
+    background-color: #FF8C00;
+    color: #FFFFFF;
+  }
+
+  /* ── Section title ── */
+  .section-title {
+    font-size: 32px;
+    font-weight: 700;
+    color: #212121;
+    line-height: 1.25;
+  }
+  @media (max-width: 768px) {
+    .section-title {
+      font-size: 22px;
+    }
+  }
+
+  /* ── Prices ── */
+  .price-current {
+    font-size: 18px;
+    font-weight: 700;
+    color: #FF8C00;
+  }
+  .price-original {
+    font-size: 14px;
+    color: #999999;
+    text-decoration: line-through;
+    margin-right: 8px;
+  }
+
+  /* ── Skeleton ── */
+  .skeleton {
+    background-color: #F5F5F5;
+    border-radius: 8px;
+    animation: pulse 1.5s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+
+  /* Hide scrollbar */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
