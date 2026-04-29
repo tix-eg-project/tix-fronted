@@ -1,23 +1,13 @@
-import ProductCard from './ProductCard'
+import ProductCard from "./ProductCard";
+import type { ProductCardProps } from "@/utils/Types/products";
 
-type Product = {
-  id: string | number
-  name: string
-  price: number
-  originalPrice?: number
-  image: string
-  rating?: number
-  reviewsCount?: number
-  discount?: number
-}
-
-export default function ProductGrid({ products }: { products: Product[] }) {
+export default function ProductGrid({ products }: { products: ProductCardProps[] }) {
   if (!products || products.length === 0) {
     return (
       <div className="text-center py-16">
         <p className="text-text-muted text-lg">لا توجد منتجات متاحة حالياً</p>
       </div>
-    )
+    );
   }
 
   return (
@@ -26,5 +16,5 @@ export default function ProductGrid({ products }: { products: Product[] }) {
         <ProductCard key={product.id} {...product} />
       ))}
     </div>
-  )
+  );
 }

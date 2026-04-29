@@ -1,98 +1,98 @@
-'use client'
-import { useState, useEffect } from 'react'
-import Link from 'next/link'
-import Image from 'next/image'
-import { ShoppingBag, Trash2, Plus, Minus, ArrowLeft, Tag, Package, X } from 'lucide-react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { toast } from 'react-toastify'
-import api from '@/lib/api'
-import { useCart } from '@/context/CartContext'
-import { useAuth } from '@/context/AuthContext'
-import { formatCurrency } from '@/lib/utils'
-import type { CartSummary } from '@/lib/types'
+"use client";
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import Image from "next/image";
+import { ShoppingBag, Trash2, Plus, Minus, ArrowLeft, Tag, Package, X } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { toast } from "react-toastify";
+import api from "@/lib/api";
+import { useCart } from "@/context/CartContext";
+import { useAuth } from "@/context/AuthContext";
+import { formatCurrency } from "@/utils/helpers";
+import type { CartSummary } from "@/utils/Types/common";
 
 export default function CartPage() {
-  const { state, removeFromCart, updateQuantity, refreshCart } = useCart()
-  const { state: authState } = useAuth()
-  const [summary, setSummary] = useState<CartSummary | null>(null)
-  const [couponCode, setCouponCode] = useState('')
-  const [couponError, setCouponError] = useState('')
-  const [isApplying, setIsApplying] = useState(false)
+  const { state, removeFromCart, updateQuantity, refreshCart } = useCart();
+  const { state: authState } = useAuth();
+  const [summary, setSummary] = useState<CartSummary | null>(null);
+  const [couponCode, setCouponCode] = useState("");
+  const [couponError, setCouponError] = useState("");
+  const [isApplying, setIsApplying] = useState(false);
 
   // Redirect if not logged in
   useEffect(() => {
     if (!authState.isLoading && !authState.isAuthenticated) {
-      window.location.href = '/login?redirect=/cart'
+      window.location.href = "/login?redirect=/cart";
     }
-  }, [authState.isLoading, authState.isAuthenticated])
+  }, [authState.isLoading, authState.isAuthenticated]);
 
   // Fetch summary
   const fetchSummary = async () => {
     try {
-      const res = await api.get('/summary')
+      const res = await api.get("/summary");
       if (res.data.status && res.data.data) {
-        setSummary(res.data.data)
+        setSummary(res.data.data);
       }
     } catch {
       // Silent
     }
-  }
+  };
 
   useEffect(() => {
     if (authState.isAuthenticated) {
-      refreshCart()
-      fetchSummary()
+      refreshCart();
+      fetchSummary();
     }
-  }, [authState.isAuthenticated])
+  }, [authState.isAuthenticated]);
 
   const handleRemove = async (id: number | string) => {
-    await removeFromCart(id)
-    toast.success('تم الحذف من السلة')
-    fetchSummary()
-  }
+    await removeFromCart(id);
+    toast.success("تم الحذف من السلة");
+    fetchSummary();
+  };
 
   const handleUpdateQty = async (id: number | string, newQty: number) => {
-    await updateQuantity(id, newQty)
-    fetchSummary()
-  }
+    await updateQuantity(id, newQty);
+    fetchSummary();
+  };
 
   const handleApplyCoupon = async () => {
-    if (!couponCode.trim()) return
-    setIsApplying(true)
-    setCouponError('')
+    if (!couponCode.trim()) return;
+    setIsApplying(true);
+    setCouponError("");
     try {
-      const formData = new FormData()
-      formData.append('coupon', couponCode.trim().toUpperCase())
-      const res = await api.post('/summary', formData)
+      const formData = new FormData();
+      formData.append("coupon", couponCode.trim().toUpperCase());
+      const res = await api.post("/summary", formData);
       if (res.data.status || res.data.success) {
-        setSummary(res.data.data)
-        toast.success(res.data.message || 'تم تطبيق الكوبون')
+        setSummary(res.data.data);
+        toast.success(res.data.message || "تم تطبيق الكوبون");
       } else {
-        setCouponError(res.data.message || 'كوبون غير صالح')
+        setCouponError(res.data.message || "كوبون غير صالح");
       }
     } catch (error: any) {
-      setCouponError(error.response?.data?.message || 'حدث خطأ')
+      setCouponError(error.response?.data?.message || "حدث خطأ");
     } finally {
-      setIsApplying(false)
+      setIsApplying(false);
     }
-  }
+  };
 
   const handleRemoveCoupon = async () => {
-    if (!summary?.coupon?.code) return
-    setIsApplying(true)
+    if (!summary?.coupon?.code) return;
+    setIsApplying(true);
     try {
-      const res = await api.delete('/coupon', { data: { coupon: summary.coupon.code } })
+      const res = await api.delete("/coupon", { data: { coupon: summary.coupon.code } });
       if (res.data.status || res.data.success) {
-        setCouponCode('')
-        fetchSummary()
-        toast.success('تم حذف الكوبون')
+        setCouponCode("");
+        fetchSummary();
+        toast.success("تم حذف الكوبون");
       }
     } catch {
-      toast.error('خطأ في حذف الكوبون')
+      toast.error("خطأ في حذف الكوبون");
     } finally {
-      setIsApplying(false)
+      setIsApplying(false);
     }
-  }
+  };
 
   if (authState.isLoading || state.isLoading) {
     return (
@@ -101,7 +101,7 @@ export default function CartPage() {
           <div className="animate-spin w-8 h-8 border-3 border-primary border-t-transparent rounded-full" />
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -137,7 +137,9 @@ export default function CartPage() {
             <Package className="w-16 h-16 mx-auto text-text-faint mb-4" />
             <h2 className="text-xl font-bold text-text mb-2">السلة فارغة</h2>
             <p className="text-text-muted mb-6">لم تقم بإضافة أي منتجات بعد</p>
-            <Link href="/" className="btn-primary inline-block">تصفح المنتجات</Link>
+            <Link href="/" className="btn-primary inline-block">
+              تصفح المنتجات
+            </Link>
           </motion.div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -155,7 +157,7 @@ export default function CartPage() {
                   <div className="flex gap-4">
                     <Link href={`/product/${item.productId}`} className="flex-shrink-0">
                       <Image
-                        src={item.image || '/pl1.jpg'}
+                        src={item.image || "/pl1.jpg"}
                         alt={item.name}
                         width={80}
                         height={80}
@@ -171,7 +173,10 @@ export default function CartPage() {
                       {item.selections && item.selections.length > 0 && (
                         <div className="flex flex-wrap gap-1.5 mt-1.5">
                           {item.selections.map((s, i) => (
-                            <span key={i} className="text-xs text-text-muted bg-surface-2 px-2 py-0.5 rounded-full">
+                            <span
+                              key={i}
+                              className="text-xs text-text-muted bg-surface-2 px-2 py-0.5 rounded-full"
+                            >
                               {s.variant}: {s.value}
                             </span>
                           ))}
@@ -232,13 +237,19 @@ export default function CartPage() {
                     <input
                       type="text"
                       value={couponCode}
-                      onChange={(e) => { setCouponCode(e.target.value); setCouponError('') }}
+                      onChange={(e) => {
+                        setCouponCode(e.target.value);
+                        setCouponError("");
+                      }}
                       placeholder="كود الكوبون"
                       className="input-field !py-2 text-sm flex-1"
                     />
                     {couponCode && (
                       <button
-                        onClick={() => { setCouponCode(''); setCouponError('') }}
+                        onClick={() => {
+                          setCouponCode("");
+                          setCouponError("");
+                        }}
                         className="p-2 text-text-faint hover:text-error transition-colors"
                       >
                         <X className="w-4 h-4" />
@@ -251,7 +262,7 @@ export default function CartPage() {
                     disabled={isApplying || !couponCode.trim()}
                     className="btn-secondary w-full !py-2.5 text-sm mt-2"
                   >
-                    {isApplying ? 'جاري التطبيق...' : 'تطبيق'}
+                    {isApplying ? "جاري التطبيق..." : "تطبيق"}
                   </button>
                 </div>
 
@@ -304,5 +315,5 @@ export default function CartPage() {
         )}
       </AnimatePresence>
     </div>
-  )
+  );
 }

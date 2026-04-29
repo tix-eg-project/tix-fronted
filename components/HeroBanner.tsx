@@ -1,41 +1,42 @@
-'use client'
-import { useState, useEffect } from 'react'
-import Image from 'next/image'
-import Link from 'next/link'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+"use client";
+import { useState, useEffect } from "react";
+import Image from "next/image";
+import Link from "next/link";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import type { Banner } from "@/utils/Types/common";
 
-const defaultBanners = [
+const defaultBanners: Banner[] = [
   {
     id: 1,
-    image: '/pl1.jpg',
-    title: 'عروض حصرية',
-    subtitle: 'خصم يصل إلى 50% على جميع المنتجات',
-    cta: 'تسوق الآن',
-    link: '/offers',
+    image: "/pl1.jpg",
+    title: "عروض حصرية",
+    subtitle: "خصم يصل إلى 50% على جميع المنتجات",
+    cta: "تسوق الآن",
+    link: "/offers",
   },
   {
     id: 2,
-    image: '/pl2.jpg',
-    title: 'أحدث المنتجات',
-    subtitle: 'اكتشف تشكيلتنا الجديدة',
-    cta: 'اكتشف المزيد',
-    link: '/products',
+    image: "/pl2.jpg",
+    title: "أحدث المنتجات",
+    subtitle: "اكتشف تشكيلتنا الجديدة",
+    cta: "اكتشف المزيد",
+    link: "/products",
   },
-]
+];
 
-export default function HeroBanner({ banners = defaultBanners }: { banners?: typeof defaultBanners }) {
-  const [currentSlide, setCurrentSlide] = useState(0)
+export default function HeroBanner({ banners = defaultBanners }: { banners?: Banner[] }) {
+  const [currentSlide, setCurrentSlide] = useState(0);
 
   useEffect(() => {
-    if (banners.length <= 1) return
+    if (banners.length <= 1) return;
     const timer = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % banners.length)
-    }, 5000)
-    return () => clearInterval(timer)
-  }, [banners.length])
+      setCurrentSlide((prev) => (prev + 1) % banners.length);
+    }, 5000);
+    return () => clearInterval(timer);
+  }, [banners.length]);
 
-  const nextSlide = () => setCurrentSlide((prev) => (prev + 1) % banners.length)
-  const prevSlide = () => setCurrentSlide((prev) => (prev - 1 + banners.length) % banners.length)
+  const nextSlide = () => setCurrentSlide((prev) => (prev + 1) % banners.length);
+  const prevSlide = () => setCurrentSlide((prev) => (prev - 1 + banners.length) % banners.length);
 
   return (
     <section className="relative h-[300px] sm:h-[400px] md:h-[480px] overflow-hidden">
@@ -43,13 +44,13 @@ export default function HeroBanner({ banners = defaultBanners }: { banners?: typ
         <div
           key={banner.id}
           className={`absolute inset-0 transition-all duration-700 ${
-            index === currentSlide ? 'opacity-100 scale-100' : 'opacity-0 scale-105'
+            index === currentSlide ? "opacity-100 scale-100" : "opacity-0 scale-105"
           }`}
         >
           <div className="relative w-full h-full">
             <Image
               src={banner.image}
-              alt={banner.title || ''}
+              alt={banner.title || ""}
               fill
               className="object-cover"
               priority={index === 0}
@@ -68,7 +69,7 @@ export default function HeroBanner({ banners = defaultBanners }: { banners?: typ
                   {banner.subtitle}
                 </p>
                 <Link
-                  href={banner.link || '/'}
+                  href={banner.link || "/"}
                   className="inline-block bg-primary hover:bg-primary-hover text-white font-semibold py-3 px-8 rounded-xl transition-all text-base md:text-lg active:scale-[0.97]"
                 >
                   {banner.cta}
@@ -104,7 +105,7 @@ export default function HeroBanner({ banners = defaultBanners }: { banners?: typ
                 key={index}
                 onClick={() => setCurrentSlide(index)}
                 className={`h-2.5 rounded-full transition-all duration-300 ${
-                  index === currentSlide ? 'bg-white w-8' : 'bg-white/40 w-2.5 hover:bg-white/60'
+                  index === currentSlide ? "bg-white w-8" : "bg-white/40 w-2.5 hover:bg-white/60"
                 }`}
                 aria-label={`الانتقال للشريحة ${index + 1}`}
               />
@@ -113,5 +114,5 @@ export default function HeroBanner({ banners = defaultBanners }: { banners?: typ
         </>
       )}
     </section>
-  )
+  );
 }

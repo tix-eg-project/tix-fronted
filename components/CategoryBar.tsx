@@ -1,53 +1,63 @@
-'use client'
-import { useEffect, useState } from 'react'
-import Link from 'next/link'
-import { Smartphone, Shirt, Sparkles, Watch, ShoppingBag, Dumbbell, Gamepad2, Footprints } from 'lucide-react'
-import api from '@/lib/api'
+"use client";
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import {
+  Smartphone,
+  Shirt,
+  Sparkles,
+  Watch,
+  ShoppingBag,
+  Dumbbell,
+  Gamepad2,
+  Footprints,
+} from "lucide-react";
+import api from "@/lib/api";
+import type { CategoryNavItem } from "@/utils/Types/navigation";
 
-const fallbackCategories = [
-  { id: '1', name: 'إلكترونيات', icon: Smartphone, slug: 'electronics' },
-  { id: '2', name: 'ملابس', icon: Shirt, slug: 'clothing' },
-  { id: '3', name: 'مستحضرات تجميل', icon: Sparkles, slug: 'beauty' },
-  { id: '4', name: 'ساعات', icon: Watch, slug: 'watches' },
-  { id: '5', name: 'حقائب', icon: ShoppingBag, slug: 'bags' },
-  { id: '6', name: 'رياضة', icon: Dumbbell, slug: 'sports' },
-  { id: '7', name: 'ألعاب', icon: Gamepad2, slug: 'toys' },
-  { id: '8', name: 'أحذية', icon: Footprints, slug: 'shoes' },
-]
+const fallbackCategories: CategoryNavItem[] = [
+  { id: "1", name: "إلكترونيات", icon: Smartphone, slug: "electronics" },
+  { id: "2", name: "ملابس", icon: Shirt, slug: "clothing" },
+  { id: "3", name: "مستحضرات تجميل", icon: Sparkles, slug: "beauty" },
+  { id: "4", name: "ساعات", icon: Watch, slug: "watches" },
+  { id: "5", name: "حقائب", icon: ShoppingBag, slug: "bags" },
+  { id: "6", name: "رياضة", icon: Dumbbell, slug: "sports" },
+  { id: "7", name: "ألعاب", icon: Gamepad2, slug: "toys" },
+  { id: "8", name: "أحذية", icon: Footprints, slug: "shoes" },
+];
 
-const iconMap: Record<string, any> = {
-  'إلكترونيات': Smartphone,
-  'ملابس': Shirt,
-  'مستحضرات تجميل': Sparkles,
-  'ساعات': Watch,
-  'حقائب': ShoppingBag,
-  'رياضة': Dumbbell,
-  'ألعاب': Gamepad2,
-  'أحذية': Footprints,
-}
+const iconMap: Record<string, CategoryNavItem["icon"]> = {
+  إلكترونيات: Smartphone,
+  ملابس: Shirt,
+  "مستحضرات تجميل": Sparkles,
+  ساعات: Watch,
+  حقائب: ShoppingBag,
+  رياضة: Dumbbell,
+  ألعاب: Gamepad2,
+  أحذية: Footprints,
+};
 
 export default function CategoryBar() {
-  const [categories, setCategories] = useState(fallbackCategories)
+  const [categories, setCategories] = useState<CategoryNavItem[]>(fallbackCategories);
 
   useEffect(() => {
     async function fetchCategories() {
       try {
-        const response = await api.get('/categories')
+        const response = await api.get("/categories");
         if (response.data.status && Array.isArray(response.data.data)) {
-          const fetched = response.data.data.map((cat: any) => ({
+          const fetched: CategoryNavItem[] = response.data.data.map((cat: any) => ({
             id: String(cat.id),
             name: cat.name,
             slug: cat.id,
             icon: iconMap[cat.name] || ShoppingBag,
-          }))
-          if (fetched.length > 0) setCategories(fetched)
+          }));
+          if (fetched.length > 0) setCategories(fetched);
         }
       } catch {
         // Use fallback
       }
     }
-    fetchCategories()
-  }, [])
+    fetchCategories();
+  }, []);
 
   return (
     <section className="bg-surface py-8">
@@ -55,7 +65,7 @@ export default function CategoryBar() {
         <h2 className="section-title mb-6">تسوق حسب القسم</h2>
         <div className="flex gap-4 md:gap-6 overflow-x-auto pb-4 scrollbar-hide">
           {categories.map((category) => {
-            const Icon = category.icon || ShoppingBag
+            const Icon = category.icon || ShoppingBag;
             return (
               <Link
                 key={category.id}
@@ -69,10 +79,10 @@ export default function CategoryBar() {
                   {category.name}
                 </p>
               </Link>
-            )
+            );
           })}
         </div>
       </div>
     </section>
-  )
+  );
 }

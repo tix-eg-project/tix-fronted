@@ -1,152 +1,170 @@
-'use client'
-import { useState, useEffect, useRef } from 'react'
-import { useRouter } from 'next/navigation'
+"use client";
+import { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import {
-  MapPin, CreditCard, Truck, ShoppingBag, CheckCircle, ChevronDown, ChevronUp, Search
-} from 'lucide-react'
-import { toast } from 'react-toastify'
-import api from '@/lib/api'
-import { useAuth } from '@/context/AuthContext'
-import { useCart } from '@/context/CartContext'
-import { formatCurrency } from '@/lib/utils'
-import type { ShippingCity, PaymentMethod, CartSummary } from '@/lib/types'
+  MapPin,
+  CreditCard,
+  Truck,
+  ShoppingBag,
+  CheckCircle,
+  ChevronDown,
+  ChevronUp,
+  Search,
+} from "lucide-react";
+import { toast } from "react-toastify";
+import api from "@/lib/api";
+import { useAuth } from "@/context/AuthContext";
+import { useCart } from "@/context/CartContext";
+import { formatCurrency } from "@/utils/helpers";
+import type { ShippingCity, PaymentMethod, CartSummary } from "@/utils/Types/common";
 
 export default function CheckoutPage() {
-  const router = useRouter()
-  const { state: authState } = useAuth()
-  const { refreshCart } = useCart()
-  const [paymentMethod, setPaymentMethod] = useState<string | number>('')
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [formData, setFormData] = useState({ address: '', phone: '', order_note: '' })
+  const router = useRouter();
+  const { state: authState } = useAuth();
+  const { refreshCart } = useCart();
+  const [paymentMethod, setPaymentMethod] = useState<string | number>("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formData, setFormData] = useState({ address: "", phone: "", order_note: "" });
 
   // City dropdown
-  const [cities, setCities] = useState<ShippingCity[]>([])
-  const [selectedCity, setSelectedCity] = useState<ShippingCity | null>(null)
-  const [cityOpen, setCityOpen] = useState(false)
-  const [citySearch, setCitySearch] = useState('')
-  const cityRef = useRef<HTMLDivElement>(null)
+  const [cities, setCities] = useState<ShippingCity[]>([]);
+  const [selectedCity, setSelectedCity] = useState<ShippingCity | null>(null);
+  const [cityOpen, setCityOpen] = useState(false);
+  const [citySearch, setCitySearch] = useState("");
+  const cityRef = useRef<HTMLDivElement>(null);
 
   // Summary & payment methods
-  const [summary, setSummary] = useState<CartSummary | null>(null)
-  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([])
+  const [summary, setSummary] = useState<CartSummary | null>(null);
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
 
   // Auth redirect
   useEffect(() => {
     if (!authState.isLoading && !authState.isAuthenticated) {
-      window.location.href = '/login?redirect=/checkout'
+      window.location.href = "/login?redirect=/checkout";
     }
-  }, [authState.isLoading, authState.isAuthenticated])
+  }, [authState.isLoading, authState.isAuthenticated]);
 
   // Fetch initial data
   useEffect(() => {
-    if (!authState.isAuthenticated) return
+    if (!authState.isAuthenticated) return;
 
     const fetchData = async () => {
       try {
         const [summaryRes, pmRes, citiesRes] = await Promise.all([
-          api.get('/summary'),
-          api.get('/payment-methods'),
-          api.get('/shipping/cities'),
-        ])
+          api.get("/summary"),
+          api.get("/payment-methods"),
+          api.get("/shipping/cities"),
+        ]);
 
-        if (summaryRes.data.status) setSummary(summaryRes.data.data)
+        if (summaryRes.data.status) setSummary(summaryRes.data.data);
         if (pmRes.data.status && Array.isArray(pmRes.data.data)) {
-          setPaymentMethods(pmRes.data.data)
-          if (pmRes.data.data.length > 0) setPaymentMethod(pmRes.data.data[0].id)
+          setPaymentMethods(pmRes.data.data);
+          if (pmRes.data.data.length > 0) setPaymentMethod(pmRes.data.data[0].id);
         }
         if (citiesRes.data.status) {
-          setCities(Array.isArray(citiesRes.data.data) ? citiesRes.data.data : [])
+          setCities(Array.isArray(citiesRes.data.data) ? citiesRes.data.data : []);
         }
       } catch {
-        toast.error('خطأ في تحميل البيانات')
+        toast.error("خطأ في تحميل البيانات");
       }
-    }
-    fetchData()
-  }, [authState.isAuthenticated])
+    };
+    fetchData();
+  }, [authState.isAuthenticated]);
 
   // Click outside to close city dropdown
   useEffect(() => {
     const handler = (e: MouseEvent) => {
-      if (cityRef.current && !cityRef.current.contains(e.target as Node)) setCityOpen(false)
-    }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [])
+      if (cityRef.current && !cityRef.current.contains(e.target as Node)) setCityOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
 
   const handleCitySelect = async (city: ShippingCity) => {
-    setSelectedCity(city)
-    setCityOpen(false)
-    setCitySearch('')
+    setSelectedCity(city);
+    setCityOpen(false);
+    setCitySearch("");
     try {
-      const fd = new FormData()
-      fd.append('vsoft_city_id', String(city.id))
-      const res = await api.post('/summary', fd)
-      if (res.data.status) setSummary(res.data.data)
+      const fd = new FormData();
+      fd.append("vsoft_city_id", String(city.id));
+      const res = await api.post("/summary", fd);
+      if (res.data.status) setSummary(res.data.data);
     } catch {
-      toast.error('خطأ في تطبيق منطقة الشحن')
+      toast.error("خطأ في تطبيق منطقة الشحن");
     }
-  }
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target
-    if (name === 'phone') {
-      setFormData(prev => ({ ...prev, [name]: value.replace(/[^0-9]/g, '') }))
+    const { name, value } = e.target;
+    if (name === "phone") {
+      setFormData((prev) => ({ ...prev, [name]: value.replace(/[^0-9]/g, "") }));
     } else {
-      setFormData(prev => ({ ...prev, [name]: value }))
+      setFormData((prev) => ({ ...prev, [name]: value }));
     }
-  }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (isSubmitting) return
-    if (!selectedCity) { toast.error('اختر المدينة'); return }
-    if (formData.phone.length < 10) { toast.error('رقم هاتف غير صحيح'); return }
-    if (formData.address.trim().length < 8) { toast.error('العنوان يجب أن يكون 8 أحرف على الأقل'); return }
+    e.preventDefault();
+    if (isSubmitting) return;
+    if (!selectedCity) {
+      toast.error("اختر المدينة");
+      return;
+    }
+    if (formData.phone.length < 10) {
+      toast.error("رقم هاتف غير صحيح");
+      return;
+    }
+    if (formData.address.trim().length < 8) {
+      toast.error("العنوان يجب أن يكون 8 أحرف على الأقل");
+      return;
+    }
 
-    setIsSubmitting(true)
+    setIsSubmitting(true);
     try {
       // Step 1: Contact info
-      await api.post('/contact', {
+      await api.post("/contact", {
         address: formData.address,
         phone: formData.phone,
         order_note: formData.order_note,
-      })
+      });
 
       // Step 2: Checkout
-      const fd = new FormData()
-      fd.append('payment_method_id', String(paymentMethod))
-      const checkoutRes = await api.post('/checkout', fd)
+      const fd = new FormData();
+      fd.append("payment_method_id", String(paymentMethod));
+      const checkoutRes = await api.post("/checkout", fd);
 
       if (checkoutRes.data.status) {
-        const { redirect_url } = checkoutRes.data.data || {}
-        await refreshCart()
+        const { redirect_url } = checkoutRes.data.data || {};
+        await refreshCart();
 
         if (redirect_url && redirect_url.trim()) {
           // Payment gateway redirect
-          window.location.href = redirect_url
+          window.location.href = redirect_url;
         } else {
           // Cash on delivery
-          toast.success('تم الطلب بنجاح!')
-          setTimeout(() => router.push('/account/orders'), 1500)
+          toast.success("تم الطلب بنجاح!");
+          setTimeout(() => router.push("/account/orders"), 1500);
         }
       } else {
-        toast.error(checkoutRes.data.message || 'خطأ في إتمام الطلب')
+        toast.error(checkoutRes.data.message || "خطأ في إتمام الطلب");
       }
     } catch (error: any) {
-      toast.error(error.response?.data?.message || 'حدث خطأ في إتمام الطلب')
+      toast.error(error.response?.data?.message || "حدث خطأ في إتمام الطلب");
     } finally {
-      setIsSubmitting(false)
+      setIsSubmitting(false);
     }
-  }
+  };
 
-  const filteredCities = cities.filter(c => c.name.toLowerCase().includes(citySearch.toLowerCase()))
+  const filteredCities = cities.filter((c) =>
+    c.name.toLowerCase().includes(citySearch.toLowerCase()),
+  );
 
   if (authState.isLoading) {
     return (
       <div className="max-w-5xl mx-auto px-4 py-12 flex justify-center">
         <div className="animate-spin w-8 h-8 border-3 border-primary border-t-transparent rounded-full" />
       </div>
-    )
+    );
   }
 
   return (
@@ -156,15 +174,21 @@ export default function CheckoutPage() {
       {/* Steps */}
       <div className="flex items-center justify-center gap-2 md:gap-4 mb-8">
         {[
-          { icon: ShoppingBag, label: 'السلة', done: true },
-          { icon: MapPin, label: 'الشحن', done: true },
-          { icon: CreditCard, label: 'الدفع', done: false },
+          { icon: ShoppingBag, label: "السلة", done: true },
+          { icon: MapPin, label: "الشحن", done: true },
+          { icon: CreditCard, label: "الدفع", done: false },
         ].map((step, i) => (
           <div key={i} className="flex items-center gap-2">
-            <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium ${
-              step.done ? 'bg-success/10 text-success' : 'bg-surface-2 text-text-muted'
-            }`}>
-              {step.done ? <CheckCircle className="w-3.5 h-3.5" /> : <step.icon className="w-3.5 h-3.5" />}
+            <div
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium ${
+                step.done ? "bg-success/10 text-success" : "bg-surface-2 text-text-muted"
+              }`}
+            >
+              {step.done ? (
+                <CheckCircle className="w-3.5 h-3.5" />
+              ) : (
+                <step.icon className="w-3.5 h-3.5" />
+              )}
               <span className="hidden sm:inline">{step.label}</span>
             </div>
             {i < 2 && <div className="w-8 h-px bg-border" />}
@@ -191,10 +215,14 @@ export default function CheckoutPage() {
                   className="input-field flex items-center justify-between !py-3"
                   onClick={() => setCityOpen(!cityOpen)}
                 >
-                  <span className={selectedCity ? 'text-text' : 'text-text-faint'}>
-                    {selectedCity ? selectedCity.name : 'اختر المدينة'}
+                  <span className={selectedCity ? "text-text" : "text-text-faint"}>
+                    {selectedCity ? selectedCity.name : "اختر المدينة"}
                   </span>
-                  {cityOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                  {cityOpen ? (
+                    <ChevronUp className="w-4 h-4" />
+                  ) : (
+                    <ChevronDown className="w-4 h-4" />
+                  )}
                 </button>
                 {cityOpen && (
                   <div className="mt-1 bg-surface border border-border rounded-xl shadow-card-hover max-h-52 overflow-hidden z-20 relative">
@@ -217,7 +245,7 @@ export default function CheckoutPage() {
                           key={city.id}
                           type="button"
                           className={`w-full text-right px-4 py-2.5 text-sm hover:bg-surface-2 transition-colors flex justify-between ${
-                            selectedCity?.id === city.id ? 'bg-primary-light text-primary' : ''
+                            selectedCity?.id === city.id ? "bg-primary-light text-primary" : ""
                           }`}
                           onClick={() => handleCitySelect(city)}
                         >
@@ -281,7 +309,9 @@ export default function CheckoutPage() {
                   <label
                     key={method.id}
                     className={`flex items-center gap-3 p-3.5 border rounded-xl cursor-pointer transition-all ${
-                      paymentMethod === method.id ? 'border-primary bg-primary-light' : 'border-border hover:border-text-faint'
+                      paymentMethod === method.id
+                        ? "border-primary bg-primary-light"
+                        : "border-border hover:border-text-faint"
                     }`}
                   >
                     <input
@@ -306,9 +336,15 @@ export default function CheckoutPage() {
             <button
               type="submit"
               className="btn-primary w-full !py-4 text-base"
-              disabled={isSubmitting || !selectedCity || !paymentMethod || !formData.address.trim() || !formData.phone.trim()}
+              disabled={
+                isSubmitting ||
+                !selectedCity ||
+                !paymentMethod ||
+                !formData.address.trim() ||
+                !formData.phone.trim()
+              }
             >
-              {isSubmitting ? 'جاري المعالجة...' : 'تأكيد الطلب'}
+              {isSubmitting ? "جاري المعالجة..." : "تأكيد الطلب"}
             </button>
           </form>
         </div>
@@ -329,7 +365,9 @@ export default function CheckoutPage() {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-text-muted">الشحن</span>
-                  <span>{summary.shipping_zone ? formatCurrency(summary.shipping_zone.price) : '—'}</span>
+                  <span>
+                    {summary.shipping_zone ? formatCurrency(summary.shipping_zone.price) : "—"}
+                  </span>
                 </div>
                 {summary.shipping_zone?.name && (
                   <div className="flex justify-between">
@@ -358,5 +396,5 @@ export default function CheckoutPage() {
         </div>
       </div>
     </div>
-  )
+  );
 }
