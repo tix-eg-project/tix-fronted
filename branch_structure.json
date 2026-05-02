@@ -1,0 +1,21 @@
+{
+  "default_branch": "main",
+  "branches": [
+    "main",
+    "origin",
+    "project-preview",
+    "v0/teamtixeg-2856-eda796c6"
+  ],
+  "parent": {
+    "main": null,
+    "origin": "main",
+    "project-preview": "main",
+    "v0/teamtixeg-2856-eda796c6": "main"
+  },
+  "order": [
+    "main",
+    "origin",
+    "project-preview",
+    "v0/teamtixeg-2856-eda796c6"
+  ]
+}
