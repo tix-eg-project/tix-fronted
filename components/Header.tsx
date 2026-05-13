@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import { useCart } from '@/context/CartContext'
 import { useAuth } from '@/context/AuthContext'
 import {
@@ -22,6 +22,7 @@ export default function Header() {
   const { state: cartState } = useCart()
   const { state: authState, logout } = useAuth()
   const router = useRouter()
+  const pathname = usePathname()
   const searchRef = useRef<HTMLDivElement>(null)
   const userMenuRef = useRef<HTMLDivElement>(null)
 
@@ -80,8 +81,11 @@ export default function Header() {
     { href: '/contact', label: 'تواصل معنا' },
   ]
 
+  const isAuthPage = pathname === '/login' || pathname === '/register' || pathname === '/forgot-password'
+  if (isAuthPage) return null
+
   return (
-    <header className="bg-white text-black border-b border-gray-200 sticky top-0 z-[1000]">
+    <header className="bg-white text-black border-b border-gray-200">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between py-4 gap-4">
           {/* Logo on the left */}

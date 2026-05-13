@@ -13,12 +13,12 @@ export default function Footer() {
               منصة TIX هي وجهتك المثالية للتسوق الإلكتروني في مصر. نقدم لك أفضل المنتجات بأفضل الأسعار مع خدمة توصيل سريعة وموثوقة.
             </p>
             <div className="flex items-center gap-2 text-sm text-gray-400 mb-2">
-              <Phone className="h-4 w-4" />
-              <span>دعم 24/7</span>
+              <Mail className="h-4 w-4" />
+              <span>support.tix.eg.com@gmail.com</span>
             </div>
             <div className="flex items-center gap-2 text-sm text-gray-400">
-              <Mail className="h-4 w-4" />
-              <span>info@tix-eg.com</span>
+              <Phone className="h-4 w-4" />
+              <span>01070691673</span>
             </div>
           </div>
 
@@ -38,16 +38,6 @@ export default function Footer() {
               <li>
                 <Link href="/offers" className="hover:text-white transition-colors">
                   العروض
-                </Link>
-              </li>
-              <li>
-                <Link href="/about" className="hover:text-white transition-colors">
-                  من نحن
-                </Link>
-              </li>
-              <li>
-                <Link href="/contact" className="hover:text-white transition-colors">
-                  تواصل معنا
                 </Link>
               </li>
             </ul>
@@ -97,16 +87,13 @@ export default function Footer() {
             </div>
             <div className="mt-6">
               <h5 className="font-semibold mb-2 text-sm">اللغة</h5>
-              <select className="bg-white/10 border border-white/20 rounded px-3 py-1 text-sm text-white outline-none">
-                <option className="bg-black">العربية</option>
-                <option className="bg-black">English</option>
-              </select>
+            
             </div>
           </div>
         </div>
 
         <div className="border-t border-white/10 mt-12 pt-8 text-center text-sm text-gray-400">
-          <p>© {new Date().getFullYear()} جميع الحقوق محفوظة Tixeg.com</p>
+          <p>© {new Date().getFullYear()} جميع الحقوق محفوظة Tix.com</p>
         </div>
       </div>
     </footer>

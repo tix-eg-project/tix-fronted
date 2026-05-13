@@ -87,7 +87,7 @@ export default function ProductCard({
           </button>
         </div>
         <div className="p-3 flex flex-col flex-1">
-          <h3 className={`font-medium text-[13px] mb-1.5 line-clamp-3 h-14 leading-tight ${
+          <h3 className={`font-medium text-[13px] mb-1.5 line-clamp-1 leading-tight ${
             isFlashDeal ? "text-black" : "text-gray-800"
           }`}>{productName}</h3>
           <div className="flex items-center gap-1 mb-2">

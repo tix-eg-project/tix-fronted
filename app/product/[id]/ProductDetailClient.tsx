@@ -257,6 +257,31 @@ export default function ProductDetailClient({ productId }: { productId: string }
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-12">
+            {/* Mobile-only Header (Title & Brand above images) */}
+            <div className="lg:hidden">
+              {product.brand && (
+                <div className="mb-1">
+                  <span className="text-sm font-bold text-red-600">{product.brand}</span>
+                </div>
+              )}
+              <h1 className="text-2xl font-bold mb-1">{t(product.name)}</h1>
+              
+              <div className="flex items-center gap-2 mb-4">
+                <div className="flex items-center">
+                  {[...Array(5)].map((_, i) => (
+                    <Star
+                      key={i}
+                      className={`w-4 h-4 ${i < Math.round(avgRating) ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`}
+                    />
+                  ))}
+                </div>
+                <span className="text-sm font-semibold">{avgRating.toFixed(1)}</span>
+                <Link href="#reviews" className="text-red-600 hover:underline text-sm">
+                  ({formatPrice(reviewCount)} تقييم)
+                </Link>
+              </div>
+            </div>
+
             {/* Left Column - Image Gallery */}
             <div className="lg:col-span-5 flex flex-col">
               <div className="bg-white border border-gray-100 rounded-xl overflow-hidden mb-4 flex-shrink-0 shadow-sm">
@@ -293,14 +318,15 @@ export default function ProductDetailClient({ productId }: { productId: string }
 
             {/* Right Column - Product Info */}
             <div className="lg:col-span-7">
-              {/* Brand Display */}
-              {product.brand && (
-                <div className="mb-1">
-                  <span className="text-sm font-bold text-red-600">{product.brand}</span>
-                </div>
-              )}
-
-              <h1 className="text-2xl font-bold mb-1">{t(product.name)}</h1>
+              {/* Desktop-only Title & Brand */}
+              <div className="hidden lg:block">
+                {product.brand && (
+                  <div className="mb-1">
+                    <span className="text-sm font-bold text-red-600">{product.brand}</span>
+                  </div>
+                )}
+                <h1 className="text-2xl font-bold mb-1">{t(product.name)}</h1>
+              </div>
 
               {/* Store Info */}
               <div className="mb-2 text-sm text-gray-500 flex items-center gap-1">
@@ -310,8 +336,8 @@ export default function ProductDetailClient({ productId }: { productId: string }
                 </span>
               </div>
 
-              {/* Rating */}
-              <div className="flex items-center gap-2 mb-4">
+              {/* Desktop-only Rating */}
+              <div className="hidden lg:flex items-center gap-2 mb-4">
                 <div className="flex items-center">
                   {[...Array(5)].map((_, i) => (
                     <Star
@@ -332,7 +358,7 @@ export default function ProductDetailClient({ productId }: { productId: string }
                 {originalPrice > currentPrice && (
                   <>
                     <span className="text-lg text-gray-400 line-through">{formatCurrency(originalPrice)}</span>
-                    <span className="bg-red-100 text-red-700 px-2 py-1 rounded text-sm font-bold">-{discountPct}%</span>
+                    <span className="bg-[#fff1f1] text-red-600 px-2 py-1 rounded text-sm font-bold">-{discountPct}%</span>
                   </>
                 )}
               </div>
@@ -489,9 +515,6 @@ export default function ProductDetailClient({ productId }: { productId: string }
                           <div className="text-center w-full">
                             <p className="text-[11px] font-bold text-gray-900 leading-tight line-clamp-2 mb-1 h-7">{t(prod.name)}</p>
                             <p className="text-xs font-black text-gray-900">{formatCurrency(prod.price)}</p>
-                            <div className="mt-1">
-                              <span className="bg-yellow-300 text-[9px] font-black px-1.5 py-0.5 rounded shadow-sm">إكسبرس</span>
-                            </div>
                           </div>
                         </div>
                       </div>

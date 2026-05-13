@@ -1,6 +1,5 @@
 "use client";
 import { useState, useEffect } from "react";
-import Link from "next/link";
 import ProductCard from "./ProductCard";
 import { Zap, ChevronRight, ChevronLeft } from "lucide-react";
 import api from "@/lib/api";
@@ -15,8 +14,13 @@ import "swiper/css";
 import "swiper/css/navigation";
 
 export default function FlashDeals() {
+  const [isMounted, setIsMounted] = useState(false);
   const [products, setProducts] = useState<ProductCardProps[]>([]);
-  const [timeLeft, setTimeLeft] = useState({ hours: 12, minutes: 45, seconds: 30 });
+  const [timeLeft, setTimeLeft] = useState({ hours: 0, minutes: 0, seconds: 0 });
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   useEffect(() => {
     async function fetchDeals() {
@@ -56,22 +60,23 @@ export default function FlashDeals() {
   }, []);
 
   useEffect(() => {
-    const timer = setInterval(() => {
-      setTimeLeft((prev) => {
-        let { hours, minutes, seconds } = prev;
-        if (seconds > 0) seconds--;
-        else {
-          seconds = 59;
-          if (minutes > 0) minutes--;
-          else {
-            minutes = 59;
-            if (hours > 0) hours--;
-            else hours = 23;
-          }
-        }
-        return { hours, minutes, seconds };
-      });
-    }, 1000);
+    const calculateTimeLeft = () => {
+      const now = new Date();
+      const endOfDay = new Date();
+      endOfDay.setHours(23, 59, 59, 999);
+      const diff = endOfDay.getTime() - now.getTime();
+
+      if (diff <= 0) return { hours: 0, minutes: 0, seconds: 0 };
+
+      return {
+        hours: Math.floor((diff / (1000 * 60 * 60)) % 24),
+        minutes: Math.floor((diff / 1000 / 60) % 60),
+        seconds: Math.floor((diff / 1000) % 60),
+      };
+    };
+
+    setTimeLeft(calculateTimeLeft());
+    const timer = setInterval(() => setTimeLeft(calculateTimeLeft()), 1000);
     return () => clearInterval(timer);
   }, []);
 
@@ -93,17 +98,30 @@ export default function FlashDeals() {
             </div>
           </div>
 
-          <div className="flex items-center gap-4 bg-white/10 backdrop-blur-sm p-2 px-4 rounded-2xl border border-white/20">
+          <div className="flex items-center gap-4 bg-white/10 backdrop-blur-sm p-2 px-4 rounded-2xl border border-white/20 min-h-[60px]">
             <span className="text-white text-xs font-bold uppercase tracking-widest hidden sm:inline">ينتهي في</span>
             <div className="flex gap-2.5">
-              {[timeLeft.hours, timeLeft.minutes, timeLeft.seconds].map((v, i) => (
-                <div key={i} className="flex items-center gap-1.5">
-                  <div className="bg-black/20 backdrop-blur-md text-white w-11 h-11 flex items-center justify-center rounded-xl font-mono font-bold text-xl border border-white/20 shadow-xl">
-                    {pad(v)}
+              {isMounted ? (
+                [timeLeft.hours, timeLeft.minutes, timeLeft.seconds].map((v, i) => (
+                  <div key={i} className="flex items-center gap-1.5">
+                    <div className="bg-black/20 backdrop-blur-md text-white w-11 h-11 flex items-center justify-center rounded-xl font-mono font-bold text-xl border border-white/20 shadow-xl">
+                      {pad(v)}
+                    </div>
+                    {i < 2 && <span className="text-white font-black animate-pulse">:</span>}
                   </div>
-                  {i < 2 && <span className="text-white font-black animate-pulse">:</span>}
+                ))
+              ) : (
+                <div className="flex gap-2.5">
+                  {[0, 0, 0].map((_, i) => (
+                    <div key={i} className="flex items-center gap-1.5">
+                      <div className="bg-black/20 backdrop-blur-md text-white w-11 h-11 flex items-center justify-center rounded-xl font-mono font-bold text-xl border border-white/20 shadow-xl opacity-50">
+                        00
+                      </div>
+                      {i < 2 && <span className="text-white font-black opacity-50">:</span>}
+                    </div>
+                  ))}
                 </div>
-              ))}
+              )}
             </div>
           </div>
         </div>
@@ -150,16 +168,7 @@ export default function FlashDeals() {
           </button>
         </div>
 
-        {/* View All Offers Button */}
-        <div className="mt-10 text-center">
-          <Link 
-            href="/offers" 
-            className="inline-flex items-center gap-2 bg-white text-red-600 px-8 py-3 rounded-xl font-bold hover:bg-gray-50 transition-all shadow-xl hover:scale-105"
-          >
-          عرض المزيد
-            <ChevronLeft className="w-4 h-4" />
-          </Link>
-        </div>
+     
       </div>
     </section>
   );
