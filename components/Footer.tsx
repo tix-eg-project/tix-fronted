@@ -85,15 +85,12 @@ export default function Footer() {
                 <Youtube className="h-5 w-5" />
               </a>
             </div>
-            <div className="mt-6">
-              <h5 className="font-semibold mb-2 text-sm">اللغة</h5>
-            
-            </div>
+         
           </div>
         </div>
 
         <div className="border-t border-white/10 mt-12 pt-8 text-center text-sm text-gray-400">
-          <p>© {new Date().getFullYear()} جميع الحقوق محفوظة Tix.com</p>
+          <p>© {new Date().getFullYear()} جميع الحقوق محفوظة Tix</p>
         </div>
       </div>
     </footer>
