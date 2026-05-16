@@ -13,50 +13,23 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import CategoryBar from './CategoryBar'
 
-// Arabic synonym groups — so "هاتف" also finds "موبايل" etc.
-const synonymGroups: string[][] = [
-  ['هاتف', 'موبايل', 'تليفون', 'تلفون', 'جوال', 'محمول', 'phone', 'mobile'],
-  ['لابتوب', 'لاب توب', 'حاسوب', 'كمبيوتر', 'laptop', 'computer'],
-  ['سماعة', 'سماعات', 'هيدفون', 'ايربودز', 'earbuds', 'headphone'],
-  ['شاحن', 'شواحن', 'charger'],
-  ['ساعة', 'ساعات', 'watch', 'سمارت واتش'],
-  ['تابلت', 'تاب', 'tablet', 'ipad', 'ايباد'],
-  ['شاشة', 'شاشات', 'تلفزيون', 'تليفزيون', 'tv', 'screen'],
-]
-
-// Find synonyms for a word
-function getSynonyms(word: string): string[] {
-  const lower = word.toLowerCase()
-  for (const group of synonymGroups) {
-    if (group.some(s => s === lower || s === word)) {
-      return group.filter(s => s !== lower && s !== word)
-    }
-  }
-  return []
-}
-
 export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
-  const [suggestions, setSuggestions] = useState<string[]>([])
+  const [searchResults, setSearchResults] = useState<any[]>([])
   const [showSearchResults, setShowSearchResults] = useState(false)
-  const [hasSearched, setHasSearched] = useState(false)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const { state: cartState } = useCart()
   const { state: authState, logout } = useAuth()
   const router = useRouter()
   const pathname = usePathname()
   const searchRef = useRef<HTMLDivElement>(null)
-  const mobileSearchRef = useRef<HTMLDivElement>(null)
   const userMenuRef = useRef<HTMLDivElement>(null)
 
   // Click outside to close
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
-        setShowSearchResults(false)
-      }
-      if (mobileSearchRef.current && !mobileSearchRef.current.contains(e.target as Node)) {
         setShowSearchResults(false)
       }
       if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
@@ -67,135 +40,31 @@ export default function Header() {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  // Debounced smart search with synonyms and suggestions
+  // Debounced search
   useEffect(() => {
     if (!searchQuery.trim()) {
-      setSuggestions([])
-      setHasSearched(false)
-      setShowSearchResults(false)
+      setSearchResults([])
       return
     }
-
     const timer = setTimeout(async () => {
-      const query = searchQuery.trim()
-      let allProducts: any[] = []
-
-      // 1. Search with the original query
       try {
-        const response = await api.get(`/search?q=${encodeURIComponent(query)}`)
-        const rawData = response.data?.data || response.data
-        const results = Array.isArray(rawData) ? rawData : Array.isArray(rawData?.data) ? rawData.data : []
-        allProducts = [...results]
-      } catch { /* silent */ }
-
-      // 2. If no results, try synonyms
-      if (allProducts.length === 0) {
-        const words = query.split(/\s+/)
-        for (const word of words) {
-          const syns = getSynonyms(word)
-          for (const syn of syns) {
-            const synQuery = query.replace(word, syn)
-            try {
-              const res = await api.get(`/search?q=${encodeURIComponent(synQuery)}`)
-              const rawData = res.data?.data || res.data
-              const results = Array.isArray(rawData) ? rawData : Array.isArray(rawData?.data) ? rawData.data : []
-              if (results.length > 0) {
-                allProducts = [...allProducts, ...results]
-                break // Found results with a synonym, stop trying
-              }
-            } catch { /* silent */ }
-          }
-          if (allProducts.length > 0) break
+        const response = await api.get(`/search?q=${encodeURIComponent(searchQuery)}`)
+        if (response.data.status) {
+          setSearchResults(response.data.data || [])
+          setShowSearchResults(true)
         }
+      } catch {
+        setSearchResults([])
       }
-
-      // 3. Build text suggestions from product names
-      if (allProducts.length > 0) {
-        const seen = new Set<string>()
-        const suggestionList: string[] = []
-
-        // First suggestion: the query itself (like Google shows)
-        suggestionList.push(query)
-        seen.add(query.toLowerCase())
-
-        // Extract unique meaningful suggestions from product names
-        for (const product of allProducts) {
-          const name: string = product.name || ''
-          if (!name) continue
-
-          // Add the full product name as a suggestion (shortened)
-          const shortName = name.length > 50 ? name.slice(0, 50) + '...' : name
-          const lowerName = shortName.toLowerCase()
-          if (!seen.has(lowerName)) {
-            seen.add(lowerName)
-            suggestionList.push(shortName)
-          }
-
-          // Extract query + brand-like combinations
-          // e.g. if query is "هاتف" and product is "هاتف سامسونج A15", suggest "هاتف سامسونج"
-          const words = name.split(/\s+/)
-          if (words.length >= 2) {
-            const combo = `${query} ${words.find(w => w.toLowerCase() !== query.toLowerCase() && w.length > 2) || ''}`.trim()
-            if (combo !== query && !seen.has(combo.toLowerCase())) {
-              seen.add(combo.toLowerCase())
-              suggestionList.push(combo)
-            }
-          }
-
-          if (suggestionList.length >= 10) break
-        }
-
-        setSuggestions(suggestionList)
-      } else {
-        setSuggestions([])
-      }
-
-      setHasSearched(true)
-      setShowSearchResults(true)
-    }, 350)
-
+    }, 400)
     return () => clearTimeout(timer)
   }, [searchQuery])
 
-  const handleSuggestionClick = (suggestion: string) => {
+  const handleSearchSelect = (id: number | string) => {
     setSearchQuery('')
-    setSuggestions([])
+    setSearchResults([])
     setShowSearchResults(false)
-    setHasSearched(false)
-    router.push(`/products?search=${encodeURIComponent(suggestion)}`)
-  }
-
-  const handleSearchSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (searchQuery.trim()) {
-      setShowSearchResults(false)
-      router.push(`/products?search=${encodeURIComponent(searchQuery.trim())}`)
-    }
-  }
-
-  // Search dropdown component — text suggestions only (like Google)
-  const SearchDropdown = () => {
-    if (!showSearchResults || !searchQuery.trim()) return null
-    return (
-      <div className="absolute top-full mt-1 w-full max-h-96 overflow-y-auto z-50 bg-white border border-gray-200 rounded-lg shadow-lg">
-        {suggestions.length > 0 ? (
-          suggestions.map((suggestion, index) => (
-            <button
-              key={index}
-              onClick={() => handleSuggestionClick(suggestion)}
-              className="w-full text-right px-4 py-3 flex items-center gap-3 hover:bg-gray-100 transition-colors border-b border-gray-100 last:border-0"
-            >
-              <Search className="w-4 h-4 flex-shrink-0 text-gray-400" />
-              <span className="text-sm text-gray-900">{suggestion}</span>
-            </button>
-          ))
-        ) : hasSearched ? (
-          <div className="px-4 py-5 text-center">
-            <p className="text-sm text-gray-500">لا يوجد هذا المنتج</p>
-          </div>
-        ) : null}
-      </div>
-    )
+    router.push(`/product/${id}`)
   }
 
   const handleLogout = async () => {
@@ -226,19 +95,37 @@ export default function Header() {
 
           {/* Search Bar in the middle */}
           <div ref={searchRef} className="hidden md:flex flex-1 max-w-xl relative">
-            <form onSubmit={handleSearchSubmit} className="relative w-full">
+            <div className="relative w-full">
               <Input
                 type="search"
                 placeholder="ابحث عن منتجات..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                onFocus={() => { if (searchQuery.trim() && hasSearched) setShowSearchResults(true) }}
                 className="w-full bg-white border border-gray-400 text-black placeholder:text-gray-500 pr-10 focus-visible:border-black focus-visible:ring-0"
               />
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-600" />
-            </form>
+            </div>
             {/* Search Results Dropdown */}
-            <SearchDropdown />
+            {showSearchResults && searchQuery && (
+              <div className="absolute top-full mt-2 w-full max-h-80 overflow-y-auto z-50 bg-white border border-gray-200 rounded-lg shadow-lg">
+                {searchResults.length > 0 ? (
+                  searchResults.map((item: any) => (
+                    <button
+                      key={item.id}
+                      onClick={() => handleSearchSelect(item.id)}
+                      className="w-full text-right px-4 py-3 flex items-center gap-3 hover:bg-gray-100 transition-colors border-b border-gray-100 last:border-0"
+                    >
+                      <Search className="w-4 h-4 flex-shrink-0 text-gray-400" />
+                      <span className="text-sm text-gray-900 truncate">{item.name}</span>
+                    </button>
+                  ))
+                ) : (
+                  <div className="px-4 py-6 text-center text-sm text-gray-500">
+                    لا توجد نتائج
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Right side icons */}
@@ -303,23 +190,20 @@ export default function Header() {
         </div>
 
         {/* Mobile Search */}
-        <div ref={mobileSearchRef} className="md:hidden pb-4 relative">
-          <form onSubmit={handleSearchSubmit} className="relative">
+        <div className="md:hidden pb-4">
+          <div className="relative">
             <Input
               type="search"
               placeholder="ابحث عن منتجات..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              onFocus={() => { if (searchQuery.trim() && hasSearched) setShowSearchResults(true) }}
               className="w-full bg-white border border-gray-300 focus-visible:border-black focus-visible:ring-0"
             />
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
-          </form>
-          <SearchDropdown />
+          </div>
         </div>
       </div>
       <CategoryBar />
     </header>
   )
 }
-
