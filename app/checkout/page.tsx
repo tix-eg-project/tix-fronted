@@ -1,363 +1,411 @@
-'use client'
-import { useState, useEffect, useRef } from 'react'
-import Link from 'next/link'
-import { useRouter } from 'next/navigation'
-import { useCart } from '@/context/CartContext'
-import { useAuth } from '@/context/AuthContext'
+"use client";
+import { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import {
-  Search, ShoppingCart, User, Heart, Menu, X,
-  ChevronDown, LogOut, Package, UserCircle, Star, RotateCcw
-} from 'lucide-react'
-import api from '@/lib/api'
+  MapPin,
+  CreditCard,
+  Truck,
+  ShoppingBag,
+  CheckCircle,
+  ChevronDown,
+  ChevronUp,
+  Search,
+} from "lucide-react";
+import { toast } from "react-toastify";
+import api from "@/lib/api";
+import { useAuth } from "@/context/AuthContext";
+import { useCart } from "@/context/CartContext";
+import { formatCurrency } from "@/utils/helpers";
+import type { ShippingCity, PaymentMethod, CartSummary } from "@/utils/Types/common";
 
-export default function Header() {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const [searchQuery, setSearchQuery] = useState('')
-  const [searchResults, setSearchResults] = useState<any[]>([])
-  const [showSearchResults, setShowSearchResults] = useState(false)
-  const [userMenuOpen, setUserMenuOpen] = useState(false)
-  const { state: cartState } = useCart()
-  const { state: authState, logout } = useAuth()
-  const router = useRouter()
-  const searchRef = useRef<HTMLDivElement>(null)
-  const userMenuRef = useRef<HTMLDivElement>(null)
+export default function CheckoutPage() {
+  const router = useRouter();
+  const { state: authState } = useAuth();
+  const { refreshCart } = useCart();
+  const [paymentMethod, setPaymentMethod] = useState<string | number>("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formData, setFormData] = useState({ address: "", phone: "", order_note: "" });
 
-  // Click outside to close dropdowns
+  // City dropdown
+  const [cities, setCities] = useState<ShippingCity[]>([]);
+  const [selectedCity, setSelectedCity] = useState<ShippingCity | null>(null);
+  const [cityOpen, setCityOpen] = useState(false);
+  const [citySearch, setCitySearch] = useState("");
+  const cityRef = useRef<HTMLDivElement>(null);
+
+  // Summary & payment methods
+  const [summary, setSummary] = useState<CartSummary | null>(null);
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
+
+  // Auth redirect
   useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
-        setShowSearchResults(false)
-      }
-      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
-        setUserMenuOpen(false)
-      }
+    if (!authState.isLoading && !authState.isAuthenticated) {
+      window.location.href = "/login?redirect=/checkout";
     }
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [])
+  }, [authState.isLoading, authState.isAuthenticated]);
 
-  // Debounced search — 400ms
+  // Fetch initial data + saved contact
   useEffect(() => {
-    const trimmed = searchQuery.trim()
-    if (!trimmed) {
-      setSearchResults([])
-      setShowSearchResults(false)
-      return
-    }
-    const timer = setTimeout(async () => {
+    if (!authState.isAuthenticated) return;
+
+    const fetchData = async () => {
       try {
-        const response = await api.get(`/search?q=${encodeURIComponent(trimmed)}`)
-        if (response.data.status) {
-          const data = response.data.data
-          const results = Array.isArray(data) ? data : data?.data || []
-          setSearchResults(results)
-          setShowSearchResults(true)
+        const [summaryRes, pmRes, citiesRes, contactRes] = await Promise.all([
+          api.get("/summary"),
+          api.get("/payment-methods"),
+          api.get("/shipping/cities"),
+          api.get("/contact").catch(() => null),
+        ]);
+
+        if (summaryRes.data.status) setSummary(summaryRes.data.data);
+        if (pmRes.data.status && Array.isArray(pmRes.data.data)) {
+          setPaymentMethods(pmRes.data.data);
+          if (pmRes.data.data.length > 0) setPaymentMethod(pmRes.data.data[0].id);
+        }
+        if (citiesRes.data.status) {
+          setCities(Array.isArray(citiesRes.data.data) ? citiesRes.data.data : []);
+        }
+
+        // Auto-fill saved contact/address
+        if (contactRes?.data?.status && contactRes.data.data) {
+          const saved = contactRes.data.data;
+          setFormData((prev) => ({
+            address: saved.address || prev.address,
+            phone: saved.phone || prev.phone,
+            order_note: saved.order_note || prev.order_note,
+          }));
         }
       } catch {
-        setSearchResults([])
+        toast.error("خطأ في تحميل البيانات");
       }
-    }, 400)
-    return () => clearTimeout(timer)
-  }, [searchQuery])
+    };
+    fetchData();
+  }, [authState.isAuthenticated]);
 
-  const handleSearchSubmit = () => {
-    const q = searchQuery.trim()
-    if (!q) return
-    setSearchResults([])
-    setShowSearchResults(false)
-    router.push(`/products?q=${encodeURIComponent(q)}`)
-  }
+  // Click outside to close city dropdown
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (cityRef.current && !cityRef.current.contains(e.target as Node)) setCityOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
 
-  const handleSearchKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      e.preventDefault()
-      handleSearchSubmit()
+  const handleCitySelect = async (city: ShippingCity) => {
+    setSelectedCity(city);
+    setCityOpen(false);
+    setCitySearch("");
+    try {
+      const fd = new FormData();
+      fd.append("vsoft_city_id", String(city.id));
+      const res = await api.post("/summary", fd);
+      if (res.data.status) setSummary(res.data.data);
+    } catch {
+      toast.error("خطأ في تطبيق منطقة الشحن");
     }
-  }
+  };
 
-  const handleSearchSelect = (id: number | string) => {
-    setSearchQuery('')
-    setSearchResults([])
-    setShowSearchResults(false)
-    router.push(`/product/${id}`)
-  }
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    if (name === "phone") {
+      setFormData((prev) => ({ ...prev, [name]: value.replace(/[^0-9]/g, "") }));
+    } else {
+      setFormData((prev) => ({ ...prev, [name]: value }));
+    }
+  };
 
-  const handleLogout = async () => {
-    await logout()
-    setUserMenuOpen(false)
-    router.push('/')
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (isSubmitting) return;
+    if (!selectedCity) {
+      toast.error("اختر المدينة");
+      return;
+    }
+    if (formData.phone.length < 10) {
+      toast.error("رقم هاتف غير صحيح");
+      return;
+    }
+    if (formData.address.trim().length < 8) {
+      toast.error("العنوان يجب أن يكون 8 أحرف على الأقل");
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      // Step 1: Contact info
+      await api.post("/contact", {
+        address: formData.address,
+        phone: formData.phone,
+        order_note: formData.order_note,
+      });
+
+      // Step 2: Checkout
+      const fd = new FormData();
+      fd.append("payment_method_id", String(paymentMethod));
+      const checkoutRes = await api.post("/checkout", fd);
+
+      if (checkoutRes.data.status) {
+        const { redirect_url } = checkoutRes.data.data || {};
+        await refreshCart();
+
+        if (redirect_url && redirect_url.trim()) {
+          // Payment gateway redirect
+          window.location.href = redirect_url;
+        } else {
+          // Cash on delivery
+          toast.success("تم الطلب بنجاح!");
+          setTimeout(() => router.push("/account/orders"), 1500);
+        }
+      } else {
+        toast.error(checkoutRes.data.message || "خطأ في إتمام الطلب");
+      }
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || "حدث خطأ في إتمام الطلب");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const filteredCities = cities.filter((c) =>
+    c.name.toLowerCase().includes(citySearch.toLowerCase()),
+  );
+
+  if (authState.isLoading) {
+    return (
+      <div className="max-w-5xl mx-auto px-4 py-12 flex justify-center">
+        <div className="animate-spin w-8 h-8 border-3 border-primary border-t-transparent rounded-full" />
+      </div>
+    );
   }
 
   return (
-    <header className="sticky top-0 z-[99] bg-white" style={{ borderBottom: '1px solid var(--color-border)' }}>
-      <div className="max-w-[1280px] mx-auto flex items-center gap-5" style={{ height: 66, padding: '0 32px' }}>
-        {/* Logo */}
-        <Link href="/" className="flex-shrink-0">
-          <span style={{ fontSize: 28, fontWeight: 800, color: '#111', letterSpacing: '-2px' }}>TIX</span>
-        </Link>
+    <div className="max-w-5xl mx-auto px-4 py-6 md:py-10">
+      <h1 className="text-xl md:text-2xl font-bold mb-6">إتمام الشراء</h1>
 
-        {/* Search Bar — Desktop */}
-        <div ref={searchRef} className="hidden md:flex flex-1 relative" style={{ maxWidth: 600 }}>
-          <div className="relative w-full">
-            <input
-              type="text"
-              placeholder="ابحث عن منتجات..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyDown={handleSearchKeyDown}
-              className="w-full bg-white text-[#111] outline-none placeholder:text-[#9ca3af]"
-              style={{
-                height: 40,
-                border: '1.5px solid var(--color-border-strong)',
-                borderRadius: 8,
-                paddingInlineStart: 12,
-                paddingInlineEnd: 40,
-                fontSize: 14,
-              }}
-            />
-            <button
-              type="button"
-              onClick={handleSearchSubmit}
-              className="absolute top-1/2 -translate-y-1/2 hover:opacity-70 transition-opacity"
-              style={{ insetInlineEnd: 8, padding: 4, cursor: 'pointer', background: 'none', border: 'none' }}
-              aria-label="بحث"
-            >
-              <Search style={{ width: 18, height: 18, color: '#9ca3af' }} />
-            </button>
-          </div>
-
-          {/* Search Results Dropdown */}
-          {showSearchResults && searchQuery.trim() && (
+      {/* Steps */}
+      <div className="flex items-center justify-center gap-2 md:gap-4 mb-8">
+        {[
+          { icon: ShoppingBag, label: "السلة", done: true },
+          { icon: MapPin, label: "الشحن", done: true },
+          { icon: CreditCard, label: "الدفع", done: false },
+        ].map((step, i) => (
+          <div key={i} className="flex items-center gap-2">
             <div
-              className="absolute top-full mt-1.5 w-full max-h-80 overflow-y-auto z-50 bg-white animate-slide-down"
-              style={{ borderRadius: 10, boxShadow: '0 8px 24px rgba(0,0,0,0.12)', border: '1px solid var(--color-border)' }}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium ${
+                step.done ? "bg-success/10 text-success" : "bg-surface-2 text-text-muted"
+              }`}
             >
-              {searchResults.length > 0 ? (
-                <>
-                  {searchResults.map((item: any) => (
-                    <button
-                      key={item.id}
-                      onClick={() => handleSearchSelect(item.id)}
-                      className="w-full text-right flex items-center gap-3 hover:bg-[#f9f9f9] transition-colors"
-                      style={{ padding: '10px 14px', borderBottom: '1px solid #f3f4f6' }}
-                    >
-                      <Search style={{ width: 14, height: 14, color: '#9ca3af', flexShrink: 0 }} />
-                      <span className="truncate" style={{ fontSize: 13, color: '#111' }}>{item.name}</span>
-                    </button>
-                  ))}
-                  <button
-                    onClick={handleSearchSubmit}
-                    className="w-full text-center hover:bg-[#f9f9f9] transition-colors"
-                    style={{ padding: '12px 14px', fontSize: 13, color: 'var(--color-primary)', fontWeight: 600, borderTop: '1px solid #f3f4f6' }}
-                  >
-                    عرض كل النتائج لـ "{searchQuery.trim()}"
-                  </button>
-                </>
+              {step.done ? (
+                <CheckCircle className="w-3.5 h-3.5" />
               ) : (
-                <div className="text-center" style={{ padding: '20px 14px' }}>
-                  <p style={{ color: '#9ca3af', fontSize: 13, marginBottom: 8 }}>
-                    لا توجد نتائج لـ "{searchQuery.trim()}"
-                  </p>
-                  <button
-                    onClick={handleSearchSubmit}
-                    style={{ color: 'var(--color-primary)', fontSize: 13, fontWeight: 500 }}
-                    className="hover:underline"
-                  >
-                    البحث في كل المنتجات
-                  </button>
-                </div>
+                <step.icon className="w-3.5 h-3.5" />
               )}
+              <span className="hidden sm:inline">{step.label}</span>
             </div>
-          )}
-        </div>
-
-        {/* Right Actions */}
-        <div className="flex items-center gap-1">
-          {/* User */}
-          {authState.isAuthenticated ? (
-            <div ref={userMenuRef} className="relative">
-              <button
-                onClick={() => setUserMenuOpen(!userMenuOpen)}
-                className="flex items-center justify-center hover:bg-[#f3f4f6] transition-colors"
-                style={{ width: 38, height: 38, borderRadius: 8 }}
-              >
-                <User style={{ width: 20, height: 20, color: '#111' }} />
-              </button>
-              {userMenuOpen && (
-                <div
-                  className="absolute start-0 top-full mt-1.5 w-56 z-50 bg-white animate-slide-down overflow-hidden"
-                  style={{ borderRadius: 10, boxShadow: '0 8px 24px rgba(0,0,0,0.12)', border: '1px solid var(--color-border)' }}
-                >
-                  <div style={{ padding: '12px 14px', borderBottom: '1px solid var(--color-border)' }}>
-                    <p className="truncate" style={{ fontSize: 14, fontWeight: 600, color: '#111' }}>
-                      {authState.user?.name}
-                    </p>
-                    <p className="truncate" dir="ltr" style={{ fontSize: 12, color: '#9ca3af', marginTop: 2 }}>
-                      {authState.user?.email}
-                    </p>
-                  </div>
-                  {[
-                    { href: '/account', label: 'حسابي', icon: UserCircle },
-                    { href: '/account/orders', label: 'طلباتي', icon: Package },
-                    { href: '/account/returns', label: 'الإرجاع', icon: RotateCcw },
-                    { href: '/account/reviews', label: 'التقييمات', icon: Star },
-                  ].map(item => (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      onClick={() => setUserMenuOpen(false)}
-                      className="flex items-center gap-3 hover:bg-[#f9f9f9] transition-colors"
-                      style={{ padding: '10px 14px', fontSize: 13, color: '#4b5563' }}
-                    >
-                      <item.icon style={{ width: 16, height: 16 }} />
-                      {item.label}
-                    </Link>
-                  ))}
-                  <button
-                    onClick={handleLogout}
-                    className="flex items-center gap-3 w-full hover:bg-[#fef2f2] transition-colors"
-                    style={{ padding: '10px 14px', fontSize: 13, color: '#dc2626', borderTop: '1px solid var(--color-border)' }}
-                  >
-                    <LogOut style={{ width: 16, height: 16 }} />
-                    تسجيل الخروج
-                  </button>
-                </div>
-              )}
-            </div>
-          ) : (
-            <Link
-              href="/login"
-              className="flex items-center justify-center hover:bg-[#f3f4f6] transition-colors"
-              style={{ width: 38, height: 38, borderRadius: 8 }}
-              aria-label="تسجيل الدخول"
-            >
-              <User style={{ width: 20, height: 20, color: '#111' }} />
-            </Link>
-          )}
-
-          {/* Wishlist */}
-          <Link
-            href="/account/wishlist"
-            className="flex items-center justify-center hover:bg-[#f3f4f6] transition-colors"
-            style={{ width: 38, height: 38, borderRadius: 8 }}
-            aria-label="المفضلة"
-          >
-            <Heart style={{ width: 20, height: 20, color: '#111' }} />
-          </Link>
-
-          {/* Cart */}
-          <Link
-            href="/cart"
-            className="relative flex items-center justify-center hover:bg-[#f3f4f6] transition-colors"
-            style={{ width: 38, height: 38, borderRadius: 8 }}
-            aria-label="السلة"
-          >
-            <ShoppingCart style={{ width: 20, height: 20, color: '#111' }} />
-            {cartState.count > 0 && (
-              <span
-                className="absolute flex items-center justify-center font-montserrat"
-                style={{
-                  top: 2, insetInlineEnd: 2,
-                  minWidth: 17, height: 17,
-                  borderRadius: '50%',
-                  backgroundColor: '#111',
-                  color: '#fff',
-                  fontSize: 10,
-                  fontWeight: 700,
-                  lineHeight: 1,
-                }}
-              >
-                {cartState.count > 99 ? '99+' : cartState.count}
-              </span>
-            )}
-          </Link>
-
-          {/* Mobile Menu Toggle */}
-          <button
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="md:hidden flex items-center justify-center hover:bg-[#f3f4f6] transition-colors"
-            style={{ width: 38, height: 38, borderRadius: 8 }}
-            aria-label="القائمة"
-          >
-            {mobileMenuOpen ? <X style={{ width: 20, height: 20 }} /> : <Menu style={{ width: 20, height: 20 }} />}
-          </button>
-        </div>
-      </div>
-
-      {/* Mobile Search */}
-      <div className="md:hidden" style={{ padding: '0 16px 12px' }}>
-        <div className="relative">
-          <input
-            type="text"
-            placeholder="ابحث عن منتجات..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            onKeyDown={handleSearchKeyDown}
-            className="w-full bg-white text-[#111] outline-none placeholder:text-[#9ca3af]"
-            style={{
-              height: 40,
-              border: '1.5px solid var(--color-border-strong)',
-              borderRadius: 8,
-              paddingInlineStart: 12,
-              paddingInlineEnd: 40,
-              fontSize: 14,
-            }}
-          />
-          <button
-            type="button"
-            onClick={handleSearchSubmit}
-            className="absolute top-1/2 -translate-y-1/2"
-            style={{ insetInlineEnd: 8, padding: 4, cursor: 'pointer', background: 'none', border: 'none' }}
-            aria-label="بحث"
-          >
-            <Search style={{ width: 18, height: 18, color: '#9ca3af' }} />
-          </button>
-        </div>
-      </div>
-
-      {/* Mobile Menu */}
-      {mobileMenuOpen && (
-        <nav className="md:hidden animate-slide-down" style={{ borderTop: '1px solid var(--color-border)', padding: '12px 16px' }}>
-          <div className="flex flex-col gap-1">
-            {[
-              { href: '/', label: 'الرئيسية' },
-              { href: '/products', label: 'المنتجات' },
-              { href: '/offers', label: 'العروض' },
-              { href: '/about', label: 'من نحن' },
-              { href: '/contact', label: 'تواصل معنا' },
-            ].map(link => (
-              <Link
-                key={link.href}
-                href={link.href}
-                onClick={() => setMobileMenuOpen(false)}
-                className="rounded-md hover:bg-[#f9f9f9] transition-colors"
-                style={{ padding: '10px 12px', fontSize: 14, fontWeight: 500, color: '#111' }}
-              >
-                {link.label}
-              </Link>
-            ))}
-            {!authState.isAuthenticated && (
-              <Link
-                href="/login"
-                onClick={() => setMobileMenuOpen(false)}
-                className="btn-action text-center"
-                style={{ marginTop: 8 }}
-              >
-                تسجيل الدخول
-              </Link>
-            )}
-            {authState.isAuthenticated && (
-              <button
-                onClick={() => { handleLogout(); setMobileMenuOpen(false) }}
-                className="rounded-md text-right"
-                style={{ padding: '10px 12px', fontSize: 14, fontWeight: 500, color: '#dc2626' }}
-              >
-                تسجيل الخروج
-              </button>
-            )}
+            {i < 2 && <div className="w-8 h-px bg-border" />}
           </div>
-        </nav>
-      )}
-    </header>
-  )
+        ))}
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Form */}
+        <div className="lg:col-span-2">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Shipping */}
+            <div className="card p-5">
+              <h3 className="font-bold flex items-center gap-2 mb-4">
+                <MapPin className="w-5 h-5 text-primary" />
+                معلومات الشحن
+              </h3>
+
+              {/* City Dropdown */}
+              <div className="mb-4" ref={cityRef}>
+                <label className="text-sm font-medium mb-1.5 block">المدينة *</label>
+                <button
+                  type="button"
+                  className="input-field flex items-center justify-between !py-3"
+                  onClick={() => setCityOpen(!cityOpen)}
+                >
+                  <span className={selectedCity ? "text-text" : "text-text-faint"}>
+                    {selectedCity ? selectedCity.name : "اختر المدينة"}
+                  </span>
+                  {cityOpen ? (
+                    <ChevronUp className="w-4 h-4" />
+                  ) : (
+                    <ChevronDown className="w-4 h-4" />
+                  )}
+                </button>
+                {cityOpen && (
+                  <div className="mt-1 bg-surface border border-border rounded-xl shadow-card-hover max-h-52 overflow-hidden z-20 relative">
+                    <div className="p-2 border-b border-divider">
+                      <div className="relative">
+                        <input
+                          type="text"
+                          value={citySearch}
+                          onChange={(e) => setCitySearch(e.target.value)}
+                          placeholder="ابحث عن المدينة..."
+                          className="input-field !py-2 pr-3 pl-8 text-sm"
+                          autoFocus
+                        />
+                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-text-faint" />
+                      </div>
+                    </div>
+                    <div className="max-h-40 overflow-y-auto">
+                      {filteredCities.map((city) => (
+                        <button
+                          key={city.id}
+                          type="button"
+                          className={`w-full text-right px-4 py-2.5 text-sm hover:bg-surface-2 transition-colors flex justify-between ${
+                            selectedCity?.id === city.id ? "bg-primary-light text-primary" : ""
+                          }`}
+                          onClick={() => handleCitySelect(city)}
+                        >
+                          <span>{city.name}</span>
+                          <span className="text-text-muted">{formatCurrency(city.price)}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="mb-4">
+                <label className="text-sm font-medium mb-1.5 block">العنوان *</label>
+                <input
+                  type="text"
+                  name="address"
+                  value={formData.address}
+                  onChange={handleInputChange}
+                  placeholder="العنوان بالتفصيل (8 أحرف على الأقل)"
+                  className="input-field"
+                  required
+                />
+              </div>
+
+              <div className="mb-4">
+                <label className="text-sm font-medium mb-1.5 block">رقم الهاتف *</label>
+                <input
+                  type="tel"
+                  name="phone"
+                  value={formData.phone}
+                  onChange={handleInputChange}
+                  placeholder="رقم الهاتف (أرقام فقط)"
+                  className="input-field"
+                  required
+                  dir="ltr"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium mb-1.5 block">ملاحظات (اختياري)</label>
+                <textarea
+                  name="order_note"
+                  value={formData.order_note}
+                  onChange={handleInputChange}
+                  placeholder="أي ملاحظات خاصة بالطلب..."
+                  className="input-field !py-2"
+                  rows={3}
+                />
+              </div>
+            </div>
+
+            {/* Payment */}
+            <div className="card p-5">
+              <h3 className="font-bold flex items-center gap-2 mb-4">
+                <CreditCard className="w-5 h-5 text-primary" />
+                طريقة الدفع
+              </h3>
+              <div className="space-y-2.5">
+                {paymentMethods.map((method) => (
+                  <label
+                    key={method.id}
+                    className={`flex items-center gap-3 p-3.5 border rounded-xl cursor-pointer transition-all ${
+                      paymentMethod === method.id
+                        ? "border-primary bg-primary-light"
+                        : "border-border hover:border-text-faint"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="payment"
+                      value={method.id}
+                      checked={paymentMethod === method.id}
+                      onChange={() => setPaymentMethod(method.id)}
+                      className="w-4 h-4 text-primary accent-primary"
+                    />
+                    <div>
+                      <p className="text-sm font-medium">{method.name}</p>
+                      {method.description && (
+                        <p className="text-xs text-text-muted mt-0.5">{method.description}</p>
+                      )}
+                    </div>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              className="btn-primary w-full !py-4 text-base"
+              disabled={
+                isSubmitting ||
+                !selectedCity ||
+                !paymentMethod ||
+                !formData.address.trim() ||
+                !formData.phone.trim()
+              }
+            >
+              {isSubmitting ? "جاري المعالجة..." : "تأكيد الطلب"}
+            </button>
+          </form>
+        </div>
+
+        {/* Order Summary */}
+        <div className="lg:col-span-1">
+          <div className="card p-5 sticky top-24">
+            <h3 className="font-bold flex items-center gap-2 mb-4">
+              <ShoppingBag className="w-5 h-5 text-primary" />
+              ملخص الطلب
+            </h3>
+
+            {summary && (
+              <div className="space-y-3 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-text-muted">المجموع الفرعي</span>
+                  <span>{formatCurrency(summary.subtotal)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-text-muted">الشحن</span>
+                  <span>
+                    {summary.shipping_zone ? formatCurrency(summary.shipping_zone.price) : "—"}
+                  </span>
+                </div>
+                {summary.shipping_zone?.name && (
+                  <div className="flex justify-between">
+                    <span className="text-text-muted">المنطقة</span>
+                    <span>{summary.shipping_zone.name}</span>
+                  </div>
+                )}
+                {summary.discount > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-text-muted">الخصم</span>
+                    <span className="text-success">-{formatCurrency(summary.discount)}</span>
+                  </div>
+                )}
+                <div className="flex justify-between font-bold text-base pt-3 border-t border-divider">
+                  <span>الإجمالي</span>
+                  <span className="text-primary">{formatCurrency(summary.total)}</span>
+                </div>
+              </div>
+            )}
+
+            <div className="flex items-center gap-2 text-text-muted text-xs mt-4 p-3 bg-surface-2 rounded-xl">
+              <Truck className="w-4 h-4 text-primary flex-shrink-0" />
+              <span>التوصيل خلال 2-3 أيام عمل</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }
