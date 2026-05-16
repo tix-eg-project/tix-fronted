@@ -1,31 +1,62 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import { useCart } from '@/context/CartContext'
 import { useAuth } from '@/context/AuthContext'
 import {
-  Search, ShoppingCart, User, Heart, Menu, X,
-  ChevronDown, LogOut, Package, UserCircle, Star, RotateCcw
+  Search, ShoppingCart, User, Menu, X, Heart,
+  ChevronDown, LogOut, Package, UserCircle
 } from 'lucide-react'
 import api from '@/lib/api'
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import CategoryBar from './CategoryBar'
+
+// Arabic synonym groups — so "هاتف" also finds "موبايل" etc.
+const synonymGroups: string[][] = [
+  ['هاتف', 'موبايل', 'تليفون', 'تلفون', 'جوال', 'محمول', 'phone', 'mobile'],
+  ['لابتوب', 'لاب توب', 'حاسوب', 'كمبيوتر', 'laptop', 'computer'],
+  ['سماعة', 'سماعات', 'هيدفون', 'ايربودز', 'earbuds', 'headphone'],
+  ['شاحن', 'شواحن', 'charger'],
+  ['ساعة', 'ساعات', 'watch', 'سمارت واتش'],
+  ['تابلت', 'تاب', 'tablet', 'ipad', 'ايباد'],
+  ['شاشة', 'شاشات', 'تلفزيون', 'تليفزيون', 'tv', 'screen'],
+]
+
+// Find synonyms for a word
+function getSynonyms(word: string): string[] {
+  const lower = word.toLowerCase()
+  for (const group of synonymGroups) {
+    if (group.some(s => s === lower || s === word)) {
+      return group.filter(s => s !== lower && s !== word)
+    }
+  }
+  return []
+}
 
 export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
-  const [searchResults, setSearchResults] = useState<any[]>([])
+  const [suggestions, setSuggestions] = useState<string[]>([])
   const [showSearchResults, setShowSearchResults] = useState(false)
+  const [hasSearched, setHasSearched] = useState(false)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const { state: cartState } = useCart()
   const { state: authState, logout } = useAuth()
   const router = useRouter()
+  const pathname = usePathname()
   const searchRef = useRef<HTMLDivElement>(null)
+  const mobileSearchRef = useRef<HTMLDivElement>(null)
   const userMenuRef = useRef<HTMLDivElement>(null)
 
-  // Click outside to close dropdowns
+  // Click outside to close
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
+        setShowSearchResults(false)
+      }
+      if (mobileSearchRef.current && !mobileSearchRef.current.contains(e.target as Node)) {
         setShowSearchResults(false)
       }
       if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
@@ -36,50 +67,135 @@ export default function Header() {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  // Debounced search — 400ms
+  // Debounced smart search with synonyms and suggestions
   useEffect(() => {
-    const trimmed = searchQuery.trim()
-    if (!trimmed) {
-      setSearchResults([])
+    if (!searchQuery.trim()) {
+      setSuggestions([])
+      setHasSearched(false)
       setShowSearchResults(false)
       return
     }
+
     const timer = setTimeout(async () => {
+      const query = searchQuery.trim()
+      let allProducts: any[] = []
+
+      // 1. Search with the original query
       try {
-        const response = await api.get(`/search?q=${encodeURIComponent(trimmed)}`)
-        if (response.data.status) {
-          const data = response.data.data
-          const results = Array.isArray(data) ? data : data?.data || []
-          setSearchResults(results)
-          setShowSearchResults(true)
+        const response = await api.get(`/search?q=${encodeURIComponent(query)}`)
+        const rawData = response.data?.data || response.data
+        const results = Array.isArray(rawData) ? rawData : Array.isArray(rawData?.data) ? rawData.data : []
+        allProducts = [...results]
+      } catch { /* silent */ }
+
+      // 2. If no results, try synonyms
+      if (allProducts.length === 0) {
+        const words = query.split(/\s+/)
+        for (const word of words) {
+          const syns = getSynonyms(word)
+          for (const syn of syns) {
+            const synQuery = query.replace(word, syn)
+            try {
+              const res = await api.get(`/search?q=${encodeURIComponent(synQuery)}`)
+              const rawData = res.data?.data || res.data
+              const results = Array.isArray(rawData) ? rawData : Array.isArray(rawData?.data) ? rawData.data : []
+              if (results.length > 0) {
+                allProducts = [...allProducts, ...results]
+                break // Found results with a synonym, stop trying
+              }
+            } catch { /* silent */ }
+          }
+          if (allProducts.length > 0) break
         }
-      } catch {
-        setSearchResults([])
       }
-    }, 400)
+
+      // 3. Build text suggestions from product names
+      if (allProducts.length > 0) {
+        const seen = new Set<string>()
+        const suggestionList: string[] = []
+
+        // First suggestion: the query itself (like Google shows)
+        suggestionList.push(query)
+        seen.add(query.toLowerCase())
+
+        // Extract unique meaningful suggestions from product names
+        for (const product of allProducts) {
+          const name: string = product.name || ''
+          if (!name) continue
+
+          // Add the full product name as a suggestion (shortened)
+          const shortName = name.length > 50 ? name.slice(0, 50) + '...' : name
+          const lowerName = shortName.toLowerCase()
+          if (!seen.has(lowerName)) {
+            seen.add(lowerName)
+            suggestionList.push(shortName)
+          }
+
+          // Extract query + brand-like combinations
+          // e.g. if query is "هاتف" and product is "هاتف سامسونج A15", suggest "هاتف سامسونج"
+          const words = name.split(/\s+/)
+          if (words.length >= 2) {
+            const combo = `${query} ${words.find(w => w.toLowerCase() !== query.toLowerCase() && w.length > 2) || ''}`.trim()
+            if (combo !== query && !seen.has(combo.toLowerCase())) {
+              seen.add(combo.toLowerCase())
+              suggestionList.push(combo)
+            }
+          }
+
+          if (suggestionList.length >= 10) break
+        }
+
+        setSuggestions(suggestionList)
+      } else {
+        setSuggestions([])
+      }
+
+      setHasSearched(true)
+      setShowSearchResults(true)
+    }, 350)
+
     return () => clearTimeout(timer)
   }, [searchQuery])
 
-  const handleSearchSubmit = () => {
-    const q = searchQuery.trim()
-    if (!q) return
-    setSearchResults([])
+  const handleSuggestionClick = (suggestion: string) => {
+    setSearchQuery('')
+    setSuggestions([])
     setShowSearchResults(false)
-    router.push(`/products?q=${encodeURIComponent(q)}`)
+    setHasSearched(false)
+    router.push(`/products?search=${encodeURIComponent(suggestion)}`)
   }
 
-  const handleSearchKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      e.preventDefault()
-      handleSearchSubmit()
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (searchQuery.trim()) {
+      setShowSearchResults(false)
+      router.push(`/products?search=${encodeURIComponent(searchQuery.trim())}`)
     }
   }
 
-  const handleSearchSelect = (id: number | string) => {
-    setSearchQuery('')
-    setSearchResults([])
-    setShowSearchResults(false)
-    router.push(`/product/${id}`)
+  // Search dropdown component — text suggestions only (like Google)
+  const SearchDropdown = () => {
+    if (!showSearchResults || !searchQuery.trim()) return null
+    return (
+      <div className="absolute top-full mt-1 w-full max-h-96 overflow-y-auto z-50 bg-white border border-gray-200 rounded-lg shadow-lg">
+        {suggestions.length > 0 ? (
+          suggestions.map((suggestion, index) => (
+            <button
+              key={index}
+              onClick={() => handleSuggestionClick(suggestion)}
+              className="w-full text-right px-4 py-3 flex items-center gap-3 hover:bg-gray-100 transition-colors border-b border-gray-100 last:border-0"
+            >
+              <Search className="w-4 h-4 flex-shrink-0 text-gray-400" />
+              <span className="text-sm text-gray-900">{suggestion}</span>
+            </button>
+          ))
+        ) : hasSearched ? (
+          <div className="px-4 py-5 text-center">
+            <p className="text-sm text-gray-500">لا يوجد هذا المنتج</p>
+          </div>
+        ) : null}
+      </div>
+    )
   }
 
   const handleLogout = async () => {
@@ -88,276 +204,122 @@ export default function Header() {
     router.push('/')
   }
 
-  return (
-    <header className="sticky top-0 z-[99] bg-white" style={{ borderBottom: '1px solid var(--color-border)' }}>
-      <div className="max-w-[1280px] mx-auto flex items-center gap-5" style={{ height: 66, padding: '0 32px' }}>
-        {/* Logo */}
-        <Link href="/" className="flex-shrink-0">
-          <span style={{ fontSize: 28, fontWeight: 800, color: '#111', letterSpacing: '-2px' }}>TIX</span>
-        </Link>
+  const navLinks = [
+    { href: '/', label: 'الرئيسية' },
+    { href: '/products', label: 'المنتجات' },
+    { href: '/offers', label: 'العروض' },
+    { href: '/about', label: 'من نحن' },
+    { href: '/contact', label: 'تواصل معنا' },
+  ]
 
-        {/* Search Bar — Desktop */}
-        <div ref={searchRef} className="hidden md:flex flex-1 relative" style={{ maxWidth: 600 }}>
-          <div className="relative w-full">
-            <input
-              type="text"
+  const isAuthPage = pathname === '/login' || pathname === '/register' || pathname === '/forgot-password'
+  if (isAuthPage) return null
+
+  return (
+    <header className="bg-white text-black border-b border-gray-200">
+      <div className="container mx-auto px-4">
+        <div className="flex items-center justify-between py-4 gap-4">
+          {/* Logo on the left */}
+          <Link href="/" className="flex items-center gap-2 flex-shrink-0">
+            <span className="text-2xl font-bold text-black">TIX</span>
+          </Link>
+
+          {/* Search Bar in the middle */}
+          <div ref={searchRef} className="hidden md:flex flex-1 max-w-xl relative">
+            <form onSubmit={handleSearchSubmit} className="relative w-full">
+              <Input
+                type="search"
+                placeholder="ابحث عن منتجات..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onFocus={() => { if (searchQuery.trim() && hasSearched) setShowSearchResults(true) }}
+                className="w-full bg-white border border-gray-400 text-black placeholder:text-gray-500 pr-10 focus-visible:border-black focus-visible:ring-0"
+              />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-600" />
+            </form>
+            {/* Search Results Dropdown */}
+            <SearchDropdown />
+          </div>
+
+          {/* Right side icons */}
+          <div className="flex items-center gap-4 flex-shrink-0">
+            {authState.isAuthenticated ? (
+              <div ref={userMenuRef} className="relative">
+                <button
+                  onClick={() => setUserMenuOpen(!userMenuOpen)}
+                  className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors"
+                >
+                  <User className="h-5 w-5" />
+                  <span className="text-sm font-semibold hidden sm:inline">{authState.user?.name}</span>
+                  <ChevronDown className="h-4 w-4 hidden md:block" />
+                </button>
+                {userMenuOpen && (
+                  <div className="absolute top-full left-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-lg z-50 min-w-48 overflow-hidden">
+                    <div className="px-4 py-3 border-b border-gray-100">
+                      <p className="text-sm font-semibold text-gray-900 truncate">{authState.user?.name}</p>
+                      <p className="text-xs text-gray-500 truncate" dir="ltr">{authState.user?.email}</p>
+                    </div>
+                    <Link href="/account" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2 px-4 py-2 text-sm hover:bg-gray-100">
+                      <UserCircle className="h-4 w-4" />
+                      حسابي
+                    </Link>
+                    <Link href="/account/orders" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2 px-4 py-2 text-sm hover:bg-gray-100">
+                      <Package className="h-4 w-4" />
+                      طلباتي
+                    </Link>
+                    <button
+                      onClick={handleLogout}
+                      className="w-full text-right px-4 py-2 text-sm hover:bg-gray-100 flex items-center gap-2 text-red-600 border-top border-gray-100"
+                    >
+                      <LogOut className="h-4 w-4" />
+                      تسجيل الخروج
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <Link href="/login">
+                <Button variant="ghost" size="icon" className="text-black hover:bg-gray-100">
+                  <User className="h-5 w-5" />
+                </Button>
+              </Link>
+            )}
+            <Link href="/wishlist">
+              <Button variant="ghost" size="icon" className="text-black hover:bg-gray-100">
+                <Heart className="h-5 w-5" />
+              </Button>
+            </Link>
+            <Link href="/cart">
+              <Button variant="ghost" size="icon" className="text-black hover:bg-gray-100 relative">
+                <ShoppingCart className="h-5 w-5" />
+                {cartState.count > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-primary text-white text-[10px] font-bold rounded-full h-4 w-4 flex items-center justify-center">
+                    {cartState.count > 99 ? '99+' : cartState.count}
+                  </span>
+                )}
+              </Button>
+            </Link>
+          </div>
+        </div>
+
+        {/* Mobile Search */}
+        <div ref={mobileSearchRef} className="md:hidden pb-4 relative">
+          <form onSubmit={handleSearchSubmit} className="relative">
+            <Input
+              type="search"
               placeholder="ابحث عن منتجات..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyDown={handleSearchKeyDown}
-              className="w-full bg-white text-[#111] outline-none placeholder:text-[#9ca3af]"
-              style={{
-                height: 40,
-                border: '1.5px solid var(--color-border-strong)',
-                borderRadius: 8,
-                paddingInlineStart: 12,
-                paddingInlineEnd: 40,
-                fontSize: 14,
-              }}
+              onFocus={() => { if (searchQuery.trim() && hasSearched) setShowSearchResults(true) }}
+              className="w-full bg-white border border-gray-300 focus-visible:border-black focus-visible:ring-0"
             />
-            <button
-              type="button"
-              onClick={handleSearchSubmit}
-              className="absolute top-1/2 -translate-y-1/2 hover:opacity-70 transition-opacity"
-              style={{ insetInlineEnd: 8, padding: 4, cursor: 'pointer', background: 'none', border: 'none' }}
-              aria-label="بحث"
-            >
-              <Search style={{ width: 18, height: 18, color: '#9ca3af' }} />
-            </button>
-          </div>
-
-          {/* Search Results Dropdown */}
-          {showSearchResults && searchQuery.trim() && (
-            <div
-              className="absolute top-full mt-1.5 w-full max-h-80 overflow-y-auto z-50 bg-white animate-slide-down"
-              style={{ borderRadius: 10, boxShadow: '0 8px 24px rgba(0,0,0,0.12)', border: '1px solid var(--color-border)' }}
-            >
-              {searchResults.length > 0 ? (
-                <>
-                  {searchResults.map((item: any) => (
-                    <button
-                      key={item.id}
-                      onClick={() => handleSearchSelect(item.id)}
-                      className="w-full text-right flex items-center gap-3 hover:bg-[#f9f9f9] transition-colors"
-                      style={{ padding: '10px 14px', borderBottom: '1px solid #f3f4f6' }}
-                    >
-                      <Search style={{ width: 14, height: 14, color: '#9ca3af', flexShrink: 0 }} />
-                      <span className="truncate" style={{ fontSize: 13, color: '#111' }}>{item.name}</span>
-                    </button>
-                  ))}
-                  <button
-                    onClick={handleSearchSubmit}
-                    className="w-full text-center hover:bg-[#f9f9f9] transition-colors"
-                    style={{ padding: '12px 14px', fontSize: 13, color: 'var(--color-primary)', fontWeight: 600, borderTop: '1px solid #f3f4f6' }}
-                  >
-                    عرض كل النتائج لـ "{searchQuery.trim()}"
-                  </button>
-                </>
-              ) : (
-                <div className="text-center" style={{ padding: '20px 14px' }}>
-                  <p style={{ color: '#9ca3af', fontSize: 13, marginBottom: 8 }}>
-                    لا توجد نتائج لـ "{searchQuery.trim()}"
-                  </p>
-                  <button
-                    onClick={handleSearchSubmit}
-                    style={{ color: 'var(--color-primary)', fontSize: 13, fontWeight: 500 }}
-                    className="hover:underline"
-                  >
-                    البحث في كل المنتجات
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Right Actions */}
-        <div className="flex items-center gap-1">
-          {/* User */}
-          {authState.isAuthenticated ? (
-            <div ref={userMenuRef} className="relative">
-              <button
-                onClick={() => setUserMenuOpen(!userMenuOpen)}
-                className="flex items-center justify-center hover:bg-[#f3f4f6] transition-colors"
-                style={{ width: 38, height: 38, borderRadius: 8 }}
-              >
-                <User style={{ width: 20, height: 20, color: '#111' }} />
-              </button>
-              {userMenuOpen && (
-                <div
-                  className="absolute start-0 top-full mt-1.5 w-56 z-50 bg-white animate-slide-down overflow-hidden"
-                  style={{ borderRadius: 10, boxShadow: '0 8px 24px rgba(0,0,0,0.12)', border: '1px solid var(--color-border)' }}
-                >
-                  <div style={{ padding: '12px 14px', borderBottom: '1px solid var(--color-border)' }}>
-                    <p className="truncate" style={{ fontSize: 14, fontWeight: 600, color: '#111' }}>
-                      {authState.user?.name}
-                    </p>
-                    <p className="truncate" dir="ltr" style={{ fontSize: 12, color: '#9ca3af', marginTop: 2 }}>
-                      {authState.user?.email}
-                    </p>
-                  </div>
-                  {[
-                    { href: '/account', label: 'حسابي', icon: UserCircle },
-                    { href: '/account/orders', label: 'طلباتي', icon: Package },
-                    { href: '/account/returns', label: 'الإرجاع', icon: RotateCcw },
-                    { href: '/account/reviews', label: 'التقييمات', icon: Star },
-                  ].map(item => (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      onClick={() => setUserMenuOpen(false)}
-                      className="flex items-center gap-3 hover:bg-[#f9f9f9] transition-colors"
-                      style={{ padding: '10px 14px', fontSize: 13, color: '#4b5563' }}
-                    >
-                      <item.icon style={{ width: 16, height: 16 }} />
-                      {item.label}
-                    </Link>
-                  ))}
-                  <button
-                    onClick={handleLogout}
-                    className="flex items-center gap-3 w-full hover:bg-[#fef2f2] transition-colors"
-                    style={{ padding: '10px 14px', fontSize: 13, color: '#dc2626', borderTop: '1px solid var(--color-border)' }}
-                  >
-                    <LogOut style={{ width: 16, height: 16 }} />
-                    تسجيل الخروج
-                  </button>
-                </div>
-              )}
-            </div>
-          ) : (
-            <Link
-              href="/login"
-              className="flex items-center justify-center hover:bg-[#f3f4f6] transition-colors"
-              style={{ width: 38, height: 38, borderRadius: 8 }}
-              aria-label="تسجيل الدخول"
-            >
-              <User style={{ width: 20, height: 20, color: '#111' }} />
-            </Link>
-          )}
-
-          {/* Wishlist */}
-          <Link
-            href="/account/wishlist"
-            className="flex items-center justify-center hover:bg-[#f3f4f6] transition-colors"
-            style={{ width: 38, height: 38, borderRadius: 8 }}
-            aria-label="المفضلة"
-          >
-            <Heart style={{ width: 20, height: 20, color: '#111' }} />
-          </Link>
-
-          {/* Cart */}
-          <Link
-            href="/cart"
-            className="relative flex items-center justify-center hover:bg-[#f3f4f6] transition-colors"
-            style={{ width: 38, height: 38, borderRadius: 8 }}
-            aria-label="السلة"
-          >
-            <ShoppingCart style={{ width: 20, height: 20, color: '#111' }} />
-            {cartState.count > 0 && (
-              <span
-                className="absolute flex items-center justify-center font-montserrat"
-                style={{
-                  top: 2, insetInlineEnd: 2,
-                  minWidth: 17, height: 17,
-                  borderRadius: '50%',
-                  backgroundColor: '#111',
-                  color: '#fff',
-                  fontSize: 10,
-                  fontWeight: 700,
-                  lineHeight: 1,
-                }}
-              >
-                {cartState.count > 99 ? '99+' : cartState.count}
-              </span>
-            )}
-          </Link>
-
-          {/* Mobile Menu Toggle */}
-          <button
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="md:hidden flex items-center justify-center hover:bg-[#f3f4f6] transition-colors"
-            style={{ width: 38, height: 38, borderRadius: 8 }}
-            aria-label="القائمة"
-          >
-            {mobileMenuOpen ? <X style={{ width: 20, height: 20 }} /> : <Menu style={{ width: 20, height: 20 }} />}
-          </button>
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
+          </form>
+          <SearchDropdown />
         </div>
       </div>
-
-      {/* Mobile Search */}
-      <div className="md:hidden" style={{ padding: '0 16px 12px' }}>
-        <div className="relative">
-          <input
-            type="text"
-            placeholder="ابحث عن منتجات..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            onKeyDown={handleSearchKeyDown}
-            className="w-full bg-white text-[#111] outline-none placeholder:text-[#9ca3af]"
-            style={{
-              height: 40,
-              border: '1.5px solid var(--color-border-strong)',
-              borderRadius: 8,
-              paddingInlineStart: 12,
-              paddingInlineEnd: 40,
-              fontSize: 14,
-            }}
-          />
-          <button
-            type="button"
-            onClick={handleSearchSubmit}
-            className="absolute top-1/2 -translate-y-1/2"
-            style={{ insetInlineEnd: 8, padding: 4, cursor: 'pointer', background: 'none', border: 'none' }}
-            aria-label="بحث"
-          >
-            <Search style={{ width: 18, height: 18, color: '#9ca3af' }} />
-          </button>
-        </div>
-      </div>
-
-      {/* Mobile Menu */}
-      {mobileMenuOpen && (
-        <nav className="md:hidden animate-slide-down" style={{ borderTop: '1px solid var(--color-border)', padding: '12px 16px' }}>
-          <div className="flex flex-col gap-1">
-            {[
-              { href: '/', label: 'الرئيسية' },
-              { href: '/products', label: 'المنتجات' },
-              { href: '/offers', label: 'العروض' },
-              { href: '/about', label: 'من نحن' },
-              { href: '/contact', label: 'تواصل معنا' },
-            ].map(link => (
-              <Link
-                key={link.href}
-                href={link.href}
-                onClick={() => setMobileMenuOpen(false)}
-                className="rounded-md hover:bg-[#f9f9f9] transition-colors"
-                style={{ padding: '10px 12px', fontSize: 14, fontWeight: 500, color: '#111' }}
-              >
-                {link.label}
-              </Link>
-            ))}
-            {!authState.isAuthenticated && (
-              <Link
-                href="/login"
-                onClick={() => setMobileMenuOpen(false)}
-                className="btn-action text-center"
-                style={{ marginTop: 8 }}
-              >
-                تسجيل الدخول
-              </Link>
-            )}
-            {authState.isAuthenticated && (
-              <button
-                onClick={() => { handleLogout(); setMobileMenuOpen(false) }}
-                className="rounded-md text-right"
-                style={{ padding: '10px 12px', fontSize: 14, fontWeight: 500, color: '#dc2626' }}
-              >
-                تسجيل الخروج
-              </button>
-            )}
-          </div>
-        </nav>
-      )}
+      <CategoryBar />
     </header>
   )
 }
+
