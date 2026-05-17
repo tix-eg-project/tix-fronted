@@ -48,30 +48,24 @@ export default function RegisterPage() {
   ]
 
   return (
-    <div className="flex flex-col min-h-screen bg-bg" dir="rtl">
-      <main className="flex-1 flex items-center justify-center py-16 px-4">
-        <div className="w-full max-w-md">
-          {/* Logo */}
-          <div className="flex justify-center mb-8">
-            <div className="bg-dark rounded-full p-3 w-16 h-16 flex items-center justify-center">
-              <span className="text-white font-bold text-2xl">TIX</span>
-            </div>
-          </div>
+    <div className="min-h-[80vh] flex items-center justify-center py-12 px-4">
+      <div className="w-full max-w-md">
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-primary mb-2">TIX</h1>
+          <p className="text-text-muted">أنشئ حسابك الجديد</p>
+        </div>
 
-          <h1 className="text-3xl font-bold text-center mb-2">إنشاء حساب جديد</h1>
-          <p className="text-center text-text-muted mb-8">سجل الآن وتمتع بمميزات حصرية</p>
-
-          <div className="bg-white rounded-lg border border-border p-8">
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <div className="card p-6 md:p-8">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             {fields.map((field) => (
               <div key={field.name}>
-                <label className="block text-sm font-semibold mb-2">{field.label}</label>
+                <label className="text-sm font-medium mb-1.5 block">{field.label}</label>
                 <div className="relative">
                   <input
                     type={field.type}
                     {...register(field.name)}
                     placeholder={field.placeholder}
-                    className="input-field text-sm pr-4 pl-10 focus:border-dark focus:shadow-none"
+                    className="input-field pr-4 pl-10"
                     dir={field.dir}
                   />
                   <field.icon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-text-faint" />
@@ -84,20 +78,20 @@ export default function RegisterPage() {
 
             {/* Password */}
             <div>
-              <label className="block text-sm font-semibold mb-2">كلمة المرور</label>
+              <label className="text-sm font-medium mb-1.5 block">كلمة المرور</label>
               <div className="relative">
                 <input
                   type={showPassword ? 'text' : 'password'}
                   {...register('password')}
                   placeholder="••••••••"
-                  className="input-field text-sm pr-10 pl-10 focus:border-dark focus:shadow-none"
+                  className="input-field pr-10 pl-10"
                   dir="ltr"
                 />
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-text-faint" />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-text-faint hover:text-text transition-colors"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-text-faint"
                 >
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
@@ -107,13 +101,13 @@ export default function RegisterPage() {
 
             {/* Confirm Password */}
             <div>
-              <label className="block text-sm font-semibold mb-2">تأكيد كلمة المرور</label>
+              <label className="text-sm font-medium mb-1.5 block">تأكيد كلمة المرور</label>
               <div className="relative">
                 <input
                   type={showPassword ? 'text' : 'password'}
                   {...register('confirmPassword')}
                   placeholder="••••••••"
-                  className="input-field text-sm pr-4 pl-10 focus:border-dark focus:shadow-none"
+                  className="input-field pr-4 pl-10"
                   dir="ltr"
                 />
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-text-faint" />
@@ -124,7 +118,7 @@ export default function RegisterPage() {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full h-12 rounded-lg bg-dark text-white hover:bg-dark-light transition-colors font-semibold flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed mt-6"
+              className="btn-primary w-full !py-3.5 flex items-center justify-center gap-2"
             >
               {isSubmitting ? (
                 <div className="animate-spin w-5 h-5 border-2 border-white border-t-transparent rounded-full" />
@@ -137,15 +131,31 @@ export default function RegisterPage() {
             </button>
           </form>
 
-          <p className="text-center text-sm text-text-muted mt-6">
-            لديك حساب بالفعل؟{' '}
-            <Link href="/login" className="text-dark hover:underline font-semibold">
-              تسجيل الدخول
+          <div className="text-center mt-6 space-y-4">
+            <p className="text-sm text-text-muted">
+              لديك حساب بالفعل؟{' '}
+              <Link href="/login" className="text-primary hover:underline font-medium">
+                تسجيل الدخول
+              </Link>
+            </p>
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-divider" />
+              </div>
+              <div className="relative flex justify-center">
+                <span className="bg-surface px-4 text-sm text-text-muted">أو</span>
+              </div>
+            </div>
+            <Link
+              href="/vendor/register"
+              className="w-full text-center flex items-center justify-center gap-2 !py-3 rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors font-medium text-sm"
+            >
+              <UserPlus className="w-5 h-5" />
+              انضم كتاجر
             </Link>
-          </p>
           </div>
         </div>
-      </main>
+      </div>
     </div>
   )
 }
