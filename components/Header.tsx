@@ -77,7 +77,8 @@ export default function Header() {
     { href: '/', label: 'الرئيسية' },
     { href: '/products', label: 'المنتجات' },
     { href: '/offers', label: 'العروض' },
-    
+    { href: '/about', label: 'من نحن' },
+    { href: '/contact', label: 'تواصل معنا' },
   ]
 
   const isAuthPage = pathname === '/login' || pathname === '/register' || pathname === '/forgot-password'
