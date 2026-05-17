@@ -1,13 +1,14 @@
 'use client'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { User, Package, Heart, LogOut, Settings } from 'lucide-react'
+import { User, Package, Heart, LogOut, Settings, RotateCcw } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 
 const sidebarLinks = [
   { href: '/account', label: 'بيانات شخصية', icon: User },
   { href: '/account/orders', label: 'طلباتي', icon: Package },
-  { href: '/wishlist', label: 'المفضلة', icon: Heart },
+  { href: '/account/wishlist', label: 'المفضلة', icon: Heart },
+  { href: '/account/returns', label: 'المرتجعات', icon: RotateCcw },
 ]
 
 export default function AccountLayout({ children }: { children: React.ReactNode }) {
@@ -31,7 +32,7 @@ export default function AccountLayout({ children }: { children: React.ReactNode 
                     : 'text-text hover:bg-surface-2'
                 }`}
               >
-                <link.icon className={`w-4 h-4 ${link.href === '/account/wishlist' ? 'text-red-600 fill-red-600' : ''}`} />
+                <link.icon className="w-4 h-4" />
                 {link.label}
               </Link>
             ))}
