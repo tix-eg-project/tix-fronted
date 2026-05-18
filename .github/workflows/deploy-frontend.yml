@@ -25,7 +25,7 @@ jobs:
           npm run build
 
       - name: Compress Build Files (To avoid SCP hidden folder issues)
-        run: tar -czf deploy.tar.gz .next public package.json next.config.js
+        run: tar -czf deploy.tar.gz .next public package.json next.config.*
 
       - name: Upload Compressed Archive via SCP
         uses: appleboy/scp-action@master
