@@ -1,0 +1,53 @@
+name: Deploy Frontend to AWS
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js (Upgraded to v20 for Next 15)
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Dependencies & Build
+        run: |
+          npm ci --legacy-peer-deps
+          npm run build
+
+      - name: Compress Build Files (To avoid SCP hidden folder issues)
+        run: tar -czf deploy.tar.gz .next public package.json next.config.js
+
+      - name: Upload Compressed Archive via SCP
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.AWS_HOST }}
+          username: ubuntu
+          key: ${{ secrets.AWS_PRIVATE_KEY }}
+          source: "deploy.tar.gz"
+          target: "/var/www/tix-project/frontend"
+
+      - name: Extract and Restart PM2 via SSH
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.AWS_HOST }}
+          username: ubuntu
+          key: ${{ secrets.AWS_PRIVATE_KEY }}
+          script: |
+            cd /var/www/tix-project/frontend
+            
+            tar -xzf deploy.tar.gz
+            rm deploy.tar.gz
+            
+            npm install --production --legacy-peer-deps
+            
+            pm2 restart tix-front || pm2 start npm --name "tix-front" -- start
