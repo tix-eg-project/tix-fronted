@@ -8,6 +8,8 @@ import { z } from 'zod'
 import { Mail, Lock, Eye, EyeOff, User, Phone, UserPlus } from 'lucide-react'
 import { toast } from 'react-toastify'
 import { useAuth } from '@/context/AuthContext'
+import GoogleAuthButton from '@/components/GoogleAuthButton'
+import GoogleOneTap from '@/components/GoogleOneTap'
 
 const registerSchema = z.object({
   name: z.string().min(3, 'الاسم يجب أن يكون 3 أحرف على الأقل'),
@@ -56,6 +58,7 @@ export default function RegisterPage() {
         </div>
 
         <div className="card p-6 md:p-8">
+          <GoogleOneTap />
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             {fields.map((field) => (
               <div key={field.name}>
@@ -146,6 +149,7 @@ export default function RegisterPage() {
                 <span className="bg-surface px-4 text-sm text-text-muted">أو</span>
               </div>
             </div>
+            <GoogleAuthButton onSuccess={() => router.push('/')} />
             <Link
               href="/vendor/register"
               className="w-full text-center flex items-center justify-center gap-2 !py-3 rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors font-medium text-sm"

@@ -22,11 +22,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const token = getCookie("auth_token") as string | undefined;
     const userData = getCookie("user_data") as string | undefined;
 
-    if (token && userData) {
+    if (token) {
       try {
-        const user = JSON.parse(userData);
+        const user = userData ? JSON.parse(userData) : null;
         setState({
-          user,
+          user: user && Object.keys(user).length ? user : null,
           token,
           isAuthenticated: true,
           isLoading: false,
@@ -96,6 +96,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [],
   );
 
+  const loginWithGoogle = useCallback(async (googleToken: string) => {
+    const response = await api.post("/auth/user/google", { token: googleToken });
+    const data = response.data;
+
+    if (!data.status) {
+      throw new Error(data.message || "فشل تسجيل الدخول بجوجل");
+    }
+
+    const token = data.data?.token || data.token;
+    const user = data.data?.user || data.user || {};
+
+    setCookie("auth_token", token, COOKIE_OPTIONS);
+    setCookie("user_data", JSON.stringify(user), COOKIE_OPTIONS);
+
+    setState({
+      user: Object.keys(user).length ? user : null,
+      token,
+      isAuthenticated: true,
+      isLoading: false,
+    });
+  }, []);
+
   const logout = useCallback(async () => {
     try {
       await api.post("/logout");
@@ -123,7 +145,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ state, login, register, logout, updateUser }}>
+    <AuthContext.Provider value={{ state, login, register, loginWithGoogle, logout, updateUser }}>
       {children}
     </AuthContext.Provider>
   );
