@@ -758,13 +758,13 @@ export default function ProductDetailClient({ productId }: { productId: string }
                   </div>
 
                   <div className="mt-6 pt-6 border-t border-gray-100">
-                    <Button
+                    <button
                       onClick={handleAddBoughtTogether}
                       disabled={selectedBoughtTogether.length === 0 || addingToCart}
                       className="w-full bg-white text-black border border-black hover:bg-gray-50 h-12 rounded-xl font-bold text-base transition-all focus:ring-0 focus-visible:ring-0 shadow-sm"
                     >
                       اشتري {selectedBoughtTogether.length} معاً بسعر {formatCurrency(calculateTotalBoughtTogether())}
-                    </Button>
+                    </button>
                   </div>
                 </div>
               )}

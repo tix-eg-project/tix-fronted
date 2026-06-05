@@ -47,7 +47,6 @@ export default function GoogleAuthButton({ onSuccess }: Props) {
         shape="rectangular"
         size="large"
         width="400"
-        locale="ar"
       />
     </div>
   )
