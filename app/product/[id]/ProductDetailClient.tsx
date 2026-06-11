@@ -401,20 +401,20 @@ export default function ProductDetailClient({ productId }: { productId: string }
             <StarRating value={avgRating} />
             <span style={{ fontSize: 14, color: "#666" }}>
               {avgRating > 0 ? `${avgRating.toFixed(1)} · ` : ""}
-              {reviewCount.toLocaleString()} تقييم
+              {(reviewCount ?? 0).toLocaleString()} تقييم
             </span>
           </div>
 
           {/* Price */}
           <div className="text-3xl font-bold text-black mt-4">
-            {currentPrice.toLocaleString("ar-EG")} ج.م
+            {(currentPrice ?? 0).toLocaleString("ar-EG")} ج.م
           </div>
 
           {/* Original Price + Discount */}
           {originalPrice > currentPrice && (
             <div className="flex items-center gap-2 mt-1">
               <span className="text-lg text-gray-400 line-through">
-                {originalPrice.toLocaleString("ar-EG")} ج.م
+                {(originalPrice ?? 0).toLocaleString("ar-EG")} ج.م
               </span>
               <span className="px-2 py-0.5 rounded-full text-sm font-bold bg-red-100 text-red-700">
                 -{discountPct}%
