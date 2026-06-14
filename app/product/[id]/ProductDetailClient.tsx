@@ -519,15 +519,12 @@ export default function ProductDetailClient({ productId }: { productId: string }
                     +
                   </button>
                 </div>
-                {stockKnown && (
+                {stockKnown && maxStock <= 10 && (
                   <div className="text-sm">
                     <span className="text-gray-500">الكمية المتاحة: </span>
-                    <span className={`font-semibold ${maxStock <= 3 ? 'text-red-600' : maxStock <= 10 ? 'text-amber-500' : 'text-green-600'}`}>
+                    <span className={`font-semibold ${maxStock <= 3 ? 'text-red-600' : 'text-amber-500'}`}>
                       {maxStock} قطعة
                     </span>
-                    {maxStock > 10 && (
-                      <span className="text-gray-400 text-xs block">الحد الأقصى للطلب: 10</span>
-                    )}
                     {maxStock <= 3 && (
                       <span className="text-red-600 text-xs block font-medium">آخر قطع!</span>
                     )}
