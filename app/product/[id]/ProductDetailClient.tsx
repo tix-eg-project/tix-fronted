@@ -330,7 +330,10 @@ export default function ProductDetailClient({ productId }: { productId: string }
   const faqs = Array.isArray(product.qas) && product.qas.length > 0
     ? product.qas 
     : Array.isArray(product.faqs) ? product.faqs : [];
-  const maxStock = selectedItem?.quantity ?? product.quantity ?? 999;
+  const rawStock = selectedItem?.quantity ?? product.quantity ?? null;
+  const maxStock = rawStock ?? 999;
+  const maxQty = Math.min(maxStock, 10);
+  const stockKnown = rawStock !== null;
   const inStock = product.in_stock !== false && product.quantity !== 0 && maxStock > 0;
 
   // Reviews
@@ -496,30 +499,41 @@ export default function ProductDetailClient({ productId }: { productId: string }
           {/* ── Quantity ── */}
           {inStock && (
             <>
-              <div className="flex items-center border-2 border-gray-200 rounded-xl overflow-hidden w-fit mt-4">
-                <button
-                  onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                  className="px-4 py-2.5 text-lg font-medium hover:bg-gray-50 transition-colors"
-                  disabled={quantity <= 1}
-                >
-                  -
-                </button>
-                <span className="px-5 py-2.5 text-base font-semibold border-x-2 border-gray-200">
-                  {quantity}
-                </span>
-                <button
-                  onClick={() => setQuantity(quantity + 1)}
-                  className="px-4 py-2.5 text-lg font-medium hover:bg-gray-50 transition-colors"
-                  disabled={quantity >= maxStock}
-                >
-                  +
-                </button>
+              <div className="flex items-center gap-4 mt-4">
+                <div className="flex items-center border-2 border-gray-200 rounded-xl overflow-hidden w-fit">
+                  <button
+                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                    className="px-4 py-2.5 text-lg font-medium hover:bg-gray-50 transition-colors"
+                    disabled={quantity <= 1}
+                  >
+                    -
+                  </button>
+                  <span className="px-5 py-2.5 text-base font-semibold border-x-2 border-gray-200">
+                    {quantity}
+                  </span>
+                  <button
+                    onClick={() => setQuantity(Math.min(maxQty, quantity + 1))}
+                    className="px-4 py-2.5 text-lg font-medium hover:bg-gray-50 transition-colors"
+                    disabled={quantity >= maxQty}
+                  >
+                    +
+                  </button>
+                </div>
+                {stockKnown && (
+                  <div className="text-sm">
+                    <span className="text-gray-500">الكمية المتاحة: </span>
+                    <span className={`font-semibold ${maxStock <= 3 ? 'text-red-600' : maxStock <= 10 ? 'text-amber-500' : 'text-green-600'}`}>
+                      {maxStock} قطعة
+                    </span>
+                    {maxStock > 10 && (
+                      <span className="text-gray-400 text-xs block">الحد الأقصى للطلب: 10</span>
+                    )}
+                    {maxStock <= 3 && (
+                      <span className="text-red-600 text-xs block font-medium">آخر قطع!</span>
+                    )}
+                  </div>
+                )}
               </div>
-              {maxStock <= 10 && (
-                <p className="text-sm mt-1.5" style={{ color: maxStock <= 3 ? '#dc2626' : '#f59e0b' }}>
-                  {maxStock <= 3 ? `آخر ${maxStock} قطع فقط!` : `متبقي ${maxStock} قطع`}
-                </p>
-              )}
             </>
           )}
           {!inStock && (
@@ -596,7 +610,10 @@ export default function ProductDetailClient({ productId }: { productId: string }
             {/* Description */}
             {product.long_description && (
               <Accordion title="الوصف" defaultOpen>
-                <p className="leading-relaxed">{t(product.long_description)}</p>
+                <div
+                  className="leading-relaxed prose prose-sm max-w-none text-gray-700 [&_p]:mb-3 [&_br]:block [&_ul]:list-disc [&_ul]:pr-5 [&_ol]:list-decimal [&_ol]:pr-5"
+                  dangerouslySetInnerHTML={{ __html: t(product.long_description) }}
+                />
               </Accordion>
             )}
 

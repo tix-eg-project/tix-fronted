@@ -12,6 +12,8 @@ function recalculate(items: CartItem[]) {
   };
 }
 
+const MAX_QTY = 10;
+
 function cartReducer(state: CartState, action: CartAction): CartState {
   switch (action.type) {
     case "SET_ITEMS":
@@ -21,10 +23,10 @@ function cartReducer(state: CartState, action: CartAction): CartState {
       const items = existing
         ? state.items.map((i) =>
             i.id === action.payload.id
-              ? { ...i, quantity: i.quantity + (action.payload.quantity || 1) }
+              ? { ...i, quantity: Math.min(MAX_QTY, i.quantity + (action.payload.quantity || 1)) }
               : i,
           )
-        : [...state.items, action.payload];
+        : [...state.items, { ...action.payload, quantity: Math.min(MAX_QTY, action.payload.quantity || 1) }];
       return { ...recalculate(items), isLoading: false };
     }
     case "REMOVE_ITEM": {
@@ -34,7 +36,7 @@ function cartReducer(state: CartState, action: CartAction): CartState {
     case "UPDATE_QTY": {
       const items = state.items
         .map((i) =>
-          i.id === action.payload.id ? { ...i, quantity: Math.max(0, action.payload.qty) } : i,
+          i.id === action.payload.id ? { ...i, quantity: Math.min(MAX_QTY, Math.max(0, action.payload.qty)) } : i,
         )
         .filter((i) => i.quantity > 0);
       return { ...recalculate(items), isLoading: false };
@@ -127,9 +129,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const updateQuantity = useCallback(
     async (cartId: number | string, qty: number) => {
       if (qty < 1) return;
-      dispatch({ type: "UPDATE_QTY", payload: { id: cartId, qty } });
+      const clampedQty = Math.min(MAX_QTY, qty);
+      dispatch({ type: "UPDATE_QTY", payload: { id: cartId, qty: clampedQty } });
       try {
-        await api.put(`/cart/${cartId}`, { quantity: qty });
+        await api.put(`/cart/${cartId}`, { quantity: clampedQty });
       } catch {
         await refreshCart(); // Revert on error
       }
