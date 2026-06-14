@@ -41,6 +41,11 @@ function ProductsContent() {
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState(categoryParam || "");
   const [viewType, setViewType] = useState<'grid' | 'list'>('grid');
+
+  // Sync selectedCategory with URL param when navigating between categories
+  useEffect(() => {
+    setSelectedCategory(categoryParam || "");
+  }, [categoryParam]);
   const [sortBy, setSortBy] = useState("newest");
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 50000]);
   const [minPrice, setMinPrice] = useState<string>("0");
