@@ -16,6 +16,7 @@ import "swiper/css/navigation";
 export default function FlashDeals() {
   const [isMounted, setIsMounted] = useState(false);
   const [products, setProducts] = useState<ProductCardProps[]>([]);
+  const [endDate, setEndDate] = useState<Date | null>(null);
   const [timeLeft, setTimeLeft] = useState({ hours: 0, minutes: 0, seconds: 0 });
 
   useEffect(() => {
@@ -25,52 +26,40 @@ export default function FlashDeals() {
   useEffect(() => {
     async function fetchDeals() {
       try {
-        const response = await api.get("/product/discounted");
-        if (response.data.status && response.data.data) {
-          const data = Array.isArray(response.data.data) ? response.data.data : response.data.data.data;
-          if (Array.isArray(data) && data.length > 0) {
-            setProducts(
-              data.map((p: any) => ({
-                id: String(p.id),
-                name: p.name,
-                price: p.price_after || p.price,
-                originalPrice: p.price_before,
-                image: p.images?.[0] || p.image || "/pl1.jpg",
-                discount: p.discount || 0,
-                rating: p.reviews?.average_rating || 0,
-                reviewsCount: p.reviews?.count || 0,
-              })),
-            );
-            return;
+        const response = await api.get("/flash-sale");
+        const sale = response.data?.data;
+        if (sale?.products?.length > 0) {
+          setProducts(
+            sale.products.map((p: any) => ({
+              id: String(p.id),
+              name: p.name,
+              price: p.price_after || p.price,
+              originalPrice: p.price_before,
+              image: p.images?.[0] || p.image || "/pl1.jpg",
+              discount: p.discount || 0,
+              rating: p.reviews?.average_rating || 0,
+              reviewsCount: p.reviews?.count || 0,
+            })),
+          );
+          if (sale.end_date) {
+            setEndDate(new Date(sale.end_date));
           }
         }
       } catch {
-        // Use defaults
+        // silent fail — section stays hidden
       }
-      setProducts([
-        { id: "f1", name: "سماعات لاسلكية برو", price: 199, originalPrice: 399, image: "/pl1.jpg", discount: 50 },
-        { id: "f2", name: "شاحن سريع 65W", price: 149, originalPrice: 299, image: "/pl2.jpg", discount: 50 },
-        { id: "f3", name: "كيبل شحن سريع", price: 49, originalPrice: 99, image: "/pl1.jpg", discount: 50 },
-        { id: "f4", name: "حامل هاتف للسيارة", price: 79, originalPrice: 159, image: "/pl2.jpg", discount: 50 },
-        { id: "f5", name: "باور بانك 20000", price: 299, originalPrice: 599, image: "/pl1.jpg", discount: 50 },
-        { id: "f6", name: "ماوس ألعاب لاسلكي", price: 120, originalPrice: 240, image: "/pl2.jpg", discount: 50 },
-      ]);
     }
     fetchDeals();
   }, []);
 
   useEffect(() => {
     const calculateTimeLeft = () => {
-      const now = new Date();
-      const endOfDay = new Date();
-      endOfDay.setHours(23, 59, 59, 999);
-      const diff = endOfDay.getTime() - now.getTime();
-
+      const target = endDate ?? (() => { const d = new Date(); d.setHours(23, 59, 59, 999); return d; })();
+      const diff = target.getTime() - Date.now();
       if (diff <= 0) return { hours: 0, minutes: 0, seconds: 0 };
-
       return {
-        hours: Math.floor((diff / (1000 * 60 * 60)) % 24),
-        minutes: Math.floor((diff / 1000 / 60) % 60),
+        hours: Math.floor(diff / (1000 * 60 * 60)),
+        minutes: Math.floor((diff / (1000 * 60)) % 60),
         seconds: Math.floor((diff / 1000) % 60),
       };
     };
@@ -78,7 +67,7 @@ export default function FlashDeals() {
     setTimeLeft(calculateTimeLeft());
     const timer = setInterval(() => setTimeLeft(calculateTimeLeft()), 1000);
     return () => clearInterval(timer);
-  }, []);
+  }, [endDate]);
 
   const pad = (n: number) => n.toString().padStart(2, "0");
 
