@@ -33,7 +33,7 @@ export default function HeroBanner() {
               id: b.id,
               title: b.title || "",
               subtitle: b.description || b.subtitle || "",
-              image: b.image || undefined,  // ✅ undefined مش ""
+              image: b.image || undefined,
             }));
           if (validBanners.length > 0) {
             setBanners(validBanners);
@@ -54,16 +54,12 @@ export default function HeroBanner() {
     return () => clearInterval(timer);
   }, [banners.length]);
 
-  // ✅ الخلفية بتتغير حسب الـ slide الحالي مش globally
   const currentBannerHasImage = !!banners[currentSlide]?.image;
 
   return (
     <section
-      className="relative overflow-hidden"
+      className="relative overflow-hidden mx-3 sm:mx-5 md:mx-8 mt-3 sm:mt-5 rounded-xl sm:rounded-2xl h-[180px] sm:h-[260px] md:h-[340px] lg:h-[400px]"
       style={{
-        margin: "20px 32px",
-        borderRadius: 16,
-        height: 380,
         background: currentBannerHasImage
           ? "#000"
           : "linear-gradient(125deg, #fb923c 0%, #f97316 35%, #ea580c 65%, #c2410c 100%)",
@@ -89,41 +85,26 @@ export default function HeroBanner() {
             pointerEvents: index === currentSlide ? "auto" : "none",
           }}
         >
-          {/* الصورة لو موجودة */}
           {banner.image && (
             <Image
               src={banner.image}
               alt={banner.title || "banner"}
               fill
+              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 95vw, 90vw"
               className="object-cover"
               priority={index === 0}
             />
           )}
 
-          {/* ✅ النص بيظهر بس لو مفيش صورة */}
           {!banner.image && (
-            <div className="relative z-10" style={{ maxWidth: 600, padding: "0 32px" }}>
+            <div className="relative z-10 max-w-[280px] sm:max-w-[400px] md:max-w-[520px] lg:max-w-[600px] px-4 sm:px-6 md:px-8">
               {banner.title && (
-                <h1
-                  className="text-white"
-                  style={{
-                    fontSize: 56,
-                    fontWeight: 800,
-                    letterSpacing: "-2px",
-                    lineHeight: 1.1,
-                    marginBottom: 12,
-                  }}
-                >
+                <h1 className="text-white text-2xl sm:text-3xl md:text-5xl lg:text-[56px] font-extrabold leading-tight mb-2 sm:mb-3" style={{ letterSpacing: "-1px" }}>
                   {banner.title}
                 </h1>
               )}
               {banner.subtitle && (
-                <p style={{
-                  fontSize: 21,
-                  fontWeight: 400,
-                  color: "rgba(255,255,255,0.92)",
-                  lineHeight: 1.5,
-                }}>
+                <p className="text-sm sm:text-base md:text-lg lg:text-xl text-white/90 leading-relaxed">
                   {banner.subtitle}
                 </p>
               )}
@@ -133,7 +114,7 @@ export default function HeroBanner() {
       ))}
 
       {banners.length > 1 && (
-        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2 z-20">
+        <div className="absolute bottom-3 sm:bottom-5 md:bottom-6 left-1/2 -translate-x-1/2 flex gap-1.5 sm:gap-2 z-20">
           {banners.map((_, index) => (
             <button
               key={index}
@@ -141,8 +122,8 @@ export default function HeroBanner() {
               aria-label={`الانتقال للشريحة ${index + 1}`}
               className="rounded-full transition-all duration-300"
               style={{
-                height: 5,
-                width: index === currentSlide ? 22 : 5,
+                height: 4,
+                width: index === currentSlide ? 18 : 4,
                 backgroundColor: index === currentSlide ? "#fff" : "rgba(255,255,255,0.4)",
               }}
             />
