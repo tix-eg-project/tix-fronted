@@ -336,10 +336,11 @@ export default function ProductDetailClient({ productId }: { productId: string }
   const stockKnown = rawStock !== null;
   const inStock = product.in_stock !== false && product.quantity !== 0 && maxStock > 0;
 
-  // Reviews
-  const reviewCount = reviewsData?.total_reviews || 0;
-  const reviewsList = reviewsData?.reviews || [];
-  const avgRating = reviewsData?.average_rating || 0;
+  // Reviews — API returns data as a direct array
+  const reviewsList: any[] = Array.isArray(reviewsData) ? reviewsData : reviewsData?.reviews || [];
+  const reviewCount = reviewsData?.total_reviews ?? reviewsList.length;
+  const avgRating = reviewsData?.average_rating ??
+    (reviewsList.length > 0 ? reviewsList.reduce((s: number, r: any) => s + (r.rating || 0), 0) / reviewsList.length : 0);
 
   const wishlisted = product.is_fav || isInWishlist(product.id);
 
@@ -615,96 +616,141 @@ export default function ProductDetailClient({ productId }: { productId: string }
             )}
 
             {/* Reviews */}
-            <Accordion title={`التقييمات ${reviewCount > 0 ? `(${reviewCount})` : ""}`}>
+            <Accordion title={`التقييمات ${reviewCount > 0 ? `(${reviewCount})` : ""}`} defaultOpen={reviewCount > 0}>
+              {/* Rating Summary */}
+              {reviewCount > 0 && (
+                <div className="flex flex-col sm:flex-row gap-6 p-5 bg-gray-50 rounded-2xl mb-6">
+                  {/* Big Average */}
+                  <div className="flex flex-col items-center justify-center min-w-[100px]">
+                    <span className="text-5xl font-black text-gray-900">{avgRating.toFixed(1)}</span>
+                    <div className="flex gap-0.5 my-1.5">
+                      {[1,2,3,4,5].map(n => (
+                        <Star key={n} className={`w-4 h-4 ${n <= Math.round(avgRating) ? 'fill-yellow-400 text-yellow-400' : 'text-gray-200 fill-gray-200'}`} />
+                      ))}
+                    </div>
+                    <span className="text-xs text-gray-400">{reviewCount} تقييم</span>
+                  </div>
+                  {/* Bars */}
+                  <div className="flex-1 space-y-1.5">
+                    {[5,4,3,2,1].map(n => {
+                      const count = reviewsList.filter((r: any) => Math.round(r.rating) === n).length;
+                      const pct = reviewCount > 0 ? Math.round((count / reviewCount) * 100) : 0;
+                      return (
+                        <div key={n} className="flex items-center gap-2">
+                          <span className="text-xs text-gray-500 w-4 text-left">{n}</span>
+                          <Star className="w-3 h-3 fill-yellow-400 text-yellow-400 flex-shrink-0" />
+                          <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
+                            <div className="h-full bg-yellow-400 rounded-full transition-all" style={{ width: `${pct}%` }} />
+                          </div>
+                          <span className="text-xs text-gray-400 w-8 text-left">{count}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Reviews List */}
               {reviewsList.length === 0 ? (
-                <p className="text-gray-500">لا توجد تقييمات بعد</p>
+                <div className="text-center py-8 text-gray-400">
+                  <Star className="w-10 h-10 mx-auto mb-2 text-gray-200" />
+                  <p className="text-sm">لا توجد تقييمات بعد — كن أول من يقيّم!</p>
+                </div>
               ) : (
-                <div className="space-y-3 mb-4">
+                <div className="space-y-4 mb-6">
                   {reviewsList.map((r: any) => (
-                    <div key={r.id} className="p-3 bg-gray-50 rounded-xl">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-sm font-medium text-gray-800">
-                          {r.user || "—"}
-                        </span>
+                    <div key={r.id} className="p-4 bg-white border border-gray-100 rounded-2xl shadow-sm">
+                      <div className="flex items-start justify-between gap-3 mb-2">
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-full bg-gray-900 text-white flex items-center justify-center text-sm font-bold flex-shrink-0">
+                            {(r.user_name || r.user || r.name || "م").charAt(0).toUpperCase()}
+                          </div>
+                          <div>
+                            <p className="text-sm font-semibold text-gray-800">{r.user_name || r.user || r.name || "مستخدم"}</p>
+                            <div className="flex gap-0.5 mt-0.5">
+                              {[1,2,3,4,5].map(n => (
+                                <Star key={n} className={`w-3 h-3 ${n <= Math.round(r.rating) ? 'fill-yellow-400 text-yellow-400' : 'text-gray-200 fill-gray-200'}`} />
+                              ))}
+                            </div>
+                          </div>
+                        </div>
                         {r.created_at && (
-                          <span className="text-xs text-gray-400">
-                            {r.created_at}
+                          <span className="text-xs text-gray-400 flex-shrink-0">
+                            {new Date(r.created_at).toLocaleDateString('ar-EG', { year: 'numeric', month: 'short', day: 'numeric' })}
                           </span>
                         )}
                       </div>
-                      <StarRating value={r.rating} size={14} />
-                      {r.comment && <p className="text-sm text-gray-600 mt-1.5">{r.comment}</p>}
-                      {r.image_url && (
-                        <div className="mt-3 w-20 h-20 relative rounded-lg overflow-hidden border border-gray-200">
-                          <Image src={r.image_url} alt="Review image" fill className="object-cover" />
+                      {(r.comment || r.review) && <p className="text-sm text-gray-600 leading-relaxed pr-12">{r.comment || r.review}</p>}
+                      {(r.image_url || r.image) && (
+                        <div className="mt-3 pr-12">
+                          <div className="w-24 h-24 relative rounded-xl overflow-hidden border border-gray-100">
+                            <Image src={r.image_url || r.image} alt="صورة التقييم" fill className="object-cover" />
+                          </div>
                         </div>
                       )}
                     </div>
                   ))}
                 </div>
               )}
+
               {/* Review Form */}
-              {authState.isAuthenticated ? (
-                <form
-                  onSubmit={handleReviewSubmit}
-                  className="p-4 border border-gray-200 rounded-xl mt-3"
-                >
-                  <div className="mb-3">
-                    <label className="text-sm font-medium mb-1 block">تقييمك:</label>
-                    <div className="flex gap-1">
-                      {[1, 2, 3, 4, 5].map((n) => (
-                        <button
-                          key={n}
-                          type="button"
-                          onMouseEnter={() => setHoverRating(n)}
-                          onMouseLeave={() => setHoverRating(0)}
-                          onClick={() => setReviewRating(n)}
-                          className="p-0.5"
-                        >
-                          <Star
-                            className={`w-6 h-6 transition-colors ${
-                              n <= (hoverRating || reviewRating)
-                                ? "text-yellow-400 fill-yellow-400"
-                                : "text-gray-200"
-                            }`}
-                          />
-                        </button>
-                      ))}
+              <div className="border-t border-gray-100 pt-5 mt-2">
+                <h4 className="text-sm font-bold text-gray-800 mb-4">أضف تقييمك</h4>
+                {authState.isAuthenticated ? (
+                  <form onSubmit={handleReviewSubmit} className="space-y-4">
+                    {/* Stars */}
+                    <div>
+                      <label className="text-xs text-gray-500 mb-1.5 block">تقييمك</label>
+                      <div className="flex gap-1">
+                        {[1, 2, 3, 4, 5].map((n) => (
+                          <button
+                            key={n}
+                            type="button"
+                            onMouseEnter={() => setHoverRating(n)}
+                            onMouseLeave={() => setHoverRating(0)}
+                            onClick={() => setReviewRating(n)}
+                          >
+                            <Star className={`w-7 h-7 transition-colors ${n <= (hoverRating || reviewRating) ? "fill-yellow-400 text-yellow-400" : "text-gray-200 fill-gray-200"}`} />
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                  <textarea
-                    value={reviewText}
-                    onChange={(e) => setReviewText(e.target.value)}
-                    placeholder="اكتب تقييمك هنا (اختياري)"
-                    className="input-field !py-2 text-sm mb-3"
-                    rows={3}
-                  />
-                  <div className="mb-3">
-                    <label className="text-sm font-medium mb-1 block text-gray-700">إرفاق صورة (اختياري)</label>
-                    <input 
-                      type="file" 
-                      accept="image/*" 
-                      onChange={(e) => setReviewImage(e.target.files?.[0] || null)}
-                      className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-gray-50 file:text-black hover:file:bg-gray-100 transition-colors cursor-pointer"
+                    {/* Comment */}
+                    <textarea
+                      value={reviewText}
+                      onChange={(e) => setReviewText(e.target.value)}
+                      placeholder="شاركنا رأيك في المنتج (اختياري)"
+                      className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm resize-none focus:outline-none focus:border-gray-400 transition-colors"
+                      rows={3}
+                      dir="rtl"
                     />
+                    {/* Image Upload */}
+                    <div>
+                      <label className="text-xs text-gray-500 mb-1.5 block">إرفاق صورة (اختياري)</label>
+                      <label className="flex items-center gap-3 cursor-pointer w-fit px-4 py-2.5 border-2 border-dashed border-gray-200 rounded-xl hover:border-gray-400 transition-colors">
+                        <PlusIcon className="w-4 h-4 text-gray-400" />
+                        <span className="text-sm text-gray-500">{reviewImage ? reviewImage.name : "اختر صورة"}</span>
+                        <input type="file" accept="image/*" className="hidden" onChange={(e) => setReviewImage(e.target.files?.[0] || null)} />
+                      </label>
+                    </div>
+                    <button
+                      type="submit"
+                      disabled={reviewSubmitting}
+                      className="h-11 px-8 bg-gray-900 text-white text-sm font-semibold rounded-xl hover:bg-black transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {reviewSubmitting ? "جاري الإرسال..." : "إرسال التقييم"}
+                    </button>
+                  </form>
+                ) : (
+                  <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-xl">
+                    <Star className="w-5 h-5 text-yellow-400 fill-yellow-400 flex-shrink-0" />
+                    <p className="text-sm text-gray-600">
+                      <Link href="/login" className="font-semibold text-gray-900 hover:underline">سجّل الدخول</Link>{" "}
+                      لإضافة تقييمك على هذا المنتج
+                    </p>
                   </div>
-                  <button
-                    type="submit"
-                    disabled={reviewSubmitting}
-                    className="btn-primary text-sm"
-                    style={{ padding: "10px 20px" }}
-                  >
-                    {reviewSubmitting ? "جاري الإرسال..." : "إرسال التقييم"}
-                  </button>
-                </form>
-              ) : (
-                <p className="text-sm" style={{ color: "#666" }}>
-                  <Link href="/login" style={{ color: "#FF8C00" }} className="hover:underline">
-                    سجّل الدخول
-                  </Link>{" "}
-                  لإضافة تقييم
-                </p>
-              )}
+                )}
+              </div>
             </Accordion>
 
             {/* FAQ */}
