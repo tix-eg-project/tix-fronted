@@ -603,6 +603,28 @@ export default function ProductDetailClient({ productId }: { productId: string }
             </div>
           )}
 
+          {/* ── Attributes / Specifications ── */}
+          {Array.isArray(product.attributes) && product.attributes.length > 0 && (
+            <div className="mt-6 p-5 bg-gray-50 rounded-2xl">
+              <h3 className="text-sm font-bold text-gray-800 mb-4">المواصفات</h3>
+              <div className="divide-y divide-gray-200 border border-gray-200 rounded-xl overflow-hidden bg-white">
+                {product.attributes.map((attr: { name: string; value: string }, idx: number) => (
+                  <div
+                    key={idx}
+                    className={`flex items-center gap-0 text-sm ${idx % 2 === 0 ? "bg-white" : "bg-gray-50"}`}
+                  >
+                    <span className="w-1/2 px-4 py-2.5 font-medium text-gray-700 border-l border-gray-200">
+                      {attr.name}
+                    </span>
+                    <span className="w-1/2 px-4 py-2.5 text-gray-600">
+                      {attr.value}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* ── Accordions ── */}
           <div className="mt-6 border-t border-gray-100">
             {/* Description */}
