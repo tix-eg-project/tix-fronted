@@ -84,12 +84,12 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                 />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium truncate">
-                    {item.product_name || item.product?.name}
+                    {item.name || item.product_name || item.product?.name}
                   </p>
                   <p className="text-xs text-text-muted">الكمية: {item.quantity}</p>
                 </div>
                 <span className="text-sm font-bold text-black">
-                  {formatCurrency(item.price || 0)}
+                  {formatCurrency(item.price_after || item.price || 0)}
                 </span>
               </div>
             ))}

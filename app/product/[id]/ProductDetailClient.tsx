@@ -837,7 +837,7 @@ export default function ProductDetailClient({ productId }: { productId: string }
             {complementaryProducts.map((prod) => (
               <Link
                 key={prod.id}
-                href={`/product?id=${prod.id}`}
+                href={`/product/${prod.id}`}
                 className="shrink-0 w-44 md:w-auto bg-white rounded-xl border border-gray-100 p-3 hover:shadow-md transition-shadow"
               >
                 <div className="aspect-square rounded-lg overflow-hidden bg-gray-50 mb-2">
