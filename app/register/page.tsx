@@ -37,7 +37,7 @@ export default function RegisterPage() {
     try {
       await authRegister(data.name, data.email, data.phone, data.password)
       toast.success('تم إنشاء الحساب بنجاح')
-      router.push('/')
+      window.location.href = '/'
     } catch (error: any) {
       toast.error(error.message || 'فشل إنشاء الحساب')
     }
@@ -149,7 +149,7 @@ export default function RegisterPage() {
                 <span className="bg-surface px-4 text-sm text-text-muted">أو</span>
               </div>
             </div>
-            <GoogleAuthButton onSuccess={() => router.push('/')} />
+            <GoogleAuthButton onSuccess={() => { window.location.href = '/' }} />
             <Link
               href="/vendor/register"
               className="w-full text-center flex items-center justify-center gap-2 !py-3 rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors font-medium text-sm"

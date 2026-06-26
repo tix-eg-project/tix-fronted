@@ -7,7 +7,44 @@ import type { User } from "@/utils/Types/common";
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
-const COOKIE_OPTIONS = { maxAge: 60 * 60 * 24 * 7, path: "/" }; // 7 days
+const COOKIE_OPTIONS = {
+  maxAge: 60 * 60 * 24 * 7,
+  path: "/",
+  sameSite: "lax" as const,
+  secure: process.env.NODE_ENV === "production",
+};
+
+function saveAuth(token: string, user: object) {
+  // localStorage is primary (works on all browsers/platforms)
+  if (typeof window !== "undefined") {
+    localStorage.setItem("token", token);
+    localStorage.setItem("userData", JSON.stringify(user));
+  }
+  // cookies are secondary (for Next.js middleware route protection)
+  setCookie("auth_token", token, COOKIE_OPTIONS);
+  setCookie("user_data", JSON.stringify(user), COOKIE_OPTIONS);
+}
+
+function clearAuth() {
+  if (typeof window !== "undefined") {
+    localStorage.removeItem("token");
+    localStorage.removeItem("userData");
+  }
+  deleteCookie("auth_token");
+  deleteCookie("user_data");
+}
+
+function readAuth(): { token: string | null; userData: string | null } {
+  const token =
+    (typeof window !== "undefined" ? localStorage.getItem("token") : null) ||
+    (getCookie("auth_token") as string | undefined) ||
+    null;
+  const userData =
+    (typeof window !== "undefined" ? localStorage.getItem("userData") : null) ||
+    (getCookie("user_data") as string | undefined) ||
+    null;
+  return { token, userData };
+}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AuthState>({
@@ -19,8 +56,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Restore session on mount
   useEffect(() => {
-    const token = getCookie("auth_token") as string | undefined;
-    const userData = getCookie("user_data") as string | undefined;
+    const { token, userData } = readAuth();
 
     if (token) {
       try {
@@ -32,8 +68,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           isLoading: false,
         });
       } catch {
-        deleteCookie("auth_token");
-        deleteCookie("user_data");
+        clearAuth();
         setState((prev) => ({ ...prev, isLoading: false }));
       }
     } else {
@@ -52,8 +87,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const token = data.data?.token || data.token;
     const user = data.data?.user || data.user;
 
-    setCookie("auth_token", token, COOKIE_OPTIONS);
-    setCookie("user_data", JSON.stringify(user), COOKIE_OPTIONS);
+    saveAuth(token, user ?? {});
 
     setState({
       user,
@@ -82,8 +116,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const user = data.data?.user || data.user;
 
       if (token && user) {
-        setCookie("auth_token", token, COOKIE_OPTIONS);
-        setCookie("user_data", JSON.stringify(user), COOKIE_OPTIONS);
+        saveAuth(token, user);
 
         setState({
           user,
@@ -107,8 +140,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const token = data.data?.token || data.token;
     const user = data.data?.user || data.user || {};
 
-    setCookie("auth_token", token, COOKIE_OPTIONS);
-    setCookie("user_data", JSON.stringify(user), COOKIE_OPTIONS);
+    saveAuth(token, user);
 
     setState({
       user: Object.keys(user).length ? user : null,
@@ -124,8 +156,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch {
       // Ignore logout API errors
     } finally {
-      deleteCookie("auth_token");
-      deleteCookie("user_data");
+      clearAuth();
       setState({
         user: null,
         token: null,
@@ -139,6 +170,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setState((prev) => {
       if (!prev.user) return prev;
       const updatedUser = { ...prev.user, ...userData };
+      if (typeof window !== "undefined") localStorage.setItem("userData", JSON.stringify(updatedUser));
       setCookie("user_data", JSON.stringify(updatedUser), COOKIE_OPTIONS);
       return { ...prev, user: updatedUser };
     });

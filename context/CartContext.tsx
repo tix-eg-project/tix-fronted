@@ -61,7 +61,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   });
 
   const refreshCart = useCallback(async () => {
-    const token = getCookie("auth_token");
+    const token = (typeof window !== "undefined" ? localStorage.getItem("token") : null) || getCookie("auth_token");
     if (!token) return;
 
     dispatch({ type: "SET_LOADING", payload: true });

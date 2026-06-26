@@ -2,15 +2,12 @@
 import { useGoogleOneTapLogin } from '@react-oauth/google'
 import { useAuth } from '@/context/AuthContext'
 import { toast } from 'react-toastify'
-import { useRouter } from 'next/navigation'
-
 interface Props {
   redirectTo?: string
 }
 
 export default function GoogleOneTap({ redirectTo = '/' }: Props) {
   const { loginWithGoogle, state } = useAuth()
-  const router = useRouter()
 
   useGoogleOneTapLogin({
     disabled: state.isAuthenticated,
@@ -19,7 +16,7 @@ export default function GoogleOneTap({ redirectTo = '/' }: Props) {
       try {
         await loginWithGoogle(credentialResponse.credential)
         toast.success('تم تسجيل الدخول بنجاح')
-        router.push(redirectTo)
+        window.location.href = redirectTo
       } catch (error: unknown) {
         const message = error instanceof Error ? error.message : 'فشل تسجيل الدخول بجوجل'
         toast.error(message)

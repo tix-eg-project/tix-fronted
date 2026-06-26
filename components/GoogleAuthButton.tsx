@@ -17,11 +17,13 @@ export default function GoogleAuthButton({ onSuccess }: Props) {
     try {
       await loginWithGoogle(credential)
       toast.success('تم تسجيل الدخول بنجاح')
-      onSuccess?.()
+      if (onSuccess) {
+        // full reload ensures cookie is sent with the next request (fixes Mac/Safari)
+        setTimeout(() => { onSuccess() }, 100)
+      }
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'فشل تسجيل الدخول بجوجل'
       toast.error(message)
-    } finally {
       setLoading(false)
     }
   }
