@@ -196,6 +196,7 @@ export default function CheckoutPage() {
 
       const fd = new FormData();
       fd.append("payment_method_id", String(paymentMethod));
+      if (selectedAddressId) fd.append("address_id", String(selectedAddressId));
       const checkoutRes = await api.post("/checkout", fd);
 
       if (checkoutRes.data.status) {
