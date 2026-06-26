@@ -10,6 +10,11 @@ import {
   ChevronDown,
   ChevronUp,
   Search,
+  Plus,
+  Home,
+  Briefcase,
+  Star,
+  Pencil,
 } from "lucide-react";
 import { toast } from "react-toastify";
 import api from "@/lib/api";
@@ -18,6 +23,17 @@ import { useCart } from "@/context/CartContext";
 import { formatCurrency } from "@/utils/helpers";
 import type { ShippingCity, PaymentMethod, CartSummary } from "@/utils/Types/common";
 
+interface SavedAddress {
+  id: number;
+  label: string;
+  name: string;
+  phone: string;
+  city_id?: number | null;
+  city_name?: string | null;
+  address: string;
+  is_default: boolean;
+}
+
 export default function CheckoutPage() {
   const router = useRouter();
   const { state: authState } = useAuth();
@@ -25,6 +41,11 @@ export default function CheckoutPage() {
   const [paymentMethod, setPaymentMethod] = useState<string | number>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({ address: "", phone: "", order_note: "" });
+
+  // Saved addresses
+  const [savedAddresses, setSavedAddresses] = useState<SavedAddress[]>([]);
+  const [selectedAddressId, setSelectedAddressId] = useState<number | null>(null);
+  const [showNewForm, setShowNewForm] = useState(false);
 
   // City dropdown
   const [cities, setCities] = useState<ShippingCity[]>([]);
@@ -44,36 +65,51 @@ export default function CheckoutPage() {
     }
   }, [authState.isLoading, authState.isAuthenticated]);
 
-  // Fetch initial data + saved contact
+  // Fetch initial data
   useEffect(() => {
     if (!authState.isAuthenticated) return;
 
     const fetchData = async () => {
       try {
-        const [summaryRes, pmRes, citiesRes, contactRes] = await Promise.all([
+        const [summaryRes, pmRes, citiesRes, addressesRes, contactRes] = await Promise.all([
           api.get("/summary"),
           api.get("/payment-methods"),
           api.get("/shipping/cities"),
+          api.get("/addresses").catch(() => null),
           api.get("/contact").catch(() => null),
         ]);
 
         if (summaryRes.data.status) setSummary(summaryRes.data.data);
+
         if (pmRes.data.status && Array.isArray(pmRes.data.data)) {
           setPaymentMethods(pmRes.data.data);
           if (pmRes.data.data.length > 0) setPaymentMethod(pmRes.data.data[0].id);
         }
-        if (citiesRes.data.status) {
-          setCities(Array.isArray(citiesRes.data.data) ? citiesRes.data.data : []);
-        }
 
-        // Auto-fill saved contact/address
-        if (contactRes?.data?.status && contactRes.data.data) {
-          const saved = contactRes.data.data;
-          setFormData((prev) => ({
-            address: saved.address || prev.address,
-            phone: saved.phone || prev.phone,
-            order_note: saved.order_note || prev.order_note,
-          }));
+        const citiesList: ShippingCity[] = citiesRes.data?.status
+          ? (Array.isArray(citiesRes.data.data) ? citiesRes.data.data : [])
+          : [];
+        setCities(citiesList);
+
+        const addrs: SavedAddress[] = Array.isArray(addressesRes?.data?.data)
+          ? addressesRes.data.data
+          : [];
+        setSavedAddresses(addrs);
+
+        if (addrs.length > 0) {
+          const def = addrs.find((a) => a.is_default) || addrs[0];
+          applyAddress(def, citiesList);
+        } else {
+          // fallback to saved contact
+          setShowNewForm(true);
+          if (contactRes?.data?.status && contactRes.data.data) {
+            const saved = contactRes.data.data;
+            setFormData((prev) => ({
+              address: saved.address || prev.address,
+              phone: saved.phone || prev.phone,
+              order_note: saved.order_note || prev.order_note,
+            }));
+          }
         }
       } catch {
         toast.error("خطأ في تحميل البيانات");
@@ -82,7 +118,7 @@ export default function CheckoutPage() {
     fetchData();
   }, [authState.isAuthenticated]);
 
-  // Click outside to close city dropdown
+  // Close city dropdown on outside click
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (cityRef.current && !cityRef.current.contains(e.target as Node)) setCityOpen(false);
@@ -91,18 +127,49 @@ export default function CheckoutPage() {
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
+  function applyAddress(addr: SavedAddress, citiesList?: ShippingCity[]) {
+    setSelectedAddressId(addr.id);
+    setShowNewForm(false);
+    setFormData((prev) => ({
+      ...prev,
+      address: addr.address,
+      phone: addr.phone,
+    }));
+    const list = citiesList || cities;
+    if (addr.city_id && list.length > 0) {
+      const city = list.find((c) => Number(c.id) === Number(addr.city_id));
+      if (city) {
+        setSelectedCity(city);
+        updateSummaryCity(Number(city.id));
+      }
+    }
+  }
+
+  function handleSelectAddress(addr: SavedAddress) {
+    applyAddress(addr);
+  }
+
+  function handleShowNewForm() {
+    setSelectedAddressId(null);
+    setShowNewForm(true);
+    setFormData({ address: "", phone: "", order_note: "" });
+    setSelectedCity(null);
+  }
+
+  const updateSummaryCity = async (cityId: number) => {
+    try {
+      const fd = new FormData();
+      fd.append("vsoft_city_id", String(cityId));
+      const res = await api.post("/summary", fd);
+      if (res.data.status) setSummary(res.data.data);
+    } catch {}
+  };
+
   const handleCitySelect = async (city: ShippingCity) => {
     setSelectedCity(city);
     setCityOpen(false);
     setCitySearch("");
-    try {
-      const fd = new FormData();
-      fd.append("vsoft_city_id", String(city.id));
-      const res = await api.post("/summary", fd);
-      if (res.data.status) setSummary(res.data.data);
-    } catch {
-      toast.error("خطأ في تطبيق منطقة الشحن");
-    }
+    updateSummaryCity(Number(city.id));
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -117,29 +184,16 @@ export default function CheckoutPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isSubmitting) return;
-    if (!selectedCity) {
-      toast.error("اختر المدينة");
-      return;
-    }
-    if (formData.phone.length < 10) {
-      toast.error("رقم هاتف غير صحيح");
-      return;
-    }
-    if (formData.address.trim().length < 8) {
-      toast.error("العنوان يجب أن يكون 8 أحرف على الأقل");
-      return;
-    }
+    if (!selectedCity) { toast.error("اختر المدينة"); return; }
 
     setIsSubmitting(true);
     try {
-      // Step 1: Contact info
       await api.post("/contact", {
         address: formData.address,
         phone: formData.phone,
         order_note: formData.order_note,
       });
 
-      // Step 2: Checkout
       const fd = new FormData();
       fd.append("payment_method_id", String(paymentMethod));
       const checkoutRes = await api.post("/checkout", fd);
@@ -147,12 +201,9 @@ export default function CheckoutPage() {
       if (checkoutRes.data.status) {
         const { redirect_url } = checkoutRes.data.data || {};
         await refreshCart();
-
         if (redirect_url && redirect_url.trim()) {
-          // Payment gateway redirect
           window.location.href = redirect_url;
         } else {
-          // Cash on delivery
           toast.success("تم الطلب بنجاح!");
           setTimeout(() => router.push("/account/orders"), 1500);
         }
@@ -169,6 +220,8 @@ export default function CheckoutPage() {
   const filteredCities = cities.filter((c) =>
     c.name.toLowerCase().includes(citySearch.toLowerCase()),
   );
+
+  const canSubmit = selectedCity && paymentMethod && formData.address.trim() && formData.phone.trim();
 
   if (authState.isLoading) {
     return (
@@ -190,16 +243,10 @@ export default function CheckoutPage() {
           { icon: CreditCard, label: "الدفع", done: false },
         ].map((step, i) => (
           <div key={i} className="flex items-center gap-2">
-            <div
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium ${
-                step.done ? "bg-success/10 text-success" : "bg-surface-2 text-text-muted"
-              }`}
-            >
-              {step.done ? (
-                <CheckCircle className="w-3.5 h-3.5" />
-              ) : (
-                <step.icon className="w-3.5 h-3.5" />
-              )}
+            <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium ${
+              step.done ? "bg-success/10 text-success" : "bg-surface-2 text-text-muted"
+            }`}>
+              {step.done ? <CheckCircle className="w-3.5 h-3.5" /> : <step.icon className="w-3.5 h-3.5" />}
               <span className="hidden sm:inline">{step.label}</span>
             </div>
             {i < 2 && <div className="w-8 h-px bg-border" />}
@@ -218,7 +265,69 @@ export default function CheckoutPage() {
                 معلومات الشحن
               </h3>
 
-              {/* City Dropdown */}
+              {/* Saved addresses */}
+              {savedAddresses.length > 0 && (
+                <div className="mb-5">
+                  <p className="text-xs font-medium text-text-muted mb-2">العناوين المحفوظة</p>
+                  <div className="space-y-2">
+                    {savedAddresses.map((addr) => {
+                      const isSelected = selectedAddressId === addr.id;
+                      return (
+                        <button
+                          key={addr.id}
+                          type="button"
+                          onClick={() => handleSelectAddress(addr)}
+                          className={`w-full text-right p-3.5 rounded-xl border-2 transition-all flex items-start gap-3 ${
+                            isSelected
+                              ? "border-primary bg-primary-light/40"
+                              : "border-border hover:border-text-faint"
+                          }`}
+                        >
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${
+                            isSelected ? "bg-primary text-white" : "bg-surface-2 text-text-muted"
+                          }`}>
+                            {addr.label === "العمل" ? <Briefcase className="w-3.5 h-3.5" /> : <Home className="w-3.5 h-3.5" />}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-1.5 mb-0.5">
+                              <span className="text-sm font-semibold">{addr.label}</span>
+                              {addr.is_default && (
+                                <span className="inline-flex items-center gap-0.5 text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded-full">
+                                  <Star className="w-2.5 h-2.5 fill-primary" />
+                                  افتراضي
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-xs text-text-muted">
+                              {addr.address}
+                              {addr.city_name && ` — ${addr.city_name}`}
+                            </p>
+                            <p className="text-xs text-text-faint mt-0.5">{addr.name} · {addr.phone}</p>
+                          </div>
+                          {isSelected && <CheckCircle className="w-4 h-4 text-primary shrink-0 mt-1" />}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Add new address */}
+                  <button
+                    type="button"
+                    onClick={handleShowNewForm}
+                    className={`w-full mt-2 p-3 rounded-xl border-2 border-dashed text-sm font-medium transition-all flex items-center justify-center gap-2 ${
+                      showNewForm
+                        ? "border-primary text-primary bg-primary-light/30"
+                        : "border-border text-text-muted hover:border-primary hover:text-primary"
+                    }`}
+                  >
+                    <Plus className="w-4 h-4" />
+                    إضافة عنوان جديد
+                  </button>
+
+                </div>
+              )}
+
+              {/* City Dropdown — always shown */}
               <div className="mb-4" ref={cityRef}>
                 <label className="text-sm font-medium mb-1.5 block">المدينة *</label>
                 <button
@@ -229,11 +338,7 @@ export default function CheckoutPage() {
                   <span className={selectedCity ? "text-text" : "text-text-faint"}>
                     {selectedCity ? selectedCity.name : "اختر المدينة"}
                   </span>
-                  {cityOpen ? (
-                    <ChevronUp className="w-4 h-4" />
-                  ) : (
-                    <ChevronDown className="w-4 h-4" />
-                  )}
+                  {cityOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                 </button>
                 {cityOpen && (
                   <div className="mt-1 bg-surface border border-border rounded-xl shadow-card-hover max-h-52 overflow-hidden z-20 relative">
@@ -269,16 +374,21 @@ export default function CheckoutPage() {
                 )}
               </div>
 
+              {/* Address & phone — editable in all cases */}
               <div className="mb-4">
-                <label className="text-sm font-medium mb-1.5 block">العنوان *</label>
+                <label className="text-sm font-medium mb-1.5 flex items-center gap-1.5">
+                  العنوان *
+                  {selectedAddressId && (
+                    <span className="text-xs text-text-muted font-normal">(يمكنك التعديل)</span>
+                  )}
+                </label>
                 <input
                   type="text"
                   name="address"
                   value={formData.address}
                   onChange={handleInputChange}
-                  placeholder="العنوان بالتفصيل (8 أحرف على الأقل)"
+                  placeholder="العنوان بالتفصيل"
                   className="input-field"
-                  required
                 />
               </div>
 
@@ -291,7 +401,6 @@ export default function CheckoutPage() {
                   onChange={handleInputChange}
                   placeholder="رقم الهاتف (أرقام فقط)"
                   className="input-field"
-                  required
                   dir="ltr"
                 />
               </div>
@@ -347,13 +456,7 @@ export default function CheckoutPage() {
             <button
               type="submit"
               className="btn-primary w-full !py-4 text-base"
-              disabled={
-                isSubmitting ||
-                !selectedCity ||
-                !paymentMethod ||
-                !formData.address.trim() ||
-                !formData.phone.trim()
-              }
+              disabled={isSubmitting || !canSubmit}
             >
               {isSubmitting ? "جاري المعالجة..." : "تأكيد الطلب"}
             </button>
@@ -376,9 +479,7 @@ export default function CheckoutPage() {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-text-muted">الشحن</span>
-                  <span>
-                    {summary.shipping_zone ? formatCurrency(summary.shipping_zone.price) : "—"}
-                  </span>
+                  <span>{summary.shipping_zone ? formatCurrency(summary.shipping_zone.price) : "—"}</span>
                 </div>
                 {summary.shipping_zone?.name && (
                   <div className="flex justify-between">

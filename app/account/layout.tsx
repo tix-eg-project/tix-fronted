@@ -1,12 +1,13 @@
 'use client'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { User, Package, Heart, LogOut, Settings, RotateCcw } from 'lucide-react'
+import { User, Package, Heart, LogOut, RotateCcw, MapPin } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 
 const sidebarLinks = [
   { href: '/account', label: 'بيانات شخصية', icon: User },
   { href: '/account/orders', label: 'طلباتي', icon: Package },
+  { href: '/account/addresses', label: 'عناويني', icon: MapPin },
   { href: '/account/wishlist', label: 'المفضلة', icon: Heart },
   { href: '/account/returns', label: 'المرتجعات', icon: RotateCcw },
 ]
