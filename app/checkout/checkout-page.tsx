@@ -42,7 +42,6 @@ export default function CheckoutPage() {
     city: "",
     address: "",
     phone: "",
-    order_note: "",
   });
   const [currentStep, setCurrentStep] = useState(1);
 
@@ -155,7 +154,7 @@ export default function CheckoutPage() {
       const city = list.find((c) => c.id === addr.city_id);
       if (city) {
         setSelectedCity(city);
-        updateSummaryWithCity(city.id);
+        updateSummaryWithCity(Number(city.id));
       }
     }
   };
@@ -173,7 +172,7 @@ export default function CheckoutPage() {
     setSelectedCity(city);
     setCityOpen(false);
     setCitySearch("");
-    updateSummaryWithCity(city.id);
+    updateSummaryWithCity(Number(city.id));
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -245,7 +244,6 @@ export default function CheckoutPage() {
       await api.post("/contact", {
         phone: formData.phone,
         address: formData.address,
-        order_note: formData.order_note || "—",
       }).catch(() => {});
 
       // Save address if new
@@ -261,8 +259,6 @@ export default function CheckoutPage() {
       fd.append("city", formData.city || selectedCity.name);
       fd.append("shipping_address", formData.address);
       fd.append("payment_method_id", String(paymentMethod));
-      if (formData.order_note) fd.append("order_note", formData.order_note);
-
       const checkoutRes = await api.post("/checkout", fd);
       if (checkoutRes.data.status) {
         toast.success("تم إرسال طلبك بنجاح!");
@@ -430,19 +426,6 @@ export default function CheckoutPage() {
                         إضافة عنوان جديد
                       </button>
 
-                      {/* Order note */}
-                      <div className="mt-4">
-                        <label className="block text-sm font-semibold mb-2 text-black">ملاحظات (اختياري)</label>
-                        <textarea
-                          name="order_note"
-                          value={formData.order_note}
-                          onChange={handleInputChange}
-                          placeholder="ملاحظات إضافية للطلب..."
-                          rows={2}
-                          className="w-full px-3 py-2 border border-border rounded-lg text-sm outline-none focus:border-black resize-none"
-                        />
-                      </div>
-
                       <Button
                         onClick={handleNextStep}
                         disabled={!selectedAddressId}
@@ -566,18 +549,6 @@ export default function CheckoutPage() {
                             onChange={handleInputChange}
                             placeholder="الشارع، رقم البناء، الدور، الشقة..."
                             className="w-full h-12 px-3 border border-border rounded-lg text-sm outline-none focus:border-black"
-                          />
-                        </div>
-
-                        <div>
-                          <label className="block text-sm font-semibold mb-2 text-black">ملاحظات (اختياري)</label>
-                          <textarea
-                            name="order_note"
-                            value={formData.order_note}
-                            onChange={handleInputChange}
-                            placeholder="ملاحظات إضافية للتوصيل..."
-                            rows={2}
-                            className="w-full px-3 py-2 border border-border rounded-lg text-sm outline-none focus:border-black resize-none"
                           />
                         </div>
 
