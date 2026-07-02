@@ -16,8 +16,8 @@ export default function VendorRegisterPage() {
     phone: "",
     password: "",
     password_confirmation: "",
-    store_name: "",
-    store_address: "",
+    company_name: "",
+    address: "",
     description: "",
   });
 
@@ -61,7 +61,7 @@ export default function VendorRegisterPage() {
     { name: "name", label: "الاسم الكامل", icon: User, type: "text", placeholder: "اسمك الكامل", required: true },
     { name: "email", label: "البريد الإلكتروني", icon: Mail, type: "email", placeholder: "email@example.com", required: true, dir: "ltr" },
     { name: "phone", label: "رقم الهاتف", icon: Phone, type: "tel", placeholder: "01xxxxxxxxx", required: true, dir: "ltr" },
-    { name: "store_name", label: "اسم المتجر", icon: Store, type: "text", placeholder: "اسم متجرك", required: true },
+    { name: "company_name", label: "اسم المتجر", icon: Store, type: "text", placeholder: "اسم متجرك", required: true },
     { name: "store_address", label: "عنوان المتجر", icon: MapPin, type: "text", placeholder: "عنوان المتجر", required: false },
   ];
 

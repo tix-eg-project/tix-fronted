@@ -281,8 +281,8 @@ export default function ProductDetailClient({ productId }: { productId: string }
   const features = Array.isArray(product.prod_features) && product.prod_features.length > 0
     ? product.prod_features.map((f: any) => typeof f === 'object' ? t(f.name || f) : f)
     : Array.isArray(product.features)
-    ? product.features.filter(Boolean).map((f: any) => typeof f === 'object' ? t(f) : f)
-    : [];
+      ? product.features.filter(Boolean).map((f: any) => typeof f === 'object' ? t(f) : f)
+      : [];
   const handleAddBoughtTogether = async () => {
     if (!authState.isAuthenticated) {
       toast.info("سجّل الدخول أولاً لإضافة المنتجات للسلة");
@@ -328,7 +328,7 @@ export default function ProductDetailClient({ productId }: { productId: string }
   };
 
   const faqs = Array.isArray(product.qas) && product.qas.length > 0
-    ? product.qas 
+    ? product.qas
     : Array.isArray(product.faqs) ? product.faqs : [];
   const rawStock = selectedItem?.quantity ?? product.quantity ?? null;
   const maxStock = rawStock ?? 999;
@@ -440,11 +440,11 @@ export default function ProductDetailClient({ productId }: { productId: string }
           )}
 
           {/* Vendor */}
-          {product.vendor?.store_name && (
+          {product?.vendor?.store_name && (
             <p className="text-sm mt-3" style={{ color: "#666" }}>
               البائع:{" "}
               <span className="font-medium" style={{ color: "#212121" }}>
-                {t(product.vendor.store_name)}
+                {t(product?.vendor?.store_name)}
               </span>
             </p>
           )}
@@ -459,11 +459,10 @@ export default function ProductDetailClient({ productId }: { productId: string }
                 {product.groups.map((group: VariantGroup, idx: number) => (
                   <button
                     key={idx}
-                    className={`w-10 h-10 rounded-full border-2 transition-all hover:scale-110 ${
-                      selectedGroup?.value === group.value
-                        ? "border-black ring-2 ring-offset-2 ring-black"
-                        : "border-transparent"
-                    }`}
+                    className={`w-10 h-10 rounded-full border-2 transition-all hover:scale-110 ${selectedGroup?.value === group.value
+                      ? "border-black ring-2 ring-offset-2 ring-black"
+                      : "border-transparent"
+                      }`}
                     style={{ backgroundColor: group.meta?.code || "#ddd" }}
                     onClick={() => {
                       setSelectedGroup(group);
@@ -480,11 +479,10 @@ export default function ProductDetailClient({ productId }: { productId: string }
                   {selectedGroup.items.map((item: VariantItem) => (
                     <button
                       key={item.id}
-                      className={`px-4 py-2 text-sm font-medium border-2 rounded-lg transition-colors ${
-                        selectedItem?.id === item.id
-                          ? "border-black bg-black text-white"
-                          : "border-gray-200 hover:border-gray-400"
-                      }`}
+                      className={`px-4 py-2 text-sm font-medium border-2 rounded-lg transition-colors ${selectedItem?.id === item.id
+                        ? "border-black bg-black text-white"
+                        : "border-gray-200 hover:border-gray-400"
+                        }`}
                       onClick={() => setSelectedItem(item)}
                     >
                       {Object.entries(item.attrs).map(([k, v]) => (
@@ -563,11 +561,10 @@ export default function ProductDetailClient({ productId }: { productId: string }
           {/* Add to Wishlist */}
           <button
             onClick={handleToggleWishlist}
-            className={`w-full h-11 text-sm font-medium rounded-xl border transition-colors mt-2 flex items-center justify-center gap-2 ${
-              wishlisted
-                ? "bg-red-50 text-red-500 border-red-200"
-                : "bg-white text-gray-700 border-gray-200 hover:border-gray-400 hover:text-black"
-            }`}
+            className={`w-full h-11 text-sm font-medium rounded-xl border transition-colors mt-2 flex items-center justify-center gap-2 ${wishlisted
+              ? "bg-red-50 text-red-500 border-red-200"
+              : "bg-white text-gray-700 border-gray-200 hover:border-gray-400 hover:text-black"
+              }`}
           >
             <Heart className="w-4 h-4" fill={wishlisted ? "currentColor" : "none"} />
             {wishlisted ? "في المفضلة" : "أضف للمفضلة"}
@@ -646,7 +643,7 @@ export default function ProductDetailClient({ productId }: { productId: string }
                   <div className="flex flex-col items-center justify-center min-w-[100px]">
                     <span className="text-5xl font-black text-gray-900">{avgRating.toFixed(1)}</span>
                     <div className="flex gap-0.5 my-1.5">
-                      {[1,2,3,4,5].map(n => (
+                      {[1, 2, 3, 4, 5].map(n => (
                         <Star key={n} className={`w-4 h-4 ${n <= Math.round(avgRating) ? 'fill-yellow-400 text-yellow-400' : 'text-gray-200 fill-gray-200'}`} />
                       ))}
                     </div>
@@ -654,7 +651,7 @@ export default function ProductDetailClient({ productId }: { productId: string }
                   </div>
                   {/* Bars */}
                   <div className="flex-1 space-y-1.5">
-                    {[5,4,3,2,1].map(n => {
+                    {[5, 4, 3, 2, 1].map(n => {
                       const count = reviewsList.filter((r: any) => Math.round(r.rating) === n).length;
                       const pct = reviewCount > 0 ? Math.round((count / reviewCount) * 100) : 0;
                       return (
@@ -690,7 +687,7 @@ export default function ProductDetailClient({ productId }: { productId: string }
                           <div>
                             <p className="text-sm font-semibold text-gray-800">{r.user_name || r.user || r.name || "مستخدم"}</p>
                             <div className="flex gap-0.5 mt-0.5">
-                              {[1,2,3,4,5].map(n => (
+                              {[1, 2, 3, 4, 5].map(n => (
                                 <Star key={n} className={`w-3 h-3 ${n <= Math.round(r.rating) ? 'fill-yellow-400 text-yellow-400' : 'text-gray-200 fill-gray-200'}`} />
                               ))}
                             </div>
@@ -793,63 +790,63 @@ export default function ProductDetailClient({ productId }: { productId: string }
       </div>
 
       {/* Frequently Bought Together Section - Larger Cards */}
-              {complementaryProducts.length > 0 && (
-                <div className="mt-8 p-6 border border-gray-200 rounded-2xl bg-white shadow-sm">
-                  <h3 className="text-base font-bold mb-6 text-gray-900">يباع معها أيضاً</h3>
+      {complementaryProducts.length > 0 && (
+        <div className="mt-8 p-6 border border-gray-200 rounded-2xl bg-white shadow-sm">
+          <h3 className="text-base font-bold mb-6 text-gray-900">يباع معها أيضاً</h3>
 
-                  <div className="flex items-start gap-4 overflow-x-auto pb-4 scrollbar-hide">
-                    {/* Main Product */}
-                    <div className="flex-shrink-0 w-32 flex flex-col items-center gap-3">
-                      <div className="relative w-32 h-32 bg-gray-50 rounded-xl border border-gray-100 overflow-hidden group">
-                        <input
-                          type="checkbox"
-                          checked={selectedBoughtTogether.includes(String(product.id))}
-                          onChange={() => toggleBoughtTogether(String(product.id))}
-                          className="absolute top-2 right-2 z-10 w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer shadow-sm"
-                        />
-                        <Image src={images[0]} alt="" fill className="object-contain p-1" />
-                      </div>
-                      <div className="text-center w-full">
-                        <p className="text-[11px] font-bold text-gray-900 leading-tight line-clamp-2 mb-1 h-7">{t(product.name)}</p>
-                        <p className="text-xs font-black text-gray-900">{formatCurrency(currentPrice)}</p>
-                      </div>
-                    </div>
+          <div className="flex items-start gap-4 overflow-x-auto pb-4 scrollbar-hide">
+            {/* Main Product */}
+            <div className="flex-shrink-0 w-32 flex flex-col items-center gap-3">
+              <div className="relative w-32 h-32 bg-gray-50 rounded-xl border border-gray-100 overflow-hidden group">
+                <input
+                  type="checkbox"
+                  checked={selectedBoughtTogether.includes(String(product.id))}
+                  onChange={() => toggleBoughtTogether(String(product.id))}
+                  className="absolute top-2 right-2 z-10 w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer shadow-sm"
+                />
+                <Image src={images[0]} alt="" fill className="object-contain p-1" />
+              </div>
+              <div className="text-center w-full">
+                <p className="text-[11px] font-bold text-gray-900 leading-tight line-clamp-2 mb-1 h-7">{t(product.name)}</p>
+                <p className="text-xs font-black text-gray-900">{formatCurrency(currentPrice)}</p>
+              </div>
+            </div>
 
-                    {complementaryProducts.slice(0, 3).map((prod) => (
-                      <div key={prod.id} className="flex items-start gap-3">
-                        <div className="flex items-center justify-center h-32 text-gray-300">
-                          <PlusIcon className="w-4 h-4" />
-                        </div>
-                        <div className="flex-shrink-0 w-32 flex flex-col items-center gap-3">
-                          <div className="relative w-32 h-32 bg-gray-50 rounded-xl border border-gray-100 overflow-hidden group">
-                            <input
-                              type="checkbox"
-                              checked={selectedBoughtTogether.includes(String(prod.id))}
-                              onChange={() => toggleBoughtTogether(String(prod.id))}
-                              className="absolute top-2 right-2 z-10 w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer shadow-sm"
-                            />
-                            <Image src={prod.image} alt="" fill className="object-contain p-1" />
-                          </div>
-                          <div className="text-center w-full">
-                            <p className="text-[11px] font-bold text-gray-900 leading-tight line-clamp-2 mb-1 h-7">{t(prod.name)}</p>
-                            <p className="text-xs font-black text-gray-900">{formatCurrency(prod.price)}</p>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
+            {complementaryProducts.slice(0, 3).map((prod) => (
+              <div key={prod.id} className="flex items-start gap-3">
+                <div className="flex items-center justify-center h-32 text-gray-300">
+                  <PlusIcon className="w-4 h-4" />
+                </div>
+                <div className="flex-shrink-0 w-32 flex flex-col items-center gap-3">
+                  <div className="relative w-32 h-32 bg-gray-50 rounded-xl border border-gray-100 overflow-hidden group">
+                    <input
+                      type="checkbox"
+                      checked={selectedBoughtTogether.includes(String(prod.id))}
+                      onChange={() => toggleBoughtTogether(String(prod.id))}
+                      className="absolute top-2 right-2 z-10 w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer shadow-sm"
+                    />
+                    <Image src={prod.image} alt="" fill className="object-contain p-1" />
                   </div>
-
-                  <div className="mt-6 pt-6 border-t border-gray-100">
-                    <button
-                      onClick={handleAddBoughtTogether}
-                      disabled={selectedBoughtTogether.length === 0 || addingToCart}
-                      className="w-full bg-white text-black border border-black hover:bg-gray-50 h-12 rounded-xl font-bold text-base transition-all focus:ring-0 focus-visible:ring-0 shadow-sm"
-                    >
-                      اشتري {selectedBoughtTogether.length} معاً بسعر {formatCurrency(calculateTotalBoughtTogether())}
-                    </button>
+                  <div className="text-center w-full">
+                    <p className="text-[11px] font-bold text-gray-900 leading-tight line-clamp-2 mb-1 h-7">{t(prod.name)}</p>
+                    <p className="text-xs font-black text-gray-900">{formatCurrency(prod.price)}</p>
                   </div>
                 </div>
-              )}
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-6 pt-6 border-t border-gray-100">
+            <button
+              onClick={handleAddBoughtTogether}
+              disabled={selectedBoughtTogether.length === 0 || addingToCart}
+              className="w-full bg-white text-black border border-black hover:bg-gray-50 h-12 rounded-xl font-bold text-base transition-all focus:ring-0 focus-visible:ring-0 shadow-sm"
+            >
+              اشتري {selectedBoughtTogether.length} معاً بسعر {formatCurrency(calculateTotalBoughtTogether())}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ═══ Complementary Products — "اشتري معاها في سلة وحدة ووفر" ═══ */}
       {complementaryProducts.length > 0 && (

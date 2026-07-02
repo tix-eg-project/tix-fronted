@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   MapPin,
@@ -7,9 +7,6 @@ import {
   Truck,
   ShoppingBag,
   CheckCircle,
-  ChevronDown,
-  ChevronUp,
-  Search,
   Plus,
   Home,
   Briefcase,
@@ -50,9 +47,6 @@ export default function CheckoutPage() {
   // City dropdown
   const [cities, setCities] = useState<ShippingCity[]>([]);
   const [selectedCity, setSelectedCity] = useState<ShippingCity | null>(null);
-  const [cityOpen, setCityOpen] = useState(false);
-  const [citySearch, setCitySearch] = useState("");
-  const cityRef = useRef<HTMLDivElement>(null);
 
   // Summary & payment methods
   const [summary, setSummary] = useState<CartSummary | null>(null);
@@ -118,14 +112,6 @@ export default function CheckoutPage() {
     fetchData();
   }, [authState.isAuthenticated]);
 
-  // Close city dropdown on outside click
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (cityRef.current && !cityRef.current.contains(e.target as Node)) setCityOpen(false);
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, []);
 
   function applyAddress(addr: SavedAddress, citiesList?: ShippingCity[]) {
     setSelectedAddressId(addr.id);
@@ -165,12 +151,6 @@ export default function CheckoutPage() {
     } catch {}
   };
 
-  const handleCitySelect = async (city: ShippingCity) => {
-    setSelectedCity(city);
-    setCityOpen(false);
-    setCitySearch("");
-    updateSummaryCity(Number(city.id));
-  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -218,11 +198,7 @@ export default function CheckoutPage() {
     }
   };
 
-  const filteredCities = cities.filter((c) =>
-    c.name.toLowerCase().includes(citySearch.toLowerCase()),
-  );
-
-  const canSubmit = selectedCity && paymentMethod && formData.address.trim() && formData.phone.trim();
+  const canSubmit = selectedCity && paymentMethod;
 
   if (authState.isLoading) {
     return (
@@ -327,84 +303,6 @@ export default function CheckoutPage() {
 
                 </div>
               )}
-
-              {/* City Dropdown — always shown */}
-              <div className="mb-4" ref={cityRef}>
-                <label className="text-sm font-medium mb-1.5 block">المدينة *</label>
-                <button
-                  type="button"
-                  className="input-field flex items-center justify-between !py-3"
-                  onClick={() => setCityOpen(!cityOpen)}
-                >
-                  <span className={selectedCity ? "text-text" : "text-text-faint"}>
-                    {selectedCity ? selectedCity.name : "اختر المدينة"}
-                  </span>
-                  {cityOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                </button>
-                {cityOpen && (
-                  <div className="mt-1 bg-surface border border-border rounded-xl shadow-card-hover max-h-52 overflow-hidden z-20 relative">
-                    <div className="p-2 border-b border-divider">
-                      <div className="relative">
-                        <input
-                          type="text"
-                          value={citySearch}
-                          onChange={(e) => setCitySearch(e.target.value)}
-                          placeholder="ابحث عن المدينة..."
-                          className="input-field !py-2 pr-3 pl-8 text-sm"
-                          autoFocus
-                        />
-                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-text-faint" />
-                      </div>
-                    </div>
-                    <div className="max-h-40 overflow-y-auto">
-                      {filteredCities.map((city) => (
-                        <button
-                          key={city.id}
-                          type="button"
-                          className={`w-full text-right px-4 py-2.5 text-sm hover:bg-surface-2 transition-colors flex justify-between ${
-                            selectedCity?.id === city.id ? "bg-primary-light text-primary" : ""
-                          }`}
-                          onClick={() => handleCitySelect(city)}
-                        >
-                          <span>{city.name}</span>
-                          <span className="text-text-muted">{formatCurrency(city.price)}</span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Address & phone — editable in all cases */}
-              <div className="mb-4">
-                <label className="text-sm font-medium mb-1.5 flex items-center gap-1.5">
-                  العنوان *
-                  {selectedAddressId && (
-                    <span className="text-xs text-text-muted font-normal">(يمكنك التعديل)</span>
-                  )}
-                </label>
-                <input
-                  type="text"
-                  name="address"
-                  value={formData.address}
-                  onChange={handleInputChange}
-                  placeholder="العنوان بالتفصيل"
-                  className="input-field"
-                />
-              </div>
-
-              <div className="mb-4">
-                <label className="text-sm font-medium mb-1.5 block">رقم الهاتف *</label>
-                <input
-                  type="tel"
-                  name="phone"
-                  value={formData.phone}
-                  onChange={handleInputChange}
-                  placeholder="رقم الهاتف (أرقام فقط)"
-                  className="input-field"
-                  dir="ltr"
-                />
-              </div>
 
               <div>
                 <label className="text-sm font-medium mb-1.5 block">ملاحظات (اختياري)</label>
