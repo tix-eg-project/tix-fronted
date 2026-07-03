@@ -8,4 +8,5 @@ export interface ProductCardProps {
   reviewsCount?: number;
   discount?: number;
   isFlashDeal?: boolean;
+  offerId?: number | string;
 }

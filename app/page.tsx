@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import HeroBanner from "@/components/HeroBanner";
 import FlashDeals from "@/components/FlashDeals";
+import OffersSection from "@/components/OffersSection";
 import ProductCard from "@/components/ProductCard";
 import Features from "@/components/Features";
 import Link from "next/link";
@@ -108,6 +109,9 @@ export default async function HomePage() {
 
       {/* 2) Flash Deals */}
       <FlashDeals />
+
+      {/* 3) Offers */}
+      <OffersSection />
 
       {/* 4) Latest Products */}
       <section className="container mx-auto px-4 py-8">

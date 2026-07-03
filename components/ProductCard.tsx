@@ -21,6 +21,7 @@ export default function ProductCard({
   reviewsCount,
   discount,
   isFlashDeal = false,
+  offerId,
 }: ProductCardProps) {
   const { addToCart } = useCart();
   const { toggleWishlist, isInWishlist } = useWishlist();
@@ -38,7 +39,7 @@ export default function ProductCard({
       return;
     }
     try {
-      await addToCart(id);
+      await addToCart(id, 1, null, offerId);
       toast.success("تمت الإضافة للسلة");
     } catch {
       toast.error("حدث خطأ");

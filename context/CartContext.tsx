@@ -92,12 +92,15 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }, [refreshCart]);
 
   const addToCart = useCallback(
-    async (productId: number | string, quantity: number = 1, variantItemId?: number | null) => {
+    async (productId: number | string, quantity: number = 1, variantItemId?: number | null, offerId?: number | string | null) => {
       const formData = new FormData();
       formData.append("product_id", String(productId));
       formData.append("quantity", String(quantity));
       if (variantItemId) {
         formData.append("product_variant_item_id", String(variantItemId));
+      }
+      if (offerId) {
+        formData.append("offer_id", String(offerId));
       }
 
       const response = await api.post("/cart/add", formData, {

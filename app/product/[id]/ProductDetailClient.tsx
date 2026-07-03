@@ -14,12 +14,6 @@ import {
   ChevronDown,
   ChevronUp,
   CheckCircle,
-  Truck,
-  RotateCcw,
-  Headphones,
-  Banknote,
-  Lock,
-  CreditCard,
   Plus as PlusIcon,
 } from "lucide-react";
 import { toast } from "react-toastify";
@@ -395,6 +389,16 @@ export default function ProductDetailClient({ productId }: { productId: string }
 
         {/* ═══ Column 2: Product Details ═══ */}
         <div className="flex flex-col">
+          {/* Brand */}
+          {product?.brand && (
+            <Link
+              href={`/brand/${typeof product.brand === "object" ? product.brand.id : encodeURIComponent(product.brand)}?name=${encodeURIComponent(typeof product.brand === "object" ? (product.brand.name ?? "") : product.brand)}`}
+              className="text-sm font-semibold text-primary hover:underline mb-1 self-start"
+            >
+              {typeof product.brand === "object" ? t(product.brand.name) : t(product.brand)}
+            </Link>
+          )}
+
           {/* Title */}
           <h1 className="text-xl md:text-2xl font-bold leading-tight" style={{ color: "#212121" }}>
             {t(product.name)}
@@ -443,9 +447,13 @@ export default function ProductDetailClient({ productId }: { productId: string }
           {product?.vendor?.store_name && (
             <p className="text-sm mt-3" style={{ color: "#666" }}>
               البائع:{" "}
-              <span className="font-medium" style={{ color: "#212121" }}>
-                {t(product?.vendor?.store_name)}
-              </span>
+              <Link
+                href={`/vendor/${product.vendor.id}`}
+                className="font-medium hover:text-primary transition-colors"
+                style={{ color: "#212121" }}
+              >
+                {t(product.vendor.store_name)}
+              </Link>
             </p>
           )}
 
@@ -570,26 +578,25 @@ export default function ProductDetailClient({ productId }: { productId: string }
             {wishlisted ? "في المفضلة" : "أضف للمفضلة"}
           </button>
 
-          {/* ── Delivery Info Grid ── */}
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-6 pt-6 border-t border-gray-100">
-            {[
-              { icon: Truck, label: "شحن سريع", desc: "2-5 أيام عمل" },
-              { icon: RotateCcw, label: "إرجاع سهل", desc: "خلال 14 يوم" },
-              { icon: Banknote, label: "دفع نقداً", desc: "عند الاستلام" },
-              { icon: Lock, label: "دفع آمن", desc: "100% محمي" },
-              { icon: CreditCard, label: "دفع إلكتروني", desc: "جميع الوسائل 💳" },
-              { icon: Headphones, label: "دعم فني", desc: "على مدار الساعة" },
-            ].map(({ icon: Icon, label, desc }) => (
-              <div
-                key={label}
-                className="flex flex-col items-center text-center gap-1.5 p-3 rounded-xl bg-gray-50"
-              >
-                <Icon className="h-6 w-6 text-black" />
-                <span className="text-xs font-semibold text-gray-800">{label}</span>
-                <span className="text-xs text-gray-500">{desc}</span>
-              </div>
-            ))}
-          </div>
+          {/* ── Feature Values ── */}
+          {Array.isArray(product.feature_values) && product.feature_values.length > 0 && (
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-6 pt-6 border-t border-gray-100">
+              {product.feature_values.map((f: any) => (
+                <div
+                  key={f.id}
+                  className="flex flex-col items-center text-center gap-1.5 p-3 rounded-xl bg-gray-50"
+                >
+                  {f.logo_url ? (
+                    <img src={f.logo_url} alt={f.title} className="w-6 h-6 object-contain" />
+                  ) : (
+                    <span className="w-6 h-6" />
+                  )}
+                  <span className="text-xs font-semibold text-gray-800">{f.title}</span>
+                  {f.value && <span className="text-xs text-gray-500">{f.value}</span>}
+                </div>
+              ))}
+            </div>
+          )}
 
           {/* ── Features ── */}
           {features.length > 0 && (
