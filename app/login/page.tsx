@@ -8,6 +8,8 @@ import { z } from 'zod'
 import { Mail, Lock, Eye, EyeOff, LogIn, UserPlus } from 'lucide-react'
 import { toast } from 'react-toastify'
 import { useAuth } from '@/context/AuthContext'
+import GoogleAuthButton from '@/components/GoogleAuthButton'
+import GoogleOneTap from '@/components/GoogleOneTap'
 
 const loginSchema = z.object({
   email: z.string().email('بريد إلكتروني غير صحيح'),
@@ -39,6 +41,7 @@ function LoginForm() {
 
   return (
     <div className="bg-white rounded-lg border border-border p-8">
+      <GoogleOneTap />
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <div>
           <label className="block text-sm font-semibold mb-2">البريد الإلكتروني</label>
@@ -108,6 +111,8 @@ function LoginForm() {
         <span className="text-xs text-text-muted">أو</span>
         <div className="flex-1 h-px bg-divider" />
       </div>
+
+      <GoogleAuthButton onSuccess={() => { window.location.href = '/' }} />
 
       <p className="text-center text-text-muted mt-8">
         ليس لديك حساب؟{' '}

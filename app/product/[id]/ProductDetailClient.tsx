@@ -629,6 +629,21 @@ export default function ProductDetailClient({ productId }: { productId: string }
             </div>
           )}
 
+          {/* ── Video ── */}
+          {product.video && (
+            <div className="mt-8">
+              <h3 className="text-base font-bold mb-3">فيديو المنتج</h3>
+              <div className="relative w-full rounded-2xl overflow-hidden bg-black aspect-video">
+                <video
+                  src={product.video}
+                  controls
+                  className="w-full h-full object-contain"
+                  poster={typeof product.images?.[0] === "string" ? product.images[0] : undefined}
+                />
+              </div>
+            </div>
+          )}
+
           {/* ── Accordions ── */}
           <div className="mt-6 border-t border-gray-100">
             {/* Description */}
