@@ -390,14 +390,24 @@ export default function ProductDetailClient({ productId }: { productId: string }
         {/* ═══ Column 2: Product Details ═══ */}
         <div className="flex flex-col">
           {/* Brand */}
-          {product?.brand && (
-            <Link
-              href={`/brand/${typeof product.brand === "object" ? product.brand.id : encodeURIComponent(product.brand)}?name=${encodeURIComponent(typeof product.brand === "object" ? (product.brand.name ?? "") : product.brand)}`}
-              className="text-sm font-semibold text-primary hover:underline mb-1 self-start"
-            >
-              {typeof product.brand === "object" ? t(product.brand.name) : t(product.brand)}
-            </Link>
-          )}
+          {product?.brand && (() => {
+            const brandId = product.brand_id
+              ?? (typeof product.brand === "object" ? product.brand.id : null);
+            const brandName = typeof product.brand === "object"
+              ? (product.brand.name ?? "")
+              : product.brand;
+            if (!brandId) return (
+              <span className="text-sm font-semibold text-primary mb-1">{t(brandName)}</span>
+            );
+            return (
+              <Link
+                href={`/brand/${brandId}?name=${encodeURIComponent(t(brandName))}`}
+                className="text-sm font-semibold text-primary hover:underline mb-1 self-start"
+              >
+                {t(brandName)}
+              </Link>
+            );
+          })()}
 
           {/* Title */}
           <h1 className="text-xl md:text-2xl font-bold leading-tight" style={{ color: "#212121" }}>
@@ -446,7 +456,7 @@ export default function ProductDetailClient({ productId }: { productId: string }
           {/* Vendor */}
           {product?.vendor?.store_name && (
             <p className="text-sm mt-3" style={{ color: "#666" }}>
-              البائع:{" "}
+              المتجر:{" "}
               <Link
                 href={`/vendor/${product.vendor.id}`}
                 className="font-medium hover:text-primary transition-colors"
