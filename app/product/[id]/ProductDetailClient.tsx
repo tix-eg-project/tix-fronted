@@ -390,24 +390,18 @@ export default function ProductDetailClient({ productId }: { productId: string }
         {/* ═══ Column 2: Product Details ═══ */}
         <div className="flex flex-col">
           {/* Brand */}
-          {product?.brand && (() => {
-            const brandId = product.brand_id
-              ?? (typeof product.brand === "object" ? product.brand.id : null);
-            const brandName = typeof product.brand === "object"
-              ? (product.brand.name ?? "")
-              : product.brand;
-            if (!brandId) return (
-              <span className="text-sm font-semibold text-primary mb-1">{t(brandName)}</span>
-            );
-            return (
-              <Link
-                href={`/brand/${brandId}?name=${encodeURIComponent(t(brandName))}`}
-                className="text-sm font-semibold text-primary hover:underline mb-1 self-start"
-              >
-                {t(brandName)}
-              </Link>
-            );
-          })()}
+          {product?.brand?.id ? (
+            <Link
+              href={`/brand/${product.brand.id}?name=${encodeURIComponent(t(product.brand.name ?? product.brand))}`}
+              className="text-sm font-semibold text-primary hover:underline mb-1 self-start"
+            >
+              {t(product.brand.name ?? product.brand)}
+            </Link>
+          ) : product?.brand ? (
+            <span className="text-sm font-semibold text-primary mb-1">
+              {t(typeof product.brand === "object" ? product.brand.name : product.brand)}
+            </span>
+          ) : null}
 
           {/* Title */}
           <h1 className="text-xl md:text-2xl font-bold leading-tight" style={{ color: "#212121" }}>

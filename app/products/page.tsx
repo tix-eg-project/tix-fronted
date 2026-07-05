@@ -235,13 +235,17 @@ function ProductsContent() {
                     href={`/subcategory/${sub.id}?name=${encodeURIComponent(t(sub.name))}&category=${selectedCategory}&categoryName=${encodeURIComponent(catName)}`}
                     className={`shrink-0 flex flex-col items-center gap-1.5 px-4 py-2.5 border-b-2 transition-all border-transparent text-gray-500 hover:text-gray-900 hover:border-gray-200`}
                   >
-                    <div className={`w-12 h-12 rounded-full overflow-hidden border-2 transition-all ${
+                    <div className={`w-12 h-12 rounded-full overflow-hidden border-2 transition-all bg-white ${
                       selectedSubcategory === String(sub.id) ? "border-red-600" : "border-gray-200"
                     }`}>
                       {sub.image ? (
-                        <img src={sub.image} alt={t(sub.name)} className="w-full h-full object-cover" />
+                        <img
+                          src={sub.image}
+                          alt={t(sub.name)}
+                          style={{ width: "100%", height: "100%", objectFit: "contain", padding: "4px" }}
+                        />
                       ) : (
-                        <div className="w-full h-full bg-gray-100 flex items-center justify-center text-xs text-gray-400">
+                        <div className="w-full h-full bg-gray-100 flex items-center justify-center text-xs font-bold text-gray-500">
                           {t(sub.name).charAt(0)}
                         </div>
                       )}

@@ -26,7 +26,6 @@ export default function OfferProductsPage() {
       try {
         setLoading(true);
         const res = await api.get(`/offers/${offerId}/products`);
-        console.log("offer products response:", JSON.stringify(res.data));
         if (res.data.status) {
           if (res.data.offer) setOffer(res.data.offer);
           // Handle all possible structures

@@ -36,6 +36,7 @@ export interface CartContextType {
     productId: number | string,
     quantity?: number,
     variantItemId?: number | null,
+    offerId?: number | string | null,
   ) => Promise<void>;
   removeFromCart: (cartId: number | string) => Promise<void>;
   updateQuantity: (cartId: number | string, qty: number) => Promise<void>;
