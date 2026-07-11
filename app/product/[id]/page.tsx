@@ -6,18 +6,23 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://tix-eg.com'
 
 type Props = { params: Promise<{ id: string }> }
 
-function stripHtml(value: string): string {
+function stripHtml(value: unknown): string {
+  if (!value || typeof value !== 'string') return ''
   return value.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()
 }
 
 async function getProduct(id: string) {
-  const res = await fetch(`${API_URL}/api/products/${id}`, {
-    headers: { 'Accept-Language': 'ar', Accept: 'application/json' },
-    next: { revalidate: 300 },
-  })
-  if (!res.ok) return null
-  const data = await res.json()
-  return data.data ?? null
+  try {
+    const res = await fetch(`${API_URL}/api/products/${id}`, {
+      headers: { 'Accept-Language': 'ar', Accept: 'application/json' },
+      next: { revalidate: 300 },
+    })
+    if (!res.ok) return null
+    const data = await res.json()
+    return data.data ?? null
+  } catch {
+    return null
+  }
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
