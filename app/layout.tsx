@@ -15,6 +15,9 @@ const tajawal = Tajawal({
 });
 
 export const metadata: Metadata = {
+  verification: {
+    google: '8amSq9TaQsJ0PbXU4C6IjkY-jrcCgleav',
+  },
   title: {
     default: "TIX - تسوق أفضل المنتجات بأفضل الأسعار",
     template: "%s | TIX",
