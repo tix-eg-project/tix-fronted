@@ -48,20 +48,20 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       : undefined
 
   return {
-    title: `${product.name} - TIX`,
+    title: product.name,
     description,
     keywords,
     alternates: { canonical: url },
     openGraph: {
       type: 'website',
       url,
-      title: `${product.name} - TIX`,
+      title: `${product.name} | TIX`,
       description,
       images: image ? [{ url: image, alt: product.name }] : [],
     },
     twitter: {
       card: 'summary_large_image',
-      title: `${product.name} - TIX`,
+      title: `${product.name} | TIX`,
       description,
       images: image ? [image] : [],
     },
