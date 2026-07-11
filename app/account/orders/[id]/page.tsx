@@ -208,7 +208,7 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
   }
 
   const items = order.items || order.products || [];
-  const canReturn = !["pending", "cancelled"].includes(order.status);
+
 
   return (
     <div className="space-y-4">
@@ -259,16 +259,29 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                   <p className="text-sm font-medium truncate">
                     {item.name || item.product_name || item.product?.name}
                   </p>
-                  <p className="text-xs text-text-muted">الكمية: {item.quantity}</p>
+                  <div className="flex items-center gap-2 mt-1 flex-wrap">
+                    <span className="text-xs text-text-muted">الكمية: {item.quantity}</span>
+                    {item.is_returnable === true && (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-100">
+                        <RotateCcw className="w-2.5 h-2.5" />
+                        قابل للإرجاع
+                      </span>
+                    )}
+                    {item.is_returnable === false && (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full bg-gray-50 text-gray-400 border border-gray-100">
+                        غير قابل للإرجاع
+                      </span>
+                    )}
+                  </div>
                 </div>
-                <div className="flex items-center gap-3 shrink-0">
+                <div className="flex items-center gap-2 shrink-0">
                   <span className="text-sm font-bold text-black">
                     {formatCurrency(item.price_after || item.price || 0)}
                   </span>
-                  {canReturn && (
+                  {item.is_returnable && (
                     <button
                       onClick={() => setReturnItem(item)}
-                      className="flex items-center gap-1 text-xs text-gray-500 hover:text-black border border-gray-200 hover:border-black rounded-lg px-2.5 py-1.5 transition-colors"
+                      className="flex items-center gap-1 text-xs text-emerald-600 hover:text-white hover:bg-emerald-600 border border-emerald-200 hover:border-emerald-600 rounded-lg px-2.5 py-1.5 transition-all"
                     >
                       <RotateCcw className="w-3 h-3" />
                       إرجاع

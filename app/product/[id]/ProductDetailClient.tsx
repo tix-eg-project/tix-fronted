@@ -326,7 +326,10 @@ export default function ProductDetailClient({ productId }: { productId: string }
     : Array.isArray(product.faqs) ? product.faqs : [];
   const rawStock = selectedItem?.quantity ?? product.quantity ?? null;
   const maxStock = rawStock ?? 999;
-  const maxQty = Math.min(maxStock, 10);
+  const maxOrderQty = product.max_order_quantity ?? null;
+  const maxQty = maxOrderQty !== null
+    ? Math.min(maxStock, maxOrderQty)
+    : maxStock === 999 ? 999 : maxStock;
   const stockKnown = rawStock !== null;
   const inStock = product.in_stock !== false && product.quantity !== 0 && maxStock > 0;
 
@@ -434,18 +437,30 @@ export default function ProductDetailClient({ productId }: { productId: string }
             </div>
           )}
 
-          {/* Stock Status */}
-          {inStock ? (
-            <div className="flex items-center gap-1.5 text-sm font-medium text-[#16a34a] mt-3">
-              <span className="w-2 h-2 rounded-full bg-[#16a34a]" />
-              متوفر
-            </div>
-          ) : (
-            <div className="flex items-center gap-1.5 text-sm font-medium text-red-500 mt-3">
-              <span className="w-2 h-2 rounded-full bg-red-500" />
-              غير متوفر
-            </div>
-          )}
+          {/* Stock Status + Returnable */}
+          <div className="flex items-center gap-3 mt-3 flex-wrap">
+            {inStock ? (
+              <div className="flex items-center gap-1.5 text-sm font-medium text-[#16a34a]">
+                <span className="w-2 h-2 rounded-full bg-[#16a34a]" />
+                متوفر
+              </div>
+            ) : (
+              <div className="flex items-center gap-1.5 text-sm font-medium text-red-500">
+                <span className="w-2 h-2 rounded-full bg-red-500" />
+                غير متوفر
+              </div>
+            )}
+            {product?.is_returnable === true && (
+              <span className="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-100">
+                ↩ قابل للإرجاع
+              </span>
+            )}
+            {product?.is_returnable === false && (
+              <span className="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full bg-gray-50 text-gray-400 border border-gray-200">
+                غير قابل للإرجاع
+              </span>
+            )}
+          </div>
 
           {/* Vendor */}
           {product?.vendor?.store_name && (
@@ -540,6 +555,11 @@ export default function ProductDetailClient({ productId }: { productId: string }
                       <span className="text-red-600 text-xs block font-medium">آخر قطع!</span>
                     )}
                   </div>
+                )}
+                {maxOrderQty !== null && (
+                  <p className="text-xs text-gray-400 mt-1">
+                    الحد الأقصى للطلب: <span className="font-semibold text-gray-600">{maxOrderQty} قطعة</span>
+                  </p>
                 )}
               </div>
             </>
