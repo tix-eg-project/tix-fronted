@@ -22,7 +22,11 @@ async function getProduct(id: string) {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params
-  const product = await getProduct(id)
+
+  let product: any = null
+  try {
+    product = await getProduct(id)
+  } catch {}
 
   if (!product) return { title: 'منتج - TIX' }
 
