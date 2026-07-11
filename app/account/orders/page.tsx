@@ -8,6 +8,7 @@ import { Package, ChevronLeft, Loader2, ShoppingBag } from "lucide-react";
 
 const STATUS_MAP: Record<string, { label: string; color: string }> = {
   pending:    { label: "قيد المراجعة",  color: "bg-yellow-100 text-yellow-700" },
+  confirmed:  { label: "مؤكد",          color: "bg-emerald-100 text-emerald-700" },
   processing: { label: "جاري التجهيز",  color: "bg-blue-100 text-blue-700" },
   shipped:    { label: "تم الشحن",      color: "bg-indigo-100 text-indigo-700" },
   delivered:  { label: "تم التوصيل",   color: "bg-green-100 text-green-700" },
@@ -100,7 +101,7 @@ export default function OrdersPage() {
                   <span className="font-semibold text-sm">طلب #{order.id}</span>
                   <StatusBadge status={order.status} />
                 </div>
-                <div className="flex items-center gap-3 text-xs text-text-muted">
+                <div className="flex flex-wrap items-center gap-2 text-xs text-text-muted">
                   {date && <span>{date}</span>}
                   {items.length > 0 && (
                     <span>{items.length} {items.length === 1 ? "منتج" : "منتجات"}</span>
@@ -109,8 +110,8 @@ export default function OrdersPage() {
               </div>
 
               {/* Total + arrow */}
-              <div className="text-left shrink-0 flex items-center gap-2">
-                <span className="font-bold text-primary text-sm">
+              <div className="shrink-0 flex items-center gap-1.5">
+                <span className="font-bold text-primary text-sm whitespace-nowrap">
                   {formatCurrency(order.total || 0)}
                 </span>
                 <ChevronLeft className="w-4 h-4 text-text-faint group-hover:text-primary transition-colors" />
