@@ -11,7 +11,7 @@ import "swiper/css/navigation";
 
 // ─── مؤقت عد تنازلي حقيقي ───
 function useCountdown(targetEndISO: string | null, serverTimeISO: string | null) {
-  const [time, setTime] = useState<{ h: number; m: number; s: number }>({ h: 0, m: 0, s: 0 });
+  const [time, setTime] = useState<{ h: number; m: number; s: number }>({ h: 24, m: 60, s: 60 });
   const [expired, setExpired] = useState(false);
   const offsetRef = useRef(0);
 
@@ -31,7 +31,7 @@ function useCountdown(targetEndISO: string | null, serverTimeISO: string | null)
       const totalSec = Math.max(0, Math.floor(remaining / 1000));
 
       if (totalSec <= 0) {
-        setTime({ h: 0, m: 0, s: 0 });
+        setTime({ h: 24, m: 60, s: 60 });
         setExpired(true);
         return;
       }
