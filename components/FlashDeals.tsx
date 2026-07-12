@@ -4,37 +4,28 @@ import ProductCard from "./ProductCard";
 import { Zap, ChevronRight, ChevronLeft } from "lucide-react";
 import api from "@/lib/api";
 import type { ProductCardProps } from "@/utils/Types/products";
-
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Navigation, Autoplay } from "swiper/modules";
 import "swiper/css";
 import "swiper/css/navigation";
 
-interface FlashDealItem extends ProductCardProps {
-  endTime: string;   // ISO string من الخادم
-  startTime: string;
-  maxQuantity: number | null;
-  soldQuantity: number;
-}
-
-// ─── مؤقت متزامن مع الخادم ───
-function useServerSyncedCountdown(endTimeISO: string | null, serverTimeISO: string | null) {
-  const [time, setTime] = useState<{ h: number; m: number; s: number } | null>(null);
+// ─── مؤقت عد تنازلي حقيقي ───
+function useCountdown(targetEndISO: string | null, serverTimeISO: string | null) {
+  const [time, setTime] = useState<{ h: number; m: number; s: number }>({ h: 0, m: 0, s: 0 });
   const [expired, setExpired] = useState(false);
-  const offsetRef = useRef<number>(0); // الفارق بين ساعة الخادم والعميل
+  const offsetRef = useRef(0);
 
   useEffect(() => {
-    if (!endTimeISO || !serverTimeISO) return;
+    if (!targetEndISO) return;
 
-    // حساب فرق التوقيت مرة واحدة: serverNow = clientNow + offset
-    const serverTime = new Date(serverTimeISO).getTime();
-    const clientTime = Date.now();
-    offsetRef.current = serverTime - clientTime;
+    // لو فيه serverTime، احسب فرق التوقيت
+    if (serverTimeISO) {
+      offsetRef.current = new Date(serverTimeISO).getTime() - Date.now();
+    }
 
-    const endMs = new Date(endTimeISO).getTime();
+    const endMs = new Date(targetEndISO).getTime();
 
     function calc() {
-      // استخدام الوقت المصحح بمقدار offset
       const correctedNow = Date.now() + offsetRef.current;
       const remaining = endMs - correctedNow;
       const totalSec = Math.max(0, Math.floor(remaining / 1000));
@@ -55,95 +46,92 @@ function useServerSyncedCountdown(endTimeISO: string | null, serverTimeISO: stri
     calc();
     const id = setInterval(calc, 1000);
     return () => clearInterval(id);
-  }, [endTimeISO, serverTimeISO]);
+  }, [targetEndISO, serverTimeISO]);
 
   return { time, expired };
 }
 
-// ─── جلب البيانات مع Polling كل 30 ثانية ───
-function useFlashDeals() {
-  const [products, setProducts] = useState<FlashDealItem[]>([]);
+const FALLBACK_PRODUCTS: ProductCardProps[] = [
+  { id: "f1", name: "سماعات لاسلكية برو", price: 199, originalPrice: 399, image: "/pl1.jpg", discount: 50 },
+  { id: "f2", name: "شاحن سريع 65W", price: 149, originalPrice: 299, image: "/pl2.jpg", discount: 50 },
+  { id: "f3", name: "كيبل شحن سريع", price: 49, originalPrice: 99, image: "/pl1.jpg", discount: 50 },
+  { id: "f4", name: "حامل هاتف للسيارة", price: 79, originalPrice: 159, image: "/pl2.jpg", discount: 50 },
+  { id: "f5", name: "باور بانك 20000", price: 299, originalPrice: 599, image: "/pl1.jpg", discount: 50 },
+  { id: "f6", name: "ماوس ألعاب لاسلكي", price: 120, originalPrice: 240, image: "/pl2.jpg", discount: 50 },
+];
+
+export default function FlashDeals() {
+  const [products, setProducts] = useState<ProductCardProps[]>(FALLBACK_PRODUCTS);
   const [serverTime, setServerTime] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [expired, setExpired] = useState(false);
+  const [endTime, setEndTime] = useState<string | null>(null);
 
   const fetchDeals = useCallback(async () => {
     try {
-      const response = await api.get("/flash-deals");
+      const response = await api.get("/product/discounted");
       if (response.data.status && response.data.data) {
-        const serverTimeISO = response.data.serverTime;
-        setServerTime(serverTimeISO);
+        const data = Array.isArray(response.data.data)
+          ? response.data.data
+          : response.data.data.data;
 
-        const deals = response.data.data;
-        if (Array.isArray(deals) && deals.length > 0) {
-          // أقرب وقت انتهاء بين كل العروض = المؤقت الرئيسي
-          const nearestEnd = deals.reduce((earliest: string, deal: FlashDealItem) =>
-            new Date(deal.endTime) < new Date(earliest) ? deal.endTime : earliest
-          , deals[0].endTime);
+        if (Array.isArray(data) && data.length > 0) {
+          const mapped = data.map((p: any) => ({
+            id: String(p.id),
+            name: p.name,
+            price: p.price_after || p.price,
+            originalPrice: p.price_before,
+            image: p.images?.[0] || p.image || "/pl1.jpg",
+            discount: p.discount || 0,
+            rating: p.reviews?.average_rating || 0,
+            reviewsCount: p.reviews?.count || 0,
+          }));
+          setProducts(mapped);
 
-          setProducts(
-            deals.map((deal: any) => ({
-              id: String(deal.id),
-              name: deal.name,
-              price: deal.price,
-              originalPrice: deal.originalPrice,
-              image: deal.image || "/pl1.jpg",
-              discount: deal.discount || 0,
-              rating: deal.rating || 0,
-              reviewsCount: deal.reviewsCount || 0,
-              endTime: deal.endTime,
-              startTime: deal.startTime,
-              maxQuantity: deal.maxQuantity,
-              soldQuantity: deal.soldQuantity || 0,
-            }))
-          );
-          return { nearestEnd, serverTimeISO };
+          // ── استخدم endTime لو الخادم بيرجعه ──
+          // لو كل عرض له endTime، استخدم أقرب واحد
+          const endTimes = data
+            .map((p: any) => p.end_time || p.endTime || p.expires_at)
+            .filter(Boolean);
+          if (endTimes.length > 0) {
+            const nearestEnd = endTimes.reduce((min: string, t: string) =>
+              new Date(t) < new Date(min) ? t : min
+            );
+            setEndTime(nearestEnd);
+          } else {
+            // ── Fallback: العد حتى منتصف الليل ──
+            const midnight = new Date();
+            midnight.setHours(24, 0, 0, 0);
+            setEndTime(midnight.toISOString());
+          }
+
+          // ── استخدم serverTime لو الخادم بيرجعه ──
+          if (response.data.serverTime) {
+            setServerTime(response.data.serverTime);
+          }
+          return;
         }
       }
-    } catch (err) {
-      console.error("Failed to fetch flash deals:", err);
+    } catch {
+      // ابقَ على البيانات الاحتياطية
     }
-    setProducts([]); // لا بيانات وهمية — صفيف فارغ
-    return { nearestEnd: null, serverTimeISO: null };
+
+    // Fallback: عد حتى منتصف الليل
+    const midnight = new Date();
+    midnight.setHours(24, 0, 0, 0);
+    setEndTime(midnight.toISOString());
   }, []);
 
   useEffect(() => {
-    let nearestEndRef: string | null = null;
-    let serverTimeRef: string | null = null;
-
-    async function init() {
-      const result = await fetchDeals();
-      nearestEndRef = result.nearestEnd;
-      serverTimeRef = result.serverTimeISO;
-      setLoading(false);
-    }
-    init();
-
-    // Polling كل 30 ثانية للتحديث الفوري عند إضافة/حذف عروض من الداش بورد
+    fetchDeals();
+    // ── تحديث كل 30 ثانية ──
     const pollId = setInterval(fetchDeals, 30000);
-
     return () => clearInterval(pollId);
   }, [fetchDeals]);
 
-  return { products, serverTime, loading };
-}
-
-export default function FlashDeals() {
-  const { products, serverTime, loading } = useFlashDeals();
-
-  // المؤقت يستخدم أقرب وقت انتهاء
-  const nearestEndTime = products.length > 0
-    ? products.reduce((min, p) =>
-        new Date(p.endTime) < new Date(min.endTime) ? p : min
-      ).endTime
-    : null;
-
-  const { time: countdown, expired } = useServerSyncedCountdown(nearestEndTime, serverTime);
-
+  const { time: countdown, expired } = useCountdown(endTime, serverTime);
   const pad = (n: number) => n.toString().padStart(2, "0");
 
-  // إذا انتهى العرض أو لا توجد منتجات — لا تعرض القسم
-  if (loading || products.length === 0 || expired) return null;
+  // ── القسم دايمًا ظاهر ما لم ينتهي العرض فعليًا ──
+  if (expired && products.length === 0) return null;
 
   return (
     <section
@@ -151,7 +139,7 @@ export default function FlashDeals() {
       style={{ background: "linear-gradient(135deg, #dc2626 0%, #b91c1c 50%, #991b1b 100%)" }}
     >
       <div className="px-3 sm:px-5 md:px-6 py-4 sm:py-5 md:py-6">
-        {/* العنوان + المؤقت */}
+        {/* Header + Timer */}
         <div className="flex items-center justify-between gap-2 mb-3 sm:mb-4">
           <div className="flex items-center gap-2 sm:gap-3">
             <div className="bg-white/15 p-1.5 sm:p-2 rounded-lg">
@@ -167,24 +155,23 @@ export default function FlashDeals() {
             </div>
           </div>
 
-          {countdown && (
-            <div className="flex items-center gap-1 sm:gap-1.5 bg-black/20 rounded-lg px-2 py-1 sm:px-2.5 sm:py-1.5">
-              {[countdown.h, countdown.m, countdown.s].map((val, i) => (
-                <span key={i} className="flex items-center gap-0.5 sm:gap-1">
-                  <span
-                    className="bg-white text-red-700 font-bold font-mono text-xs sm:text-sm w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center rounded"
-                    suppressHydrationWarning
-                  >
-                    {pad(val)}
-                  </span>
-                  {i < 2 && <span className="text-white/80 font-bold text-[10px] sm:text-xs">:</span>}
+          {/* Timer */}
+          <div className="flex items-center gap-1 sm:gap-1.5 bg-black/20 rounded-lg px-2 py-1 sm:px-2.5 sm:py-1.5">
+            {[countdown.h, countdown.m, countdown.s].map((val, i) => (
+              <span key={i} className="flex items-center gap-0.5 sm:gap-1">
+                <span
+                  className="bg-white text-red-700 font-bold font-mono text-xs sm:text-sm w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center rounded"
+                  suppressHydrationWarning
+                >
+                  {pad(val)}
                 </span>
-              ))}
-            </div>
-          )}
+                {i < 2 && <span className="text-white/80 font-bold text-[10px] sm:text-xs">:</span>}
+              </span>
+            ))}
+          </div>
         </div>
 
-        {/* منتجات Swiper */}
+        {/* Products Swiper */}
         <div className="relative">
           <Swiper
             dir="rtl"
@@ -195,9 +182,9 @@ export default function FlashDeals() {
             autoplay={{ delay: 4000, disableOnInteraction: false, pauseOnMouseEnter: true }}
             navigation={{ nextEl: ".flash-next", prevEl: ".flash-prev" }}
             breakpoints={{
-              0:    { slidesPerView: 2, spaceBetween: 8 },
-              480:  { slidesPerView: 2.5, spaceBetween: 10 },
-              640:  { slidesPerView: 3, spaceBetween: 12 },
+              0: { slidesPerView: 2, spaceBetween: 8 },
+              480: { slidesPerView: 2.5, spaceBetween: 10 },
+              640: { slidesPerView: 3, spaceBetween: 12 },
               1024: { slidesPerView: 4, spaceBetween: 16 },
               1280: { slidesPerView: 5, spaceBetween: 16 },
             }}
