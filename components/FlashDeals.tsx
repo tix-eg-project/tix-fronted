@@ -16,7 +16,6 @@ import "swiper/css/navigation";
 export default function FlashDeals() {
   const [isMounted, setIsMounted] = useState(false);
   const [products, setProducts] = useState<ProductCardProps[]>([]);
-  const [endDate, setEndDate] = useState<Date | null>(null);
   const [timeLeft, setTimeLeft] = useState({ hours: 0, minutes: 0, seconds: 0 });
 
   useEffect(() => {
@@ -26,57 +25,69 @@ export default function FlashDeals() {
   useEffect(() => {
     async function fetchDeals() {
       try {
-        const response = await api.get("/flash-sale");
-        const sale = response.data?.data;
-        if (sale?.products?.length > 0) {
-          setProducts(
-            sale.products.map((p: any) => ({
-              id: String(p.id),
-              name: p.name,
-              price: p.price_after || p.price,
-              originalPrice: p.price_before,
-              image: p.images?.[0] || p.image || "/pl1.jpg",
-              discount: p.discount || 0,
-              rating: p.reviews?.average_rating || 0,
-              reviewsCount: p.reviews?.count || 0,
-            })),
-          );
-          if (sale.end_date) {
-            setEndDate(new Date(sale.end_date));
+        const response = await api.get("/product/discounted");
+        if (response.data.status && response.data.data) {
+          const data = Array.isArray(response.data.data) ? response.data.data : response.data.data.data;
+          if (Array.isArray(data) && data.length > 0) {
+            setProducts(
+              data.map((p: any) => ({
+                id: String(p.id),
+                name: p.name,
+                price: p.price_after || p.price,
+                originalPrice: p.price_before,
+                image: p.images?.[0] || p.image || "/pl1.jpg",
+                discount: p.discount || 0,
+                rating: p.reviews?.average_rating || 0,
+                reviewsCount: p.reviews?.count || 0,
+              })),
+            );
+            return;
           }
         }
       } catch {
-        // silent fail — section stays hidden
+        // Use defaults
       }
+      setProducts([
+        { id: "f1", name: "سماعات لاسلكية برو", price: 199, originalPrice: 399, image: "/pl1.jpg", discount: 50 },
+        { id: "f2", name: "شاحن سريع 65W", price: 149, originalPrice: 299, image: "/pl2.jpg", discount: 50 },
+        { id: "f3", name: "كيبل شحن سريع", price: 49, originalPrice: 99, image: "/pl1.jpg", discount: 50 },
+        { id: "f4", name: "حامل هاتف للسيارة", price: 79, originalPrice: 159, image: "/pl2.jpg", discount: 50 },
+        { id: "f5", name: "باور بانك 20000", price: 299, originalPrice: 599, image: "/pl1.jpg", discount: 50 },
+        { id: "f6", name: "ماوس ألعاب لاسلكي", price: 120, originalPrice: 240, image: "/pl2.jpg", discount: 50 },
+      ]);
     }
     fetchDeals();
   }, []);
 
   useEffect(() => {
+    // عدّاد 24 ساعة حقيقي: دورة ثابتة تبدأ من منتصف الليل وتعيد نفسها كل 24 ساعة.
+    // مثبّتة على توقيت واحد للجميع، فكل الزوار يشوفوا نفس الوقت المتبقّي.
+    const CYCLE = 24 * 60 * 60 * 1000; // 24 ساعة بالملّي ثانية
     const calculateTimeLeft = () => {
-      const target = endDate ?? (() => { const d = new Date(); d.setHours(23, 59, 59, 999); return d; })();
-      const diff = target.getTime() - Date.now();
-      if (diff <= 0) return { hours: 0, minutes: 0, seconds: 0 };
+      const now = new Date();
+      const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+      const remaining = CYCLE - ((now.getTime() - startOfDay) % CYCLE);
+
       return {
-        hours: Math.floor(diff / (1000 * 60 * 60)),
-        minutes: Math.floor((diff / (1000 * 60)) % 60),
-        seconds: Math.floor((diff / 1000) % 60),
+        hours: Math.floor(remaining / (1000 * 60 * 60)) % 24,
+        minutes: Math.floor(remaining / (1000 * 60)) % 60,
+        seconds: Math.floor(remaining / 1000) % 60,
       };
     };
 
     setTimeLeft(calculateTimeLeft());
     const timer = setInterval(() => setTimeLeft(calculateTimeLeft()), 1000);
     return () => clearInterval(timer);
-  }, [endDate]);
+  }, []);
 
   const pad = (n: number) => n.toString().padStart(2, "0");
 
   if (products.length === 0) return null;
 
   return (
-    <section className="bg-red-600 py-12 overflow-hidden border-y border-red-700">
+    <section className="bg-red-600 py-8 md:py-12 overflow-hidden border-y border-red-700">
       <div className="container mx-auto px-4">
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-6 mb-10">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6 md:mb-8">
           <div className="flex items-center gap-4">
             <div className="bg-black/20 backdrop-blur-md p-2.5 rounded-xl rotate-12 border border-white/10 shadow-2xl">
               <Zap className="w-6 h-6 fill-white text-white" />
@@ -87,30 +98,23 @@ export default function FlashDeals() {
             </div>
           </div>
 
-          <div className="flex items-center gap-4 bg-white/10 backdrop-blur-sm p-2 px-4 rounded-2xl border border-white/20 min-h-[60px]">
-            <span className="text-white text-xs font-bold uppercase tracking-widest hidden sm:inline">ينتهي في</span>
-            <div className="flex gap-2.5">
-              {isMounted ? (
-                [timeLeft.hours, timeLeft.minutes, timeLeft.seconds].map((v, i) => (
-                  <div key={i} className="flex items-center gap-1.5">
-                    <div className="bg-black/20 backdrop-blur-md text-white w-11 h-11 flex items-center justify-center rounded-xl font-mono font-bold text-xl border border-white/20 shadow-xl">
-                      {pad(v)}
-                    </div>
-                    {i < 2 && <span className="text-white font-black animate-pulse">:</span>}
+          <div className="flex items-center gap-2 sm:gap-2.5 bg-white/10 backdrop-blur-sm py-1.5 px-2.5 sm:px-3 rounded-xl border border-white/20">
+            <span className="text-white text-[10px] sm:text-xs font-bold uppercase tracking-widest hidden sm:inline">ينتهي في</span>
+            <div className="flex gap-1 sm:gap-1.5">
+              {(isMounted ? [timeLeft.hours, timeLeft.minutes, timeLeft.seconds] : [0, 0, 0]).map((v, i) => (
+                <div key={i} className="flex items-center gap-1 sm:gap-1.5">
+                  <div
+                    className={`bg-black/20 backdrop-blur-md text-white w-7 h-7 sm:w-9 sm:h-9 flex items-center justify-center rounded-lg font-mono font-bold text-sm sm:text-base border border-white/20 shadow-lg ${
+                      isMounted ? "" : "opacity-50"
+                    }`}
+                  >
+                    {pad(v)}
                   </div>
-                ))
-              ) : (
-                <div className="flex gap-2.5">
-                  {[0, 0, 0].map((_, i) => (
-                    <div key={i} className="flex items-center gap-1.5">
-                      <div className="bg-black/20 backdrop-blur-md text-white w-11 h-11 flex items-center justify-center rounded-xl font-mono font-bold text-xl border border-white/20 shadow-xl opacity-50">
-                        00
-                      </div>
-                      {i < 2 && <span className="text-white font-black opacity-50">:</span>}
-                    </div>
-                  ))}
+                  {i < 2 && (
+                    <span className={`text-white font-black text-xs sm:text-sm ${isMounted ? "animate-pulse" : "opacity-50"}`}>:</span>
+                  )}
                 </div>
-              )}
+              ))}
             </div>
           </div>
         </div>
