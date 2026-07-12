@@ -1,167 +1,230 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import ProductCard from "./ProductCard";
 import { Zap, ChevronRight, ChevronLeft } from "lucide-react";
 import api from "@/lib/api";
 import type { ProductCardProps } from "@/utils/Types/products";
 
-// Swiper imports
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Navigation, Autoplay } from "swiper/modules";
-
-// Swiper styles
 import "swiper/css";
 import "swiper/css/navigation";
 
-export default function FlashDeals() {
-  const [isMounted, setIsMounted] = useState(false);
-  const [products, setProducts] = useState<ProductCardProps[]>([]);
-  const [timeLeft, setTimeLeft] = useState({ hours: 0, minutes: 0, seconds: 0 });
+interface FlashDealItem extends ProductCardProps {
+  endTime: string;   // ISO string من الخادم
+  startTime: string;
+  maxQuantity: number | null;
+  soldQuantity: number;
+}
+
+// ─── مؤقت متزامن مع الخادم ───
+function useServerSyncedCountdown(endTimeISO: string | null, serverTimeISO: string | null) {
+  const [time, setTime] = useState<{ h: number; m: number; s: number } | null>(null);
+  const [expired, setExpired] = useState(false);
+  const offsetRef = useRef<number>(0); // الفارق بين ساعة الخادم والعميل
 
   useEffect(() => {
-    setIsMounted(true);
-  }, []);
+    if (!endTimeISO || !serverTimeISO) return;
 
-  useEffect(() => {
-    async function fetchDeals() {
-      try {
-        const response = await api.get("/product/discounted");
-        if (response.data.status && response.data.data) {
-          const data = Array.isArray(response.data.data) ? response.data.data : response.data.data.data;
-          if (Array.isArray(data) && data.length > 0) {
-            setProducts(
-              data.map((p: any) => ({
-                id: String(p.id),
-                name: p.name,
-                price: p.price_after || p.price,
-                originalPrice: p.price_before,
-                image: p.images?.[0] || p.image || "/pl1.jpg",
-                discount: p.discount || 0,
-                rating: p.reviews?.average_rating || 0,
-                reviewsCount: p.reviews?.count || 0,
-              })),
-            );
-            return;
-          }
-        }
-      } catch {
-        // Use defaults
+    // حساب فرق التوقيت مرة واحدة: serverNow = clientNow + offset
+    const serverTime = new Date(serverTimeISO).getTime();
+    const clientTime = Date.now();
+    offsetRef.current = serverTime - clientTime;
+
+    const endMs = new Date(endTimeISO).getTime();
+
+    function calc() {
+      // استخدام الوقت المصحح بمقدار offset
+      const correctedNow = Date.now() + offsetRef.current;
+      const remaining = endMs - correctedNow;
+      const totalSec = Math.max(0, Math.floor(remaining / 1000));
+
+      if (totalSec <= 0) {
+        setTime({ h: 0, m: 0, s: 0 });
+        setExpired(true);
+        return;
       }
-      setProducts([
-        { id: "f1", name: "سماعات لاسلكية برو", price: 199, originalPrice: 399, image: "/pl1.jpg", discount: 50 },
-        { id: "f2", name: "شاحن سريع 65W", price: 149, originalPrice: 299, image: "/pl2.jpg", discount: 50 },
-        { id: "f3", name: "كيبل شحن سريع", price: 49, originalPrice: 99, image: "/pl1.jpg", discount: 50 },
-        { id: "f4", name: "حامل هاتف للسيارة", price: 79, originalPrice: 159, image: "/pl2.jpg", discount: 50 },
-        { id: "f5", name: "باور بانك 20000", price: 299, originalPrice: 599, image: "/pl1.jpg", discount: 50 },
-        { id: "f6", name: "ماوس ألعاب لاسلكي", price: 120, originalPrice: 240, image: "/pl2.jpg", discount: 50 },
-      ]);
+
+      setTime({
+        h: Math.floor(totalSec / 3600),
+        m: Math.floor((totalSec % 3600) / 60),
+        s: totalSec % 60,
+      });
     }
-    fetchDeals();
+
+    calc();
+    const id = setInterval(calc, 1000);
+    return () => clearInterval(id);
+  }, [endTimeISO, serverTimeISO]);
+
+  return { time, expired };
+}
+
+// ─── جلب البيانات مع Polling كل 30 ثانية ───
+function useFlashDeals() {
+  const [products, setProducts] = useState<FlashDealItem[]>([]);
+  const [serverTime, setServerTime] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [expired, setExpired] = useState(false);
+
+  const fetchDeals = useCallback(async () => {
+    try {
+      const response = await api.get("/flash-deals");
+      if (response.data.status && response.data.data) {
+        const serverTimeISO = response.data.serverTime;
+        setServerTime(serverTimeISO);
+
+        const deals = response.data.data;
+        if (Array.isArray(deals) && deals.length > 0) {
+          // أقرب وقت انتهاء بين كل العروض = المؤقت الرئيسي
+          const nearestEnd = deals.reduce((earliest: string, deal: FlashDealItem) =>
+            new Date(deal.endTime) < new Date(earliest) ? deal.endTime : earliest
+          , deals[0].endTime);
+
+          setProducts(
+            deals.map((deal: any) => ({
+              id: String(deal.id),
+              name: deal.name,
+              price: deal.price,
+              originalPrice: deal.originalPrice,
+              image: deal.image || "/pl1.jpg",
+              discount: deal.discount || 0,
+              rating: deal.rating || 0,
+              reviewsCount: deal.reviewsCount || 0,
+              endTime: deal.endTime,
+              startTime: deal.startTime,
+              maxQuantity: deal.maxQuantity,
+              soldQuantity: deal.soldQuantity || 0,
+            }))
+          );
+          return { nearestEnd, serverTimeISO };
+        }
+      }
+    } catch (err) {
+      console.error("Failed to fetch flash deals:", err);
+    }
+    setProducts([]); // لا بيانات وهمية — صفيف فارغ
+    return { nearestEnd: null, serverTimeISO: null };
   }, []);
 
   useEffect(() => {
-    // عدّاد 24 ساعة حقيقي: دورة ثابتة تبدأ من منتصف الليل وتعيد نفسها كل 24 ساعة.
-    // مثبّتة على توقيت واحد للجميع، فكل الزوار يشوفوا نفس الوقت المتبقّي.
-    const CYCLE = 24 * 60 * 60 * 1000; // 24 ساعة بالملّي ثانية
-    const calculateTimeLeft = () => {
-      const now = new Date();
-      const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-      const remaining = CYCLE - ((now.getTime() - startOfDay) % CYCLE);
+    let nearestEndRef: string | null = null;
+    let serverTimeRef: string | null = null;
 
-      return {
-        hours: Math.floor(remaining / (1000 * 60 * 60)) % 24,
-        minutes: Math.floor(remaining / (1000 * 60)) % 60,
-        seconds: Math.floor(remaining / 1000) % 60,
-      };
-    };
+    async function init() {
+      const result = await fetchDeals();
+      nearestEndRef = result.nearestEnd;
+      serverTimeRef = result.serverTimeISO;
+      setLoading(false);
+    }
+    init();
 
-    setTimeLeft(calculateTimeLeft());
-    const timer = setInterval(() => setTimeLeft(calculateTimeLeft()), 1000);
-    return () => clearInterval(timer);
-  }, []);
+    // Polling كل 30 ثانية للتحديث الفوري عند إضافة/حذف عروض من الداش بورد
+    const pollId = setInterval(fetchDeals, 30000);
+
+    return () => clearInterval(pollId);
+  }, [fetchDeals]);
+
+  return { products, serverTime, loading };
+}
+
+export default function FlashDeals() {
+  const { products, serverTime, loading } = useFlashDeals();
+
+  // المؤقت يستخدم أقرب وقت انتهاء
+  const nearestEndTime = products.length > 0
+    ? products.reduce((min, p) =>
+        new Date(p.endTime) < new Date(min.endTime) ? p : min
+      ).endTime
+    : null;
+
+  const { time: countdown, expired } = useServerSyncedCountdown(nearestEndTime, serverTime);
 
   const pad = (n: number) => n.toString().padStart(2, "0");
 
-  if (products.length === 0) return null;
+  // إذا انتهى العرض أو لا توجد منتجات — لا تعرض القسم
+  if (loading || products.length === 0 || expired) return null;
 
   return (
-    <section className="bg-red-600 py-8 md:py-12 overflow-hidden border-y border-red-700">
-      <div className="container mx-auto px-4">
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6 md:mb-8">
-          <div className="flex items-center gap-4">
-            <div className="bg-black/20 backdrop-blur-md p-2.5 rounded-xl rotate-12 border border-white/10 shadow-2xl">
-              <Zap className="w-6 h-6 fill-white text-white" />
+    <section
+      className="mx-3 sm:mx-5 md:mx-8 mt-3 sm:mt-4 rounded-xl sm:rounded-2xl overflow-hidden"
+      style={{ background: "linear-gradient(135deg, #dc2626 0%, #b91c1c 50%, #991b1b 100%)" }}
+    >
+      <div className="px-3 sm:px-5 md:px-6 py-4 sm:py-5 md:py-6">
+        {/* العنوان + المؤقت */}
+        <div className="flex items-center justify-between gap-2 mb-3 sm:mb-4">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="bg-white/15 p-1.5 sm:p-2 rounded-lg">
+              <Zap className="w-4 h-4 sm:w-5 sm:h-5 text-white fill-white" />
             </div>
             <div>
-              <h2 className="text-2xl md:text-3xl font-black text-white tracking-tight">عروض الفلاش</h2>
-              <p className="text-white/90 text-xs md:text-sm font-bold mt-0.5">خصومات تصل إلى 70% لفترة محدودة</p>
+              <h2 className="text-base sm:text-lg md:text-xl font-bold text-white leading-tight">
+                عروض الفلاش
+              </h2>
+              <p className="text-[10px] sm:text-xs text-white/80 mt-0.5 hidden sm:block">
+                خصومات حتى 70%
+              </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 sm:gap-2.5 bg-white/10 backdrop-blur-sm py-1.5 px-2.5 sm:px-3 rounded-xl border border-white/20">
-            <span className="text-white text-[10px] sm:text-xs font-bold uppercase tracking-widest hidden sm:inline">ينتهي في</span>
-            <div className="flex gap-1 sm:gap-1.5">
-              {(isMounted ? [timeLeft.hours, timeLeft.minutes, timeLeft.seconds] : [0, 0, 0]).map((v, i) => (
-                <div key={i} className="flex items-center gap-1 sm:gap-1.5">
-                  <div
-                    className={`bg-black/20 backdrop-blur-md text-white w-7 h-7 sm:w-9 sm:h-9 flex items-center justify-center rounded-lg font-mono font-bold text-sm sm:text-base border border-white/20 shadow-lg ${
-                      isMounted ? "" : "opacity-50"
-                    }`}
+          {countdown && (
+            <div className="flex items-center gap-1 sm:gap-1.5 bg-black/20 rounded-lg px-2 py-1 sm:px-2.5 sm:py-1.5">
+              {[countdown.h, countdown.m, countdown.s].map((val, i) => (
+                <span key={i} className="flex items-center gap-0.5 sm:gap-1">
+                  <span
+                    className="bg-white text-red-700 font-bold font-mono text-xs sm:text-sm w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center rounded"
+                    suppressHydrationWarning
                   >
-                    {pad(v)}
-                  </div>
-                  {i < 2 && (
-                    <span className={`text-white font-black text-xs sm:text-sm ${isMounted ? "animate-pulse" : "opacity-50"}`}>:</span>
-                  )}
-                </div>
+                    {pad(val)}
+                  </span>
+                  {i < 2 && <span className="text-white/80 font-bold text-[10px] sm:text-xs">:</span>}
+                </span>
               ))}
             </div>
-          </div>
+          )}
         </div>
 
-        <div className="relative group px-2 md:px-10">
+        {/* منتجات Swiper */}
+        <div className="relative">
           <Swiper
             dir="rtl"
             modules={[Navigation, Autoplay]}
-            spaceBetween={15}
+            spaceBetween={10}
             slidesPerView={2}
-            loop={products.length > 5}
-            autoplay={{
-              delay: 4000,
-              disableOnInteraction: false,
-              pauseOnMouseEnter: true,
-            }}
-            navigation={{
-              nextEl: ".swiper-button-next-custom",
-              prevEl: ".swiper-button-prev-custom",
-            }}
+            loop={products.length > 4}
+            autoplay={{ delay: 4000, disableOnInteraction: false, pauseOnMouseEnter: true }}
+            navigation={{ nextEl: ".flash-next", prevEl: ".flash-prev" }}
             breakpoints={{
-              320: { slidesPerView: 2, spaceBetween: 12 },
-              640: { slidesPerView: 3, spaceBetween: 15 },
-              1024: { slidesPerView: 4, spaceBetween: 20 },
-              1280: { slidesPerView: 5, spaceBetween: 20 },
+              0:    { slidesPerView: 2, spaceBetween: 8 },
+              480:  { slidesPerView: 2.5, spaceBetween: 10 },
+              640:  { slidesPerView: 3, spaceBetween: 12 },
+              1024: { slidesPerView: 4, spaceBetween: 16 },
+              1280: { slidesPerView: 5, spaceBetween: 16 },
             }}
             className="w-full"
           >
             {products.map((product) => (
               <SwiperSlide key={product.id}>
-                <div className="h-full py-2">
+                <div className="py-1">
                   <ProductCard {...product} isFlashDeal={true} />
                 </div>
               </SwiperSlide>
             ))}
           </Swiper>
 
-          {/* Navigation Buttons */}
-          <button className="swiper-button-prev-custom absolute -right-4 md:-right-6 top-1/2 -translate-y-1/2 z-30 bg-white text-black p-2 md:p-2.5 rounded-full shadow-2xl hover:bg-gray-100 flex items-center justify-center border border-zinc-200 transition-all active:scale-90">
-            <ChevronRight className="w-4 h-4 md:w-5 md:h-5" />
+          <button
+            className="flash-prev absolute -right-1 sm:right-0 md:-right-3 top-1/2 -translate-y-1/2 z-30 bg-white/90 text-black p-1.5 sm:p-2 rounded-full shadow-lg hover:bg-white hidden sm:flex items-center justify-center"
+            aria-label="السابق"
+          >
+            <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
           </button>
-          <button className="swiper-button-next-custom absolute -left-4 md:-left-6 top-1/2 -translate-y-1/2 z-30 bg-white text-black p-2 md:p-2.5 rounded-full shadow-2xl hover:bg-gray-100 flex items-center justify-center border border-zinc-200 transition-all active:scale-90">
-            <ChevronLeft className="w-4 h-4 md:w-5 md:h-5" />
+          <button
+            className="flash-next absolute -left-1 sm:left-0 md:-left-3 top-1/2 -translate-y-1/2 z-30 bg-white/90 text-black p-1.5 sm:p-2 rounded-full shadow-lg hover:bg-white hidden sm:flex items-center justify-center"
+            aria-label="التالي"
+          >
+            <ChevronLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
           </button>
         </div>
-
-     
       </div>
     </section>
   );
