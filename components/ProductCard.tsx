@@ -6,6 +6,7 @@ import { useCart } from "@/context/CartContext";
 import { useWishlist } from "@/context/WishlistContext";
 import { useAuth } from "@/context/AuthContext";
 import { formatCurrency, calculateDiscount, t } from "@/utils/helpers";
+import { useT } from "@/lib/i18n";
 import { toast } from "react-toastify";
 import type { ProductCardProps } from "@/utils/Types/products";
 import { Card } from "@/components/ui/card";
@@ -21,11 +22,11 @@ export default function ProductCard({
   reviewsCount,
   discount,
   isFlashDeal = false,
-  offerId,
 }: ProductCardProps) {
   const { addToCart } = useCart();
   const { toggleWishlist, isInWishlist } = useWishlist();
   const { state: authState } = useAuth();
+  const tr = useT();
 
   const discountPct = discount || calculateDiscount(originalPrice || 0, price);
   const wishlisted = isInWishlist(id);
@@ -35,14 +36,14 @@ export default function ProductCard({
     e.preventDefault();
     e.stopPropagation();
     if (!authState.isAuthenticated) {
-      toast.info("سجّل الدخول أولاً لإضافة المنتجات للسلة");
+      toast.info(tr("product.loginFirstCart"));
       return;
     }
     try {
-      await addToCart(id, 1, null, offerId);
-      toast.success("تمت الإضافة للسلة");
+      await addToCart(id);
+      toast.success(tr("product.addedToCart"));
     } catch {
-      toast.error("حدث خطأ");
+      toast.error(tr("product.error"));
     }
   };
 
@@ -50,13 +51,13 @@ export default function ProductCard({
     e.preventDefault();
     e.stopPropagation();
     if (!authState.isAuthenticated) {
-      toast.info("سجّل الدخول أولاً");
+      toast.info(tr("product.loginFirst"));
       return;
     }
     try {
       await toggleWishlist(id);
     } catch {
-      toast.error("حدث خطأ");
+      toast.error(tr("product.error"));
     }
   };
 
@@ -92,14 +93,17 @@ export default function ProductCard({
             isFlashDeal ? "text-black" : "text-gray-800"
           }`}>{productName}</h3>
           <div className="flex items-center gap-1 mb-2">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <Star
-                key={i}
-                className={`h-2.5 w-2.5 ${
-                  i < (rating || 0) ? "fill-yellow-400 text-yellow-400" : (isFlashDeal ? "fill-gray-200 text-gray-200" : "fill-gray-200 text-gray-200")
-                }`}
-              />
-            ))}
+            <div className="flex items-center gap-0.5">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <Star
+                  key={i}
+                  className={`h-3 w-3 ${
+                    i < Math.round(rating || 0) ? "fill-yellow-400 text-yellow-400" : "fill-gray-200 text-gray-200"
+                  }`}
+                />
+              ))}
+            </div>
+            <span className="text-[10px] text-gray-500 ms-0.5">({reviewsCount ?? 0})</span>
           </div>
           <div className="mt-auto">
             <div className="flex items-center gap-2 mb-2.5">
@@ -116,8 +120,8 @@ export default function ProductCard({
                 : "bg-black hover:bg-gray-800 text-white"
               }`}
             >
-              <ShoppingCart className={`w-3 h-3 mr-1 ${isFlashDeal ? "text-white" : "text-white"}`} />
-              أضف للسلة
+              <ShoppingCart className={`w-3 h-3 me-1 ${isFlashDeal ? "text-white" : "text-white"}`} />
+              {tr("product.addToCart")}
             </Button>
           </div>
         </div>
