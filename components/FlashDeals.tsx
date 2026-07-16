@@ -10,74 +10,71 @@ import { Navigation, Autoplay } from "swiper/modules";
 import "swiper/css";
 import "swiper/css/navigation";
 
-function useCountdown24h() {
+// عدّاد تنازلي حسب الثواني المتبقّية للعرض الجاي من الداشبورد
+function useCountdown(seconds: number | null) {
   const [time, setTime] = useState<{ h: number; m: number; s: number } | null>(null);
 
   useEffect(() => {
-    function calc() {
-      const now = Date.now();
-      const midnight = new Date();
-      midnight.setHours(0, 0, 0, 0);
-      const elapsed = now - midnight.getTime();
-      const remaining = 24 * 60 * 60 * 1000 - elapsed;
-      const totalSec = Math.max(0, Math.floor(remaining / 1000));
+    if (seconds == null) { setTime(null); return; }
+    let remaining = Math.max(0, Math.floor(seconds));
+    function tick() {
       setTime({
-        h: Math.floor(totalSec / 3600),
-        m: Math.floor((totalSec % 3600) / 60),
-        s: totalSec % 60,
+        h: Math.floor(remaining / 3600),
+        m: Math.floor((remaining % 3600) / 60),
+        s: remaining % 60,
       });
     }
-    calc();
-    const id = setInterval(calc, 1000);
+    tick();
+    const id = setInterval(() => {
+      remaining = Math.max(0, remaining - 1);
+      tick();
+      if (remaining <= 0) clearInterval(id);
+    }, 1000);
     return () => clearInterval(id);
-  }, []);
+  }, [seconds]);
 
   return time;
 }
 
 export default function FlashDeals() {
   const [products, setProducts] = useState<ProductCardProps[]>([]);
-  const countdown = useCountdown24h();
+  const [endSeconds, setEndSeconds] = useState<number | null>(null);
+  const countdown = useCountdown(endSeconds);
 
   useEffect(() => {
-    async function fetchDeals() {
+    async function fetchFlash() {
       try {
-        const response = await api.get("/product/discounted");
-        if (response.data.status && response.data.data) {
-          const data = Array.isArray(response.data.data) ? response.data.data : response.data.data.data;
-          if (Array.isArray(data) && data.length > 0) {
-            setProducts(
-              data.map((p: any) => ({
-                id: String(p.id),
-                name: p.name,
-                price: p.price_after || p.price,
-                originalPrice: p.price_before,
-                image: p.images?.[0] || p.image || "/pl1.jpg",
-                discount: p.discount || 0,
-                rating: p.reviews?.average_rating || 0,
-                reviewsCount: p.reviews?.count || 0,
-              })),
-            );
-            return;
-          }
+        // /flash-sale بيرجّع بس العرض اللي نوعه "فلاش" من الداشبورد
+        const response = await api.get("/flash-sale");
+        const offer = response.data?.data;
+        if (response.data?.status && offer && Array.isArray(offer.products) && offer.products.length > 0) {
+          setEndSeconds(typeof offer.remaining_seconds === "number" ? offer.remaining_seconds : null);
+          setProducts(
+            offer.products.map((p: any) => ({
+              id: String(p.id),
+              name: p.name,
+              price: p.price_after ?? p.price,
+              originalPrice: p.price_before,
+              image: p.images?.[0] || p.image || "/pl1.jpg",
+              discount: p.discount || 0,
+              rating: p.reviews?.average_rating || 0,
+              reviewsCount: p.reviews?.count || 0,
+            })),
+          );
+          return;
         }
       } catch {
-        // fallback
+        // لو حصل خطأ أو مفيش عرض فلاش، القسم مش هيظهر
       }
-      setProducts([
-        { id: "f1", name: "سماعات لاسلكية برو", price: 199, originalPrice: 399, image: "/pl1.jpg", discount: 50 },
-        { id: "f2", name: "شاحن سريع 65W", price: 149, originalPrice: 299, image: "/pl2.jpg", discount: 50 },
-        { id: "f3", name: "كيبل شحن سريع", price: 49, originalPrice: 99, image: "/pl1.jpg", discount: 50 },
-        { id: "f4", name: "حامل هاتف للسيارة", price: 79, originalPrice: 159, image: "/pl2.jpg", discount: 50 },
-        { id: "f5", name: "باور بانك 20000", price: 299, originalPrice: 599, image: "/pl1.jpg", discount: 50 },
-        { id: "f6", name: "ماوس ألعاب لاسلكي", price: 120, originalPrice: 240, image: "/pl2.jpg", discount: 50 },
-      ]);
+      setProducts([]);
+      setEndSeconds(null);
     }
-    fetchDeals();
+    fetchFlash();
   }, []);
 
   const pad = (n: number) => n.toString().padStart(2, "0");
 
+  // مفيش عرض فلاش نشط → القسم مايظهرش خالص
   if (products.length === 0) return null;
 
   return (
@@ -90,7 +87,10 @@ export default function FlashDeals() {
             <div>
               <h2 className="text-base sm:text-lg md:text-xl font-bold text-white leading-tight flex items-center gap-1.5">
                 <span>فلاش تيكس</span>
-                <Zap className="w-4 h-4 sm:w-5 sm:h-5 text-gray-900 fill-gray-900" />
+                <Zap
+                  className="w-4 h-4 sm:w-5 sm:h-5 text-white fill-white"
+                  style={{ filter: "drop-shadow(0 0 6px rgba(255,255,255,0.95)) drop-shadow(0 0 12px rgba(255,255,255,0.6))" }}
+                />
               </h2>
               <p className="text-[10px] sm:text-xs text-white/80 mt-0.5 hidden sm:block">خصومات تصل إلى 70% لفترة محدودة</p>
             </div>
