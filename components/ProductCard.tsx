@@ -25,7 +25,6 @@ export default function ProductCard({
   const { addToCart } = useCart();
   const { toggleWishlist, isInWishlist } = useWishlist();
   const { state: authState } = useAuth();
-
   const discountPct = discount || calculateDiscount(originalPrice || 0, price);
   const wishlisted = isInWishlist(id);
   const productName = t(name);
@@ -113,8 +112,8 @@ export default function ProductCard({
             <Button
               onClick={handleAddToCart}
               className={`w-full text-[11px] h-8 rounded-md transition-colors ${
-                isFlashDeal
-                ? "bg-red-600 text-white hover:bg-red-700"
+                isFlashDeal 
+                ? "bg-red-600 text-white hover:bg-red-700" 
                 : "bg-black hover:bg-gray-800 text-white"
               }`}
             >
