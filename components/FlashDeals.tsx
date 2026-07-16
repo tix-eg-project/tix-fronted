@@ -3,7 +3,6 @@ import { useState, useEffect } from "react";
 import ProductCard from "./ProductCard";
 import { Zap, ChevronRight, ChevronLeft } from "lucide-react";
 import api from "@/lib/api";
-import { useT, useLocale } from "@/lib/i18n";
 import type { ProductCardProps } from "@/utils/Types/products";
 
 import { Swiper, SwiperSlide } from "swiper/react";
@@ -37,8 +36,6 @@ function useCountdown24h() {
 }
 
 export default function FlashDeals() {
-  const t = useT();
-  const locale = useLocale();
   const [products, setProducts] = useState<ProductCardProps[]>([]);
   const countdown = useCountdown24h();
 
@@ -92,10 +89,10 @@ export default function FlashDeals() {
           <div className="flex items-center gap-2 sm:gap-3">
             <div>
               <h2 className="text-base sm:text-lg md:text-xl font-bold text-white leading-tight flex items-center gap-1.5">
-                <span>{t("flash.title")}</span>
+                <span>فلاش تيكس</span>
                 <Zap className="w-4 h-4 sm:w-5 sm:h-5 text-gray-900 fill-gray-900" />
               </h2>
-              <p className="text-[10px] sm:text-xs text-white/80 mt-0.5 hidden sm:block">{t("flash.subtitle")}</p>
+              <p className="text-[10px] sm:text-xs text-white/80 mt-0.5 hidden sm:block">خصومات تصل إلى 70% لفترة محدودة</p>
             </div>
           </div>
 
@@ -117,8 +114,8 @@ export default function FlashDeals() {
         {/* Products Swiper */}
         <div className="relative">
           <Swiper
-            key={locale}
-            dir={locale === "ar" ? "rtl" : "ltr"}
+            key="ar"
+            dir="rtl"
             modules={[Navigation, Autoplay]}
             spaceBetween={10}
             slidesPerView={2}
