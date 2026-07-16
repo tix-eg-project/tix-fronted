@@ -20,10 +20,6 @@ export default function CartPage() {
   const [couponCode, setCouponCode] = useState("");
   const [couponError, setCouponError] = useState("");
   const [isApplying, setIsApplying] = useState(false);
-  // ── الكود المخفي ──
-  const [hiddenCode, setHiddenCode] = useState("");
-  const [hiddenError, setHiddenError] = useState("");
-  const [isRedeeming, setIsRedeeming] = useState(false);
 
   // Redirect if not logged in
   useEffect(() => {
@@ -62,25 +58,40 @@ export default function CartPage() {
     fetchSummary();
   };
 
-  const handleApplyCoupon = async () => {
-    if (!couponCode.trim()) return;
+  const handleApplyCode = async () => {
+    const code = couponCode.trim();
+    if (!code) return;
     setIsApplying(true);
     setCouponError("");
     try {
+      // جرب ككوبون خصم الأول
       const formData = new FormData();
-      formData.append("coupon", couponCode.trim().toUpperCase());
+      formData.append("coupon", code.toUpperCase());
       const res = await api.post("/summary", formData);
       if (res.data.status || res.data.success) {
         setSummary(res.data.data);
         toast.success(res.data.message || "تم تطبيق الكوبون");
-      } else {
-        setCouponError(res.data.message || "كوبون غير صالح");
+        setIsApplying(false);
+        return;
       }
-    } catch (error: any) {
-      setCouponError(error.response?.data?.message || "حدث خطأ");
-    } finally {
-      setIsApplying(false);
+    } catch {
+      // الكوبون فشل — نجرب ككود مخفي
     }
+    try {
+      const res = await api.post("/hidden-code/redeem", { code });
+      if (res.data.status) {
+        setCouponCode("");
+        await refreshCart();
+        await fetchSummary();
+        toast.success(res.data.message || "تم تفعيل الكود وإضافة المنتجات لسلتك");
+        setIsApplying(false);
+        return;
+      }
+    } catch {
+      // الكود المخفي فشل برضو
+    }
+    setCouponError("كود غير صالح");
+    setIsApplying(false);
   };
 
   const handleRemoveCoupon = async () => {
@@ -97,28 +108,6 @@ export default function CartPage() {
       toast.error("خطأ في حذف الكوبون");
     } finally {
       setIsApplying(false);
-    }
-  };
-
-  // ── الكود المخفي: يظهر منتجات مخفية في السلة ──
-  const handleRedeemHidden = async () => {
-    if (!hiddenCode.trim()) return;
-    setIsRedeeming(true);
-    setHiddenError("");
-    try {
-      const res = await api.post("/hidden-code/redeem", { code: hiddenCode.trim() });
-      if (res.data.status) {
-        setHiddenCode("");
-        await refreshCart();
-        await fetchSummary();
-        toast.success(res.data.message || "تم تفعيل الكود وإضافة المنتجات لسلتك");
-      } else {
-        setHiddenError(res.data.message || "كود غير صالح أو منتهي");
-      }
-    } catch (error: any) {
-      setHiddenError(error.response?.data?.message || "كود غير صالح أو منتهي");
-    } finally {
-      setIsRedeeming(false);
     }
   };
 
@@ -267,16 +256,17 @@ export default function CartPage() {
                         </div>
                       )}
 
-                      {/* Coupon Section */}
+                      {/* Coupon / Hidden Code — خانة واحدة للاتنين */}
                       <div className="flex gap-2 pt-2">
                         <div className="relative flex-1">
                           <Input
-                            placeholder="رمز الخصم"
+                            placeholder="أدخل الكود"
                             value={couponCode}
                             onChange={(e) => {
                               setCouponCode(e.target.value);
                               setCouponError("");
                             }}
+                            onKeyDown={(e) => { if (e.key === "Enter") handleApplyCode(); }}
                             className="bg-gray-50 border-gray-200 focus-visible:ring-primary/20 focus-visible:border-primary pe-10"
                           />
                           <Tag className="absolute end-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -290,7 +280,7 @@ export default function CartPage() {
                           )}
                         </div>
                         <Button
-                          onClick={handleApplyCoupon}
+                          onClick={handleApplyCode}
                           disabled={isApplying || !couponCode.trim()}
                           className="bg-black text-white hover:bg-gray-800 px-6"
                         >
@@ -298,31 +288,6 @@ export default function CartPage() {
                         </Button>
                       </div>
                       {couponError && <p className="text-red-600 text-xs mt-1">{couponError}</p>}
-
-                      {/* Hidden Code Section — الكود المخفي */}
-                      <div className="flex gap-2 pt-2">
-                        <div className="relative flex-1">
-                          <Input
-                            placeholder="الكود المخفي"
-                            value={hiddenCode}
-                            onChange={(e) => {
-                              setHiddenCode(e.target.value);
-                              setHiddenError("");
-                            }}
-                            onKeyDown={(e) => { if (e.key === "Enter") handleRedeemHidden(); }}
-                            className="bg-gray-50 border-gray-200 focus-visible:ring-primary/20 focus-visible:border-primary pe-10"
-                          />
-                          <Package className="absolute end-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                        </div>
-                        <Button
-                          onClick={handleRedeemHidden}
-                          disabled={isRedeeming || !hiddenCode.trim()}
-                          className="bg-black text-white hover:bg-gray-800 px-6"
-                        >
-                          تطبيق
-                        </Button>
-                      </div>
-                      {hiddenError && <p className="text-red-600 text-xs mt-1">{hiddenError}</p>}
 
                       <div className="flex justify-between font-bold text-lg border-t border-gray-100 pt-4 mt-2 text-gray-900">
                         <span>الإجمالي</span>
