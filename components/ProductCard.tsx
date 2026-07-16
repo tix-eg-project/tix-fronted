@@ -6,7 +6,6 @@ import { useCart } from "@/context/CartContext";
 import { useWishlist } from "@/context/WishlistContext";
 import { useAuth } from "@/context/AuthContext";
 import { formatCurrency, calculateDiscount, t } from "@/utils/helpers";
-import { useT } from "@/lib/i18n";
 import { toast } from "react-toastify";
 import type { ProductCardProps } from "@/utils/Types/products";
 import { Card } from "@/components/ui/card";
@@ -26,7 +25,6 @@ export default function ProductCard({
   const { addToCart } = useCart();
   const { toggleWishlist, isInWishlist } = useWishlist();
   const { state: authState } = useAuth();
-  const tr = useT();
 
   const discountPct = discount || calculateDiscount(originalPrice || 0, price);
   const wishlisted = isInWishlist(id);
@@ -36,14 +34,14 @@ export default function ProductCard({
     e.preventDefault();
     e.stopPropagation();
     if (!authState.isAuthenticated) {
-      toast.info(tr("product.loginFirstCart"));
+      toast.info("سجّل الدخول أولاً لإضافة المنتجات للسلة");
       return;
     }
     try {
       await addToCart(id);
-      toast.success(tr("product.addedToCart"));
+      toast.success("تمت الإضافة للسلة");
     } catch {
-      toast.error(tr("product.error"));
+      toast.error("حدث خطأ");
     }
   };
 
@@ -51,13 +49,13 @@ export default function ProductCard({
     e.preventDefault();
     e.stopPropagation();
     if (!authState.isAuthenticated) {
-      toast.info(tr("product.loginFirst"));
+      toast.info("سجّل الدخول أولاً");
       return;
     }
     try {
       await toggleWishlist(id);
     } catch {
-      toast.error(tr("product.error"));
+      toast.error("حدث خطأ");
     }
   };
 
@@ -115,13 +113,13 @@ export default function ProductCard({
             <Button
               onClick={handleAddToCart}
               className={`w-full text-[11px] h-8 rounded-md transition-colors ${
-                isFlashDeal 
-                ? "bg-red-600 text-white hover:bg-red-700" 
+                isFlashDeal
+                ? "bg-red-600 text-white hover:bg-red-700"
                 : "bg-black hover:bg-gray-800 text-white"
               }`}
             >
               <ShoppingCart className={`w-3 h-3 me-1 ${isFlashDeal ? "text-white" : "text-white"}`} />
-              {tr("product.addToCart")}
+              أضف للسلة
             </Button>
           </div>
         </div>
