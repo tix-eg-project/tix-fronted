@@ -9,14 +9,11 @@ import api from "@/lib/api";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 import { formatCurrency } from "@/utils/helpers";
-import { useT, useLocale } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { CartSummary } from "@/utils/Types/common";
 
 export default function CartPage() {
-  const tr = useT();
-  const locale = useLocale();
   const { state, removeFromCart, updateQuantity, refreshCart } = useCart();
   const { state: authState } = useAuth();
   const [summary, setSummary] = useState<CartSummary | null>(null);
@@ -56,7 +53,7 @@ export default function CartPage() {
 
   const handleRemove = async (id: number | string) => {
     await removeFromCart(id);
-    toast.success(tr("cart.removed"));
+    toast.success("تم الحذف من السلة");
     fetchSummary();
   };
 
@@ -75,12 +72,12 @@ export default function CartPage() {
       const res = await api.post("/summary", formData);
       if (res.data.status || res.data.success) {
         setSummary(res.data.data);
-        toast.success(res.data.message || tr("cart.couponApplied"));
+        toast.success(res.data.message || "تم تطبيق الكوبون");
       } else {
-        setCouponError(res.data.message || tr("cart.couponInvalid"));
+        setCouponError(res.data.message || "كوبون غير صالح");
       }
     } catch (error: any) {
-      setCouponError(error.response?.data?.message || tr("common.error"));
+      setCouponError(error.response?.data?.message || "حدث خطأ");
     } finally {
       setIsApplying(false);
     }
@@ -94,10 +91,10 @@ export default function CartPage() {
       if (res.data.status || res.data.success) {
         setCouponCode("");
         fetchSummary();
-        toast.success(tr("cart.couponRemoved"));
+        toast.success("تم حذف الكوبون");
       }
     } catch {
-      toast.error(tr("cart.couponRemoveError"));
+      toast.error("خطأ في حذف الكوبون");
     } finally {
       setIsApplying(false);
     }
@@ -114,12 +111,12 @@ export default function CartPage() {
         setHiddenCode("");
         await refreshCart();
         await fetchSummary();
-        toast.success(res.data.message || tr("cart.hiddenRedeemed"));
+        toast.success(res.data.message || "تم تفعيل الكود وإضافة المنتجات لسلتك");
       } else {
-        setHiddenError(res.data.message || tr("cart.hiddenInvalid"));
+        setHiddenError(res.data.message || "كود غير صالح أو منتهي");
       }
     } catch (error: any) {
-      setHiddenError(error.response?.data?.message || tr("cart.hiddenInvalid"));
+      setHiddenError(error.response?.data?.message || "كود غير صالح أو منتهي");
     } finally {
       setIsRedeeming(false);
     }
@@ -136,11 +133,11 @@ export default function CartPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50" dir={locale === "ar" ? "rtl" : "ltr"}>
+    <div className="min-h-screen bg-gray-50" dir="rtl">
       <main className="container mx-auto px-4 py-8">
         <h1 className="text-2xl font-bold mb-6 flex items-center gap-2">
           <ShoppingBag className="w-6 h-6 text-primary" />
-          {tr("cart.yourCart")} ({state.items.length} {tr("cart.items")})
+          سلتك ({state.items.length} منتج)
         </h1>
 
         <AnimatePresence mode="wait">
@@ -152,11 +149,11 @@ export default function CartPage() {
               className="text-center py-16 bg-white rounded-xl shadow-sm border border-gray-100"
             >
               <Package className="w-16 h-16 mx-auto text-gray-300 mb-4" />
-              <h2 className="text-xl font-bold text-gray-900 mb-2">{tr("cart.empty")}</h2>
-              <p className="text-gray-500 mb-6">{tr("cart.emptyDesc")}</p>
+              <h2 className="text-xl font-bold text-gray-900 mb-2">سلتك فارغة</h2>
+              <p className="text-gray-500 mb-6">لم تقم بإضافة أي منتجات لسلتك بعد</p>
               <Link href="/">
                 <Button className="bg-primary hover:bg-primary/90 text-white px-8 h-11 rounded-lg">
-                  {tr("cart.exploreStore")}
+                  استكشف المتجر
                 </Button>
               </Link>
             </motion.div>
@@ -228,7 +225,7 @@ export default function CartPage() {
                         <button
                           onClick={() => handleRemove(item.id)}
                           className="ms-auto text-red-600 hover:text-red-700 transition-colors p-1"
-                          aria-label={tr("cart.remove")}
+                          aria-label="حذف"
                         >
                           <Trash2 className="w-5 h-5" />
                         </button>
@@ -246,26 +243,26 @@ export default function CartPage() {
               {/* Order Summary Sidebar */}
               <div className="lg:col-span-1">
                 <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 sticky top-24 space-y-4">
-                  <h2 className="text-lg font-bold text-gray-900">{tr("cart.orderSummary")}</h2>
+                  <h2 className="text-lg font-bold text-gray-900">ملخص الطلب</h2>
 
                   {/* Pricing Details */}
                   {summary && (
                     <div className="space-y-4 pt-2">
                       <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">{tr("cart.subtotal")}</span>
+                        <span className="text-gray-600">السعر الفرعي</span>
                         <span className="font-bold text-gray-900">{formatCurrency(summary.subtotal)}</span>
                       </div>
-                      
+
                       <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">{tr("cart.shipping")}</span>
+                        <span className="text-gray-600">التوصيل</span>
                         <span className="font-bold text-gray-900">
-                          {summary.shipping_zone?.price === 0 ? tr("cart.free") : formatCurrency(summary.shipping_zone?.price || 0)}
+                          {summary.shipping_zone?.price === 0 ? "مجاني" : formatCurrency(summary.shipping_zone?.price || 0)}
                         </span>
                       </div>
 
                       {summary.discount > 0 && (
                         <div className="flex justify-between text-sm text-green-600">
-                          <span>{tr("cart.discount")}</span>
+                          <span>الخصم</span>
                           <span className="font-bold">-{formatCurrency(summary.discount)}</span>
                         </div>
                       )}
@@ -274,7 +271,7 @@ export default function CartPage() {
                       <div className="flex gap-2 pt-2">
                         <div className="relative flex-1">
                           <Input
-                            placeholder={tr("cart.couponPlaceholder")}
+                            placeholder="رمز الخصم"
                             value={couponCode}
                             onChange={(e) => {
                               setCouponCode(e.target.value);
@@ -297,7 +294,7 @@ export default function CartPage() {
                           disabled={isApplying || !couponCode.trim()}
                           className="bg-black text-white hover:bg-gray-800 px-6"
                         >
-                          {tr("cart.apply")}
+                          تطبيق
                         </Button>
                       </div>
                       {couponError && <p className="text-red-600 text-xs mt-1">{couponError}</p>}
@@ -306,7 +303,7 @@ export default function CartPage() {
                       <div className="flex gap-2 pt-2">
                         <div className="relative flex-1">
                           <Input
-                            placeholder={tr("cart.hiddenPlaceholder")}
+                            placeholder="الكود المخفي"
                             value={hiddenCode}
                             onChange={(e) => {
                               setHiddenCode(e.target.value);
@@ -322,13 +319,13 @@ export default function CartPage() {
                           disabled={isRedeeming || !hiddenCode.trim()}
                           className="bg-black text-white hover:bg-gray-800 px-6"
                         >
-                          {tr("cart.apply")}
+                          تطبيق
                         </Button>
                       </div>
                       {hiddenError && <p className="text-red-600 text-xs mt-1">{hiddenError}</p>}
 
                       <div className="flex justify-between font-bold text-lg border-t border-gray-100 pt-4 mt-2 text-gray-900">
-                        <span>{tr("cart.total")}</span>
+                        <span>الإجمالي</span>
                         <span className="text-gray-900">{formatCurrency(summary.total)}</span>
                       </div>
                     </div>
@@ -336,7 +333,7 @@ export default function CartPage() {
 
                   <Link href="/checkout" className="block pt-2">
                     <Button className="w-full h-11 bg-black hover:bg-gray-800 text-white font-bold rounded-lg transition-all flex items-center justify-center gap-2">
-                      {tr("cart.proceedCheckout")}
+                      المتابعة للدفع
                       <ArrowLeft className="w-4 h-4 rtl:rotate-0 ltr:rotate-180" />
                     </Button>
                   </Link>
