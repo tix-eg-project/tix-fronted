@@ -75,7 +75,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
           price: item.product?.variant_item?.price_after || item.product?.price_after || 0,
           originalPrice: item.product?.variant_item?.price_before || item.product?.price_before,
           quantity: item.quantity,
-          image: item.product?.image || item.product?.images?.[0] || "",
+          image: item.product?.images?.[0] || item.product?.image || "",
           variant_item_id: item.product?.variant_item?.id,
           selections: item.product?.variant_item?.selections || [],
         }));

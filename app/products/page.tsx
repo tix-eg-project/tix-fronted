@@ -11,12 +11,16 @@ import {
   Filter,
   X,
   Search,
-  RotateCcw
+  RotateCcw,
+  ShoppingCart,
 } from "lucide-react";
 import api from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { t, formatCurrency } from "@/utils/helpers";
+import { useCart } from "@/context/CartContext";
+import { useAuth } from "@/context/AuthContext";
+import { toast } from "react-toastify";
 import type { ProductCardProps } from "@/utils/Types/products";
 
 const Checkbox = ({ checked, onCheckedChange }: { checked: boolean; onCheckedChange: () => void }) => (
@@ -51,6 +55,24 @@ function ProductsContent() {
   const categoryParam = searchParams.get("category");
   const subcategoryParam = searchParams.get("subcategory");
   const searchParam = searchParams.get("q");
+
+  const { addToCart } = useCart();
+  const { state: authState } = useAuth();
+
+  const handleAddToCart = async (e: React.MouseEvent, productId: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!authState.isAuthenticated) {
+      toast.info("سجّل الدخول أولاً لإضافة المنتجات للسلة");
+      return;
+    }
+    try {
+      await addToCart(productId, 1);
+      toast.success("تمت الإضافة للسلة");
+    } catch {
+      toast.error("حدث خطأ");
+    }
+  };
 
   const [products, setProducts] = useState<ProductCardProps[]>([]);
   const [brands, setBrands] = useState<any[]>([]);
@@ -455,8 +477,12 @@ function ProductsContent() {
                               <span className="text-sm text-gray-400 line-through">{formatCurrency(product.originalPrice ?? 0)}</span>
                             )}
                           </div>
-                          <Button className="w-full mt-3 bg-gray-900 text-white hover:bg-black rounded-lg h-9 text-xs transition-colors">
-                            عرض التفاصيل
+                          <Button
+                            onClick={(e) => handleAddToCart(e, String(product.id))}
+                            className="w-full mt-3 bg-gray-900 text-white hover:bg-black rounded-lg h-9 text-xs transition-colors flex items-center justify-center gap-1.5"
+                          >
+                            <ShoppingCart className="w-3.5 h-3.5" />
+                            أضف للسلة
                           </Button>
                         </div>
                       </div>

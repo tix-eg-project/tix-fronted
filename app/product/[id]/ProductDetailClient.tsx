@@ -15,6 +15,7 @@ import {
   ChevronUp,
   CheckCircle,
   Plus as PlusIcon,
+  Languages,
 } from "lucide-react";
 import { toast } from "react-toastify";
 import api from "@/lib/api";
@@ -24,6 +25,20 @@ import { useWishlist } from "@/context/WishlistContext";
 import { formatCurrency, calculateDiscount, t } from "@/utils/helpers";
 import ProductCard from "@/components/ProductCard";
 import type { Product, VariantGroup, VariantItem } from "@/utils/Types/common";
+import { useRouter } from "next/navigation";
+
+function tLang(value: any, lang: 'ar' | 'en'): string {
+  if (!value) return '';
+  if (typeof value === 'string') return value;
+  if (typeof value === 'object') {
+    return lang === 'ar' ? (value.ar || value.en || '') : (value.en || value.ar || '');
+  }
+  return String(value);
+}
+
+function hasMultiLang(value: any): boolean {
+  return typeof value === 'object' && value !== null && !!(value.ar && value.en);
+}
 
 /* ─── Stars ─── */
 function StarRating({ value, size = 16 }: { value: number; size?: number }) {
@@ -47,7 +62,7 @@ function Accordion({
   children,
   defaultOpen = false,
 }: {
-  title: string;
+  title: React.ReactNode;
   children: React.ReactNode;
   defaultOpen?: boolean;
 }) {
@@ -88,6 +103,8 @@ export default function ProductDetailClient({ productId }: { productId: string }
   const { addToCart } = useCart();
   const { state: authState } = useAuth();
   const { toggleWishlist, isInWishlist } = useWishlist();
+  const router = useRouter();
+  const [descLang, setDescLang] = useState<'ar' | 'en'>('ar');
 
   // Reset quantity when variant changes
   useEffect(() => { setQuantity(1); }, [selectedItem]);
@@ -422,14 +439,14 @@ export default function ProductDetailClient({ productId }: { productId: string }
 
           {/* Price */}
           <div className="text-3xl font-bold text-black mt-4">
-            {(currentPrice ?? 0).toLocaleString("ar-EG")} ج.م
+            {(currentPrice ?? 0).toLocaleString("en-US")} EGP
           </div>
 
           {/* Original Price + Discount */}
           {originalPrice > currentPrice && (
             <div className="flex items-center gap-2 mt-1">
               <span className="text-lg text-gray-400 line-through">
-                {(originalPrice ?? 0).toLocaleString("ar-EG")} ج.م
+                {(originalPrice ?? 0).toLocaleString("en-US")} EGP
               </span>
               <span className="px-2 py-0.5 rounded-full text-sm font-bold bg-red-100 text-red-700">
                 -{discountPct}%
@@ -449,16 +466,6 @@ export default function ProductDetailClient({ productId }: { productId: string }
                 <span className="w-2 h-2 rounded-full bg-red-500" />
                 غير متوفر
               </div>
-            )}
-            {product?.is_returnable === true && (
-              <span className="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-100">
-                ↩ قابل للإرجاع
-              </span>
-            )}
-            {product?.is_returnable === false && (
-              <span className="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full bg-gray-50 text-gray-400 border border-gray-200">
-                غير قابل للإرجاع
-              </span>
             )}
           </div>
 
@@ -573,7 +580,17 @@ export default function ProductDetailClient({ productId }: { productId: string }
           {/* ── Action Buttons ── */}
           {/* Buy Now */}
           <button
-            onClick={handleAddToCart}
+            onClick={async () => {
+              if (!authState.isAuthenticated) { toast.info("سجّل الدخول أولاً"); return; }
+              try {
+                setAddingToCart(true);
+                await addToCart(product!.id, quantity, selectedItem?.id || null);
+                router.push('/checkout');
+              } catch (error: any) {
+                toast.error(error.response?.data?.message || "خطأ في الإضافة");
+                setAddingToCart(false);
+              }
+            }}
             disabled={addingToCart || !inStock}
             className="w-full h-12 bg-black text-white text-base font-semibold rounded-xl hover:bg-gray-900 transition-colors mt-5 disabled:opacity-50 disabled:cursor-not-allowed"
           >
@@ -633,23 +650,24 @@ export default function ProductDetailClient({ productId }: { productId: string }
 
           {/* ── Attributes / Specifications ── */}
           {Array.isArray(product.attributes) && product.attributes.length > 0 && (
-            <div className="mt-6 p-5 bg-gray-50 rounded-2xl">
-              <h3 className="text-sm font-bold text-gray-800 mb-4">المواصفات</h3>
-              <div className="divide-y divide-gray-200 border border-gray-200 rounded-xl overflow-hidden bg-white">
-                {product.attributes.map((attr: { name: string; value: string }, idx: number) => (
-                  <div
-                    key={idx}
-                    className={`flex items-center gap-0 text-sm ${idx % 2 === 0 ? "bg-white" : "bg-gray-50"}`}
-                  >
-                    <span className="w-1/2 px-4 py-2.5 font-medium text-gray-700 border-l border-gray-200">
-                      {attr.name}
-                    </span>
-                    <span className="w-1/2 px-4 py-2.5 text-gray-600">
-                      {attr.value}
-                    </span>
-                  </div>
-                ))}
-              </div>
+            <div className="mt-6">
+              <Accordion title="المواصفات">
+                <div className="divide-y divide-gray-200 border border-gray-200 rounded-xl overflow-hidden bg-white">
+                  {product.attributes.map((attr: { name: string; value: string }, idx: number) => (
+                    <div
+                      key={idx}
+                      className={`flex items-center text-sm ${idx % 2 === 0 ? "bg-white" : "bg-gray-50"}`}
+                    >
+                      <span className="w-1/2 px-4 py-2.5 font-medium text-gray-700 border-l border-gray-200">
+                        {attr.name}
+                      </span>
+                      <span className="w-1/2 px-4 py-2.5 text-gray-600">
+                        {attr.value}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </Accordion>
             </div>
           )}
 
@@ -672,10 +690,28 @@ export default function ProductDetailClient({ productId }: { productId: string }
           <div className="mt-6 border-t border-gray-100">
             {/* Description */}
             {product.long_description && (
-              <Accordion title="الوصف" defaultOpen>
+              <Accordion
+                title={
+                  <div className="flex items-center justify-between w-full">
+                    <span>الوصف</span>
+                    {hasMultiLang(product.long_description) && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setDescLang(l => l === 'ar' ? 'en' : 'ar'); }}
+                        className="flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full border border-gray-200 hover:border-gray-400 text-gray-500 hover:text-black transition-colors mr-4"
+                      >
+                        <Languages className="w-3.5 h-3.5" />
+                        {descLang === 'ar' ? 'EN' : 'عربي'}
+                      </button>
+                    )}
+                  </div>
+                }
+                defaultOpen
+              >
                 <div
                   className="leading-relaxed prose prose-sm max-w-none text-gray-700 [&_p]:mb-3 [&_br]:block [&_ul]:list-disc [&_ul]:pr-5 [&_ol]:list-decimal [&_ol]:pr-5"
-                  dangerouslySetInnerHTML={{ __html: t(product.long_description) }}
+                  dir={descLang === 'en' ? 'ltr' : 'rtl'}
+                  style={{ textAlign: descLang === 'en' ? 'left' : 'right' }}
+                  dangerouslySetInnerHTML={{ __html: tLang(product.long_description, descLang) }}
                 />
               </Accordion>
             )}

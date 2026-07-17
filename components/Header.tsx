@@ -67,6 +67,16 @@ export default function Header() {
     router.push(`/product/${id}`)
   }
 
+  const handleSearchAll = () => {
+    if (!searchQuery.trim()) return
+    setShowSearchResults(false)
+    router.push(`/products?q=${encodeURIComponent(searchQuery.trim())}`)
+  }
+
+  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') handleSearchAll()
+  }
+
   const handleLogout = async () => {
     await logout()
     setUserMenuOpen(false)
@@ -101,29 +111,44 @@ export default function Header() {
                 placeholder="ابحث عن منتجات..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={handleSearchKeyDown}
                 className="w-full bg-white border border-gray-400 text-black placeholder:text-gray-500 pr-10 focus-visible:border-black focus-visible:ring-0"
               />
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-600" />
+              <button
+                onClick={handleSearchAll}
+                className="absolute left-0 top-0 h-full px-3 flex items-center hover:text-black text-gray-600 transition-colors"
+              >
+                <Search className="h-4 w-4" />
+              </button>
             </div>
             {/* Search Results Dropdown */}
             {showSearchResults && searchQuery && (
-              <div className="absolute top-full mt-2 w-full max-h-80 overflow-y-auto z-50 bg-white border border-gray-200 rounded-lg shadow-lg">
-                {searchResults.length > 0 ? (
-                  searchResults.map((item: any) => (
-                    <button
-                      key={item.id}
-                      onClick={() => handleSearchSelect(item.id)}
-                      className="w-full text-right px-4 py-3 flex items-center gap-3 hover:bg-gray-100 transition-colors border-b border-gray-100 last:border-0"
-                    >
-                      <Search className="w-4 h-4 flex-shrink-0 text-gray-400" />
-                      <span className="text-sm text-gray-900 truncate">{item.name}</span>
-                    </button>
-                  ))
-                ) : (
-                  <div className="px-4 py-6 text-center text-sm text-gray-500">
-                    لا توجد نتائج
-                  </div>
-                )}
+              <div className="absolute top-full mt-2 w-full z-50 bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden">
+                <div className="max-h-72 overflow-y-auto">
+                  {searchResults.length > 0 ? (
+                    searchResults.map((item: any) => (
+                      <button
+                        key={item.id}
+                        onClick={() => handleSearchSelect(item.id)}
+                        className="w-full text-right px-4 py-3 flex items-center gap-3 hover:bg-gray-100 transition-colors border-b border-gray-100 last:border-0"
+                      >
+                        <Search className="w-4 h-4 flex-shrink-0 text-gray-400" />
+                        <span className="text-sm text-gray-900 truncate">{item.name}</span>
+                      </button>
+                    ))
+                  ) : (
+                    <div className="px-4 py-4 text-center text-sm text-gray-500">
+                      لا توجد نتائج
+                    </div>
+                  )}
+                </div>
+                <button
+                  onClick={handleSearchAll}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-3 text-sm font-semibold text-white bg-black hover:bg-gray-900 transition-colors border-t border-gray-200"
+                >
+                  <Search className="w-4 h-4" />
+                  عرض كل نتائج &quot;{searchQuery}&quot;
+                </button>
               </div>
             )}
           </div>
@@ -197,9 +222,15 @@ export default function Header() {
               placeholder="ابحث عن منتجات..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={handleSearchKeyDown}
               className="w-full bg-white border border-gray-300 focus-visible:border-black focus-visible:ring-0"
             />
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
+            <button
+              onClick={handleSearchAll}
+              className="absolute left-0 top-0 h-full px-3 flex items-center text-gray-500 hover:text-black transition-colors"
+            >
+              <Search className="h-4 w-4" />
+            </button>
           </div>
         </div>
       </div>

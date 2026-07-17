@@ -96,10 +96,13 @@ export default function ProductCard({
               <Star
                 key={i}
                 className={`h-2.5 w-2.5 ${
-                  i < (rating || 0) ? "fill-yellow-400 text-yellow-400" : (isFlashDeal ? "fill-gray-200 text-gray-200" : "fill-gray-200 text-gray-200")
+                  i < (rating || 0) ? "fill-yellow-400 text-yellow-400" : "fill-gray-200 text-gray-200"
                 }`}
               />
             ))}
+            {(reviewsCount ?? 0) > 0 && (
+              <span className="text-[10px] text-gray-400 mr-0.5">({reviewsCount})</span>
+            )}
           </div>
           <div className="mt-auto">
             <div className="flex items-center gap-2 mb-2.5">
