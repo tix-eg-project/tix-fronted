@@ -58,25 +58,40 @@ export default function CartPage() {
     fetchSummary();
   };
 
-  const handleApplyCoupon = async () => {
-    if (!couponCode.trim()) return;
+  const handleApplyCode = async () => {
+    const code = couponCode.trim();
+    if (!code) return;
     setIsApplying(true);
     setCouponError("");
     try {
+      // جرب ككوبون خصم الأول
       const formData = new FormData();
-      formData.append("coupon", couponCode.trim().toUpperCase());
+      formData.append("coupon", code.toUpperCase());
       const res = await api.post("/summary", formData);
       if (res.data.status || res.data.success) {
         setSummary(res.data.data);
         toast.success(res.data.message || "تم تطبيق الكوبون");
-      } else {
-        setCouponError(res.data.message || "كوبون غير صالح");
+        setIsApplying(false);
+        return;
       }
-    } catch (error: any) {
-      setCouponError(error.response?.data?.message || "حدث خطأ");
-    } finally {
-      setIsApplying(false);
+    } catch {
+      // الكوبون فشل — نجرب ككود مخفي
     }
+    try {
+      const res = await api.post("/hidden-code/redeem", { code });
+      if (res.data.status) {
+        setCouponCode("");
+        await refreshCart();
+        await fetchSummary();
+        toast.success(res.data.message || "تم تفعيل الكود وإضافة المنتجات لسلتك");
+        setIsApplying(false);
+        return;
+      }
+    } catch {
+      // الكود المخفي فشل برضو
+    }
+    setCouponError("كود غير صالح");
+    setIsApplying(false);
   };
 
   const handleRemoveCoupon = async () => {
@@ -198,14 +213,14 @@ export default function CartPage() {
                         </div>
                         <button
                           onClick={() => handleRemove(item.id)}
-                          className="mr-auto text-red-600 hover:text-red-700 transition-colors p-1"
+                          className="ms-auto text-red-600 hover:text-red-700 transition-colors p-1"
                           aria-label="حذف"
                         >
                           <Trash2 className="w-5 h-5" />
                         </button>
                       </div>
                     </div>
-                    <div className="text-left hidden sm:block">
+                    <div className="text-end hidden sm:block">
                       <p className="font-bold text-gray-900 whitespace-nowrap">
                         {formatCurrency(item.price * item.quantity)}
                       </p>
@@ -226,11 +241,11 @@ export default function CartPage() {
                         <span className="text-gray-600">السعر الفرعي</span>
                         <span className="font-bold text-gray-900">{formatCurrency(summary.subtotal)}</span>
                       </div>
-                      
+
                       <div className="flex justify-between text-sm">
                         <span className="text-gray-600">التوصيل</span>
                         <span className="font-bold text-gray-900">
-                          {summary.shipping_zone?.price === 0 ? 'مجاني' : formatCurrency(summary.shipping_zone?.price || 0)}
+                          {summary.shipping_zone?.price === 0 ? "مجاني" : formatCurrency(summary.shipping_zone?.price || 0)}
                         </span>
                       </div>
 
@@ -241,30 +256,31 @@ export default function CartPage() {
                         </div>
                       )}
 
-                      {/* Coupon Section */}
+                      {/* Coupon / Hidden Code — خانة واحدة للاتنين */}
                       <div className="flex gap-2 pt-2">
                         <div className="relative flex-1">
                           <Input
-                            placeholder="رمز الخصم"
+                            placeholder="أدخل الكود"
                             value={couponCode}
                             onChange={(e) => {
                               setCouponCode(e.target.value);
                               setCouponError("");
                             }}
-                            className="bg-gray-50 border-gray-200 focus-visible:ring-primary/20 focus-visible:border-primary pr-10"
+                            onKeyDown={(e) => { if (e.key === "Enter") handleApplyCode(); }}
+                            className="bg-gray-50 border-gray-200 focus-visible:ring-primary/20 focus-visible:border-primary pe-10"
                           />
-                          <Tag className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                          <Tag className="absolute end-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                           {summary?.coupon && (
                             <button
                               onClick={handleRemoveCoupon}
-                              className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-600"
+                              className="absolute start-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-600"
                             >
                               <X className="w-4 h-4" />
                             </button>
                           )}
                         </div>
                         <Button
-                          onClick={handleApplyCoupon}
+                          onClick={handleApplyCode}
                           disabled={isApplying || !couponCode.trim()}
                           className="bg-black text-white hover:bg-gray-800 px-6"
                         >
@@ -283,7 +299,7 @@ export default function CartPage() {
                   <Link href="/checkout" className="block pt-2">
                     <Button className="w-full h-11 bg-black hover:bg-gray-800 text-white font-bold rounded-lg transition-all flex items-center justify-center gap-2">
                       المتابعة للدفع
-                      <ArrowLeft className="w-4 h-4" />
+                      <ArrowLeft className="w-4 h-4 rtl:rotate-0 ltr:rotate-180" />
                     </Button>
                   </Link>
                 </div>
