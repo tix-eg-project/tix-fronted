@@ -1,11 +1,11 @@
 import type { Metadata } from 'next'
-import ProductDetailClient from './ProductDetailClient'
-import { generateSlug, t } from '@/utils/helpers'
+import { redirect } from 'next/navigation'
+import ProductDetailClient from '../../[id]/ProductDetailClient'
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://admin.tix-eg.com'
+const API_URL  = process.env.NEXT_PUBLIC_API_URL  || 'https://admin.tix-eg.com'
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://tix-eg.com'
 
-type Props = { params: Promise<{ id: string }> }
+type Props = { params: Promise<{ slug: string; id: string }> }
 
 function stripHtml(value: unknown): string {
   if (!value) return ''
@@ -30,12 +30,10 @@ async function getProduct(id: string) {
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { id } = await params
+  const { id, slug } = await params
 
   let product: any = null
-  try {
-    product = await getProduct(id)
-  } catch {}
+  try { product = await getProduct(id) } catch {}
 
   if (!product) return { title: 'منتج - TIX' }
 
@@ -43,9 +41,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     product.long_description || product.short_description || product.name || ''
   ).substring(0, 160)
 
-  const image = product.images?.[0]
-  const slug = generateSlug(t(product.name))
-  const url = slug ? `${SITE_URL}/product/${encodeURIComponent(slug)}/${id}` : `${SITE_URL}/product/${id}`
+  const image    = product.images?.[0]
+  const url      = `${SITE_URL}/product/${encodeURIComponent(slug)}/${id}`
   const keywords: string[] | undefined = Array.isArray(product.keywords)
     ? product.keywords
     : typeof product.keywords === 'string' && product.keywords.trim() !== ''
@@ -73,13 +70,16 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
 }
 
-export default async function ProductPage({ params }: Props) {
-  const { id } = await params
+export default async function ProductSlugPage({ params }: Props) {
+  const { id, slug } = await params
 
   let product: any = null
-  try {
-    product = await getProduct(id)
-  } catch {}
+  try { product = await getProduct(id) } catch {}
+
+  // 301: slug اتغير في الباك → redirect للـ URL الجديد
+  if (product?.slug && product.slug !== decodeURIComponent(slug)) {
+    redirect(`/product/${encodeURIComponent(product.slug)}/${id}`)
+  }
 
   const jsonLd = product
     ? {
@@ -99,7 +99,7 @@ export default async function ProductPage({ params }: Props) {
             : {}),
         offers: {
           '@type': 'Offer',
-          url: `${SITE_URL}/product/${id}`,
+          url: `${SITE_URL}/product/${encodeURIComponent(slug)}/${id}`,
           priceCurrency: 'EGP',
           price: product.price_after ?? product.price_before,
           availability:

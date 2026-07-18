@@ -159,7 +159,7 @@ export default function CartPage() {
                     exit={{ opacity: 0, x: -20 }}
                     className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 flex gap-4 transition-all hover:shadow-md"
                   >
-                    <Link href={`/product/${item.productId}/${generateSlug(t(item.name))}`} className="flex-shrink-0">
+                    <Link href={`/product/${generateSlug(t(item.name))}/${item.productId}`} className="flex-shrink-0">
                       <Image
                         src={item.image || "/pl1.jpg"}
                         alt={item.name}
@@ -170,7 +170,7 @@ export default function CartPage() {
                     </Link>
                     <div className="flex-1 min-w-0 flex flex-col justify-between">
                       <div>
-                        <Link href={`/product/${item.productId}/${generateSlug(t(item.name))}`}>
+                        <Link href={`/product/${generateSlug(t(item.name))}/${item.productId}`}>
                           <h3 className="font-bold text-gray-900 line-clamp-1 hover:text-primary transition-colors">
                             {item.name}
                           </h3>
