@@ -1,11 +1,12 @@
 import type { Metadata } from 'next'
-import ProductDetailClient from './ProductDetailClient'
+import { redirect } from 'next/navigation'
+import ProductDetailClient from '../ProductDetailClient'
 import { generateSlug, t } from '@/utils/helpers'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://admin.tix-eg.com'
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://tix-eg.com'
 
-type Props = { params: Promise<{ id: string }> }
+type Props = { params: Promise<{ id: string; slug: string }> }
 
 function stripHtml(value: unknown): string {
   if (!value) return ''
@@ -30,7 +31,7 @@ async function getProduct(id: string) {
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { id } = await params
+  const { id, slug } = await params
 
   let product: any = null
   try {
@@ -44,8 +45,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   ).substring(0, 160)
 
   const image = product.images?.[0]
-  const slug = generateSlug(t(product.name))
-  const url = slug ? `${SITE_URL}/product/${id}/${slug}` : `${SITE_URL}/product/${id}`
+  const url = `${SITE_URL}/product/${id}/${slug}`
   const keywords: string[] | undefined = Array.isArray(product.keywords)
     ? product.keywords
     : typeof product.keywords === 'string' && product.keywords.trim() !== ''
@@ -73,13 +73,26 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
 }
 
-export default async function ProductPage({ params }: Props) {
-  const { id } = await params
+export default async function ProductSlugPage({ params }: Props) {
+  const { id, slug } = await params
 
   let product: any = null
   try {
     product = await getProduct(id)
   } catch {}
+
+  // 301: slug اتغير في الباك → redirect للـ URL الصح
+  if (product?.slug && product.slug !== slug) {
+    redirect(`/product/${id}/${product.slug}`)
+  }
+
+  // لو الـ slug مش موجود على الإطلاق → redirect لـ slug الصحيح المولود من الاسم
+  if (!product?.slug && product?.name) {
+    const correctSlug = generateSlug(t(product.name))
+    if (correctSlug && correctSlug !== slug) {
+      redirect(`/product/${id}/${correctSlug}`)
+    }
+  }
 
   const jsonLd = product
     ? {

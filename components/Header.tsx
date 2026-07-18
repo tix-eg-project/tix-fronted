@@ -9,6 +9,7 @@ import {
   ChevronDown, LogOut, Package, UserCircle
 } from 'lucide-react'
 import api from '@/lib/api'
+import { generateSlug, t } from '@/utils/helpers'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import CategoryBar from './CategoryBar'
@@ -60,11 +61,12 @@ export default function Header() {
     return () => clearTimeout(timer)
   }, [searchQuery])
 
-  const handleSearchSelect = (id: number | string) => {
+  const handleSearchSelect = (id: number | string, name?: any) => {
     setSearchQuery('')
     setSearchResults([])
     setShowSearchResults(false)
-    router.push(`/product/${id}`)
+    const slug = generateSlug(t(name))
+    router.push(slug ? `/product/${id}/${slug}` : `/product/${id}`)
   }
 
   const handleSearchAll = () => {
@@ -129,7 +131,7 @@ export default function Header() {
                     searchResults.map((item: any) => (
                       <button
                         key={item.id}
-                        onClick={() => handleSearchSelect(item.id)}
+                        onClick={() => handleSearchSelect(item.id, item.name)}
                         className="w-full text-right px-4 py-3 flex items-center gap-3 hover:bg-gray-100 transition-colors border-b border-gray-100 last:border-0"
                       >
                         <Search className="w-4 h-4 flex-shrink-0 text-gray-400" />

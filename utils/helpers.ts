@@ -5,6 +5,16 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+export function generateSlug(name: string): string {
+  return (name || '')
+    .trim()
+    .replace(/\s+/g, '-')
+    .replace(/[^\w؀-ۿ-]/g, '')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+    .substring(0, 80)
+}
+
 export function formatPrice(price: number): string {
   return (price ?? 0).toLocaleString("en-US");
 }

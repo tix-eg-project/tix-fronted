@@ -22,7 +22,7 @@ import api from "@/lib/api";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 import { useWishlist } from "@/context/WishlistContext";
-import { formatCurrency, calculateDiscount, t } from "@/utils/helpers";
+import { formatCurrency, calculateDiscount, t, generateSlug } from "@/utils/helpers";
 import ProductCard from "@/components/ProductCard";
 import type { Product, VariantGroup, VariantItem } from "@/utils/Types/common";
 import { useRouter } from "next/navigation";
@@ -938,7 +938,7 @@ export default function ProductDetailClient({ productId }: { productId: string }
             {complementaryProducts.map((prod) => (
               <Link
                 key={prod.id}
-                href={`/product/${prod.id}`}
+                href={`/product/${prod.id}/${generateSlug(t(prod.name))}`}
                 className="shrink-0 w-44 md:w-auto bg-white rounded-xl border border-gray-100 p-3 hover:shadow-md transition-shadow"
               >
                 <div className="aspect-square rounded-lg overflow-hidden bg-gray-50 mb-2">
