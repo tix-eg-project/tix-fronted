@@ -1,7 +1,6 @@
 import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 import ProductDetailClient from '../ProductDetailClient'
-import { generateSlug, t } from '@/utils/helpers'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://admin.tix-eg.com'
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://tix-eg.com'
@@ -81,17 +80,9 @@ export default async function ProductSlugPage({ params }: Props) {
     product = await getProduct(id)
   } catch {}
 
-  // 301: slug اتغير في الباك → redirect للـ URL الصح
+  // 301: لو الـ slug اتغير في الباك → redirect للـ URL الصح مع encoding عشان Arabic
   if (product?.slug && product.slug !== slug) {
-    redirect(`/product/${id}/${product.slug}`)
-  }
-
-  // لو الـ slug مش موجود على الإطلاق → redirect لـ slug الصحيح المولود من الاسم
-  if (!product?.slug && product?.name) {
-    const correctSlug = generateSlug(t(product.name))
-    if (correctSlug && correctSlug !== slug) {
-      redirect(`/product/${id}/${correctSlug}`)
-    }
+    redirect(`/product/${id}/${encodeURIComponent(product.slug)}`)
   }
 
   const jsonLd = product
