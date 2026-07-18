@@ -45,7 +45,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   const image = product.images?.[0]
   const slug = generateSlug(t(product.name))
-  const url = slug ? `${SITE_URL}/product/${encodeURIComponent(slug)}/${id}` : `${SITE_URL}/product/${id}`
+  const url = slug ? `${SITE_URL}/product/${id}/${encodeURIComponent(slug)}` : `${SITE_URL}/product/${id}`
   const keywords: string[] | undefined = Array.isArray(product.keywords)
     ? product.keywords
     : typeof product.keywords === 'string' && product.keywords.trim() !== ''

@@ -66,7 +66,7 @@ export default function Header() {
     setSearchResults([])
     setShowSearchResults(false)
     const slug = generateSlug(t(name))
-    router.push(slug ? `/product/${slug}/${id}` : `/product/${id}`)
+    router.push(slug ? `/product/${id}/${slug}` : `/product/${id}`)
   }
 
   const handleSearchAll = () => {

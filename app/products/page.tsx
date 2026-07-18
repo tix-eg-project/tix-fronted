@@ -447,7 +447,7 @@ function ProductsContent() {
                   {products.map((product) => (
                     <Link
                       key={product.id}
-                      href={`/product/${generateSlug(t(product.name))}/${product.id}`}
+                      href={`/product/${product.id}/${generateSlug(t(product.name))}`}
                       className={`group bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-xl transition-all duration-300 relative flex flex-col h-full ${viewType === "list" ? "sm:flex-row sm:items-center gap-4 sm:gap-6" : ""}`}
                     >
                       <div className={`relative overflow-hidden bg-gray-50 flex-shrink-0 flex items-center justify-center ${viewType === "list" ? "w-48 h-48 sm:w-60 sm:h-60" : "w-full aspect-[4/5] lg:aspect-square"}`}>
