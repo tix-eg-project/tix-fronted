@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-
+import slugMap from '@/lib/product-slug-map.json'
 
 const protectedPaths = [
   '/account',
@@ -9,7 +9,7 @@ const protectedPaths = [
   '/wishlist',
 ]
 
-export async function middleware(request: NextRequest) {
+export function middleware(request: NextRequest) {
   const token = request.cookies.get('auth_token')?.value
   const { pathname } = request.nextUrl
 
@@ -28,17 +28,13 @@ export async function middleware(request: NextRequest) {
   const noSlugMatch = pathname.match(/^\/product\/(\d+)\/?$/)
   if (noSlugMatch) {
     const id = noSlugMatch[1]
-    try {
-      const res = await fetch(new URL(`/api/product-slug/${id}`, request.url), {
-        signal: AbortSignal.timeout(5000),
-      })
-      if (res.ok) {
-        const { slug } = await res.json()
-        if (slug) {
-          return NextResponse.redirect(new URL(`/product/${id}/${slug}`, request.url), { status: 301 })
-        }
-      }
-    } catch {}
+    const slug = (slugMap as Record<string, string>)[id]
+    if (slug) {
+      return NextResponse.redirect(
+        new URL(`/product/${id}/${slug}`, request.url),
+        { status: 301 }
+      )
+    }
   }
 
   return NextResponse.next()
