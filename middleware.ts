@@ -29,7 +29,22 @@ export async function middleware(request: NextRequest) {
   const noSlugMatch = pathname.match(/^\/product\/(\d+)\/?$/)
   if (noSlugMatch) {
     const id = noSlugMatch[1]
-    return NextResponse.redirect(new URL(`/product/${id}/test-middleware`, request.url), { status: 301 })
+    try {
+      const res = await fetch(`${API_URL}/api/products/${id}`, {
+        headers: { Accept: 'application/json', 'Accept-Language': 'ar' },
+        signal: AbortSignal.timeout(3000),
+      })
+      if (res.ok) {
+        const data = await res.json()
+        const slug = data?.data?.slug
+        if (slug) {
+          return NextResponse.redirect(
+            new URL(`/product/${id}/${slug}`, request.url),
+            { status: 301 }
+          )
+        }
+      }
+    } catch {}
   }
 
   return NextResponse.next()
