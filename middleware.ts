@@ -26,23 +26,10 @@ export async function middleware(request: NextRequest) {
   }
 
   // 301 redirect: /product/{id} → /product/{id}/{slug}
-  // Only fires for URLs without a slug (old Google-indexed URLs)
   const noSlugMatch = pathname.match(/^\/product\/(\d+)\/?$/)
   if (noSlugMatch) {
     const id = noSlugMatch[1]
-    try {
-      const res = await fetch(`${API_URL}/api/products/${id}`, {
-        headers: { Accept: 'application/json', 'Accept-Language': 'ar' },
-      })
-      if (res.ok) {
-        const data = await res.json()
-        const slug = data?.data?.slug
-        if (slug) {
-          const destination = new URL(`/product/${id}/${slug}`, request.url)
-          return NextResponse.redirect(destination, { status: 301 })
-        }
-      }
-    } catch {}
+    return NextResponse.redirect(new URL(`/product/${id}/test-middleware`, request.url), { status: 301 })
   }
 
   return NextResponse.next()
