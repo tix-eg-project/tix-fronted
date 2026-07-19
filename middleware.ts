@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://admin.tix-eg.com'
+const API_URL = 'https://admin.tix-eg.com'
 
 const protectedPaths = [
   '/account',
