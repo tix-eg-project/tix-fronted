@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
-const API_URL = 'https://admin.tix-eg.com'
 
 const protectedPaths = [
   '/account',
@@ -30,22 +29,16 @@ export async function middleware(request: NextRequest) {
   if (noSlugMatch) {
     const id = noSlugMatch[1]
     try {
-      const res = await fetch(`${API_URL}/api/products/${id}`, {
-        headers: { Accept: 'application/json', 'Accept-Language': 'ar' },
+      const res = await fetch(new URL(`/api/product-slug/${id}`, request.url), {
         signal: AbortSignal.timeout(5000),
       })
       if (res.ok) {
-        const data = await res.json()
-        const slug = data?.data?.slug
+        const { slug } = await res.json()
         if (slug) {
           return NextResponse.redirect(new URL(`/product/${id}/${slug}`, request.url), { status: 301 })
         }
-        return NextResponse.redirect(new URL(`/product/${id}/debug-no-slug`, request.url), { status: 301 })
       }
-      return NextResponse.redirect(new URL(`/product/${id}/debug-api-${res.status}`, request.url), { status: 301 })
-    } catch (e: any) {
-      return NextResponse.redirect(new URL(`/product/${id}/debug-catch-${e?.name ?? 'unknown'}`, request.url), { status: 301 })
-    }
+    } catch {}
   }
 
   return NextResponse.next()
