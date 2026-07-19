@@ -1,8 +1,8 @@
 import { MetadataRoute } from 'next'
-import { existsSync, readFileSync } from 'fs'
-import { join } from 'path'
+import slugMapJson from '@/lib/product-slug-map.json'
 
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://tix-eg.com'
+const slugMap = slugMapJson as Record<string, string>
 
 const staticPages: MetadataRoute.Sitemap = [
   { url: BASE_URL,                    lastModified: new Date(), changeFrequency: 'daily',   priority: 1.0 },
@@ -16,20 +16,12 @@ const staticPages: MetadataRoute.Sitemap = [
 ]
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  let productPages: MetadataRoute.Sitemap = []
-
-  try {
-    const mapPath = join(process.cwd(), 'lib', 'product-slug-map.json')
-    if (existsSync(mapPath)) {
-      const slugMap: Record<string, string> = JSON.parse(readFileSync(mapPath, 'utf-8'))
-      productPages = Object.entries(slugMap).map(([id, slug]) => ({
-        url: `${BASE_URL}/product/${slug}/${id}`,
-        lastModified: new Date(),
-        changeFrequency: 'weekly',
-        priority: 0.9,
-      }))
-    }
-  } catch {}
+  const productPages: MetadataRoute.Sitemap = Object.entries(slugMap).map(([id, slug]) => ({
+    url: `${BASE_URL}/product/${slug}/${id}`,
+    lastModified: new Date(),
+    changeFrequency: 'weekly',
+    priority: 0.9,
+  }))
 
   return [...staticPages, ...productPages]
 }
