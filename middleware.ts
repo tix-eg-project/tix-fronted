@@ -32,19 +32,20 @@ export async function middleware(request: NextRequest) {
     try {
       const res = await fetch(`${API_URL}/api/products/${id}`, {
         headers: { Accept: 'application/json', 'Accept-Language': 'ar' },
-        signal: AbortSignal.timeout(3000),
+        signal: AbortSignal.timeout(5000),
       })
       if (res.ok) {
         const data = await res.json()
         const slug = data?.data?.slug
         if (slug) {
-          return NextResponse.redirect(
-            new URL(`/product/${id}/${slug}`, request.url),
-            { status: 301 }
-          )
+          return NextResponse.redirect(new URL(`/product/${id}/${slug}`, request.url), { status: 301 })
         }
+        return NextResponse.redirect(new URL(`/product/${id}/debug-no-slug`, request.url), { status: 301 })
       }
-    } catch {}
+      return NextResponse.redirect(new URL(`/product/${id}/debug-api-${res.status}`, request.url), { status: 301 })
+    } catch (e: any) {
+      return NextResponse.redirect(new URL(`/product/${id}/debug-catch-${e?.name ?? 'unknown'}`, request.url), { status: 301 })
+    }
   }
 
   return NextResponse.next()
