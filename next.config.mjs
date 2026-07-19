@@ -27,11 +27,9 @@ const nextConfig = {
 
   async redirects() {
     return [
-      {
-        source: '/home',
-        destination: '/',
-        permanent: true,
-      },
+      { source: '/home', destination: '/', permanent: true },
+      // Convert trailing-slash 308 → 301 for product URLs
+      { source: '/product/:path*/', destination: '/product/:path*', statusCode: 301 },
     ]
   },
 

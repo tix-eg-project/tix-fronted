@@ -1,6 +1,15 @@
 const fs = require('fs')
 const path = require('path')
 
+function generateSlug(name) {
+  return (name || '').trim()
+    .replace(/\s+/g, '-')
+    .replace(/[^\w؀-ۿ-]/g, '')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+    .substring(0, 80)
+}
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://admin.tix-eg.com'
 
 async function generateSlugMap() {
@@ -25,7 +34,9 @@ async function generateSlugMap() {
         })
         if (!res.ok) return
         const data = await res.json()
-        const slug = data?.data?.slug
+        const p = data?.data
+        // prefer backend slug, fallback to Arabic name slug
+        const slug = p?.slug || generateSlug(p?.name?.ar || p?.name?.en || '')
         if (slug) slugMap[String(product.id)] = slug
       } catch {}
     })
