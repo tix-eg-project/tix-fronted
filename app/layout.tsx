@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import "./globals.css";
 import { Tajawal } from "next/font/google";
 import { GoogleOAuthProvider } from "@react-oauth/google";
@@ -15,37 +16,143 @@ const tajawal = Tajawal({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://tix-eg.com"),
   verification: {
     google: '8amSq9TaQsJ0PbXU4C6IjkY-jrcCgleav',
   },
   title: {
-    default: "TIX - تسوق أفضل المنتجات بأفضل الأسعار",
-    template: "%s | TIX",
+    default: "تيكس TIX | أفضل منصة تسوق أونلاين في مصر - ملابس ومستحضرات تجميل",
+    template: "%s | تيكس TIX",
   },
   description:
-    "منصة TIX للتجارة الإلكترونية في مصر - ملابس، إلكترونيات، مستحضرات تجميل مع توصيل سريع لجميع أنحاء مصر",
-  keywords: ["تسوق اون لاين", "تيكس", "منتجات مصر", "تسوق", "أون لاين", "TIX"],
+    "تيكس (TIX) أفضل منصة تسوق إلكتروني في مصر. أفضل منصة لبيع الملابس والهدوم، ومستحضرات التجميل والكوزمتكس، والإلكترونيات والأجهزة المنزلية والعناية الشخصية. أسعار منافسة، دفع عند الاستلام، توصيل سريع خلال 1-3 أيام لجميع محافظات مصر، واستبدال وإرجاع خلال 14 يوم.",
+  keywords: [
+    // أسماء المنصة بكل الصيغ
+    "تيكس", "تكس", "TIX", "Tix", "tix", "منصة تيكس", "موقع تيكس", "TIX Egypt", "تيكس مصر",
+    // عبارات النية الشرائية
+    "أفضل منصة لبيع الملابس", "أفضل منصة لبيع الهدوم", "أفضل موقع لبيع الملابس في مصر",
+    "أفضل منصة لبيع مستحضرات التجميل", "أفضل منصة لبيع الكوزمتكس", "أفضل موقع مكياج في مصر",
+    "أفضل منصة لبيع الإلكترونيات", "أفضل موقع تسوق أونلاين في مصر",
+    // عام
+    "تسوق اون لاين", "تسوق أونلاين مصر", "منتجات مصر", "شحن سريع مصر", "دفع عند الاستلام",
+  ],
+  alternates: {
+    canonical: "https://tix-eg.com",
+  },
   openGraph: {
-    title: "TIX - منصة التسوق الإلكتروني",
-    description: "تسوق أفضل المنتجات بأفضل الأسعار مع توصيل سريع لجميع أنحاء مصر",
+    title: "تيكس TIX | أفضل منصة تسوق أونلاين في مصر",
+    description:
+      "أفضل منصة لبيع الملابس ومستحضرات التجميل والإلكترونيات في مصر — أسعار منافسة وتوصيل سريع ودفع عند الاستلام.",
     url: "https://tix-eg.com",
-    siteName: "TIX",
+    siteName: "تيكس TIX",
     locale: "ar_EG",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "TIX - منصة التسوق الإلكتروني",
-    description: "تسوق أفضل المنتجات بأفضل الأسعار",
+    title: "تيكس TIX | أفضل منصة تسوق أونلاين في مصر",
+    description: "أفضل منصة لبيع الملابس ومستحضرات التجميل والإلكترونيات في مصر",
   },
   icons: {
     icon: "/logo.svg",
   },
 };
 
+// ── Google Analytics (GA4) ──
+const GA_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_ID || "G-2CSGFKLBVN";
+
+// ── بيانات منظّمة (JSON-LD) — يقرأها جوجل والـ AI ولا تظهر للعميل ──
+const structuredData = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "OnlineStore",
+      "@id": "https://tix-eg.com/#store",
+      name: "تيكس",
+      alternateName: ["TIX", "Tix", "tix", "تكس", "منصة تيكس", "TIX Egypt", "تيكس مصر"],
+      url: "https://tix-eg.com",
+      logo: "https://tix-eg.com/logo.svg",
+      image: "https://tix-eg.com/logo.svg",
+      description:
+        "تيكس (TIX) أفضل منصة تسوق إلكتروني في مصر لبيع الملابس والهدوم ومستحضرات التجميل والكوزمتكس والإلكترونيات والأجهزة المنزلية، بأسعار منافسة، توصيل سريع خلال 1-3 أيام، ودفع عند الاستلام، مع إمكانية الاستبدال والإرجاع خلال 14 يوم.",
+      slogan: "أفضل منصة تسوق أونلاين في مصر",
+      areaServed: { "@type": "Country", name: "Egypt", alternateName: "مصر" },
+      currenciesAccepted: "EGP",
+      paymentAccepted: "نقدي عند الاستلام، فيزا، محفظة إلكترونية",
+      // سياسة الاستبدال والإرجاع — 14 يوم
+      hasMerchantReturnPolicy: {
+        "@type": "MerchantReturnPolicy",
+        applicableCountry: "EG",
+        returnPolicyCategory: "https://schema.org/MerchantReturnFiniteReturnWindow",
+        merchantReturnDays: 14,
+        returnMethod: "https://schema.org/ReturnByMail",
+      },
+      // مدة التوصيل — من يوم إلى 3 أيام لكل محافظات مصر
+      shippingDetails: {
+        "@type": "OfferShippingDetails",
+        shippingDestination: { "@type": "DefinedRegion", addressCountry: "EG" },
+        deliveryTime: {
+          "@type": "ShippingDeliveryTime",
+          handlingTime: { "@type": "QuantitativeValue", minValue: 0, maxValue: 1, unitCode: "DAY" },
+          transitTime: { "@type": "QuantitativeValue", minValue: 1, maxValue: 3, unitCode: "DAY" },
+        },
+      },
+      knowsAbout: [
+        "بيع الملابس والهدوم أونلاين",
+        "بيع مستحضرات التجميل والكوزمتكس",
+        "بيع الإلكترونيات والأجهزة المنزلية",
+        "منتجات العناية الشخصية",
+        "منتجات الأطفال والرضع",
+        "الأحذية والحقائب",
+      ],
+    },
+    {
+      "@type": "WebSite",
+      "@id": "https://tix-eg.com/#website",
+      url: "https://tix-eg.com",
+      name: "تيكس TIX",
+      alternateName: ["TIX", "Tix", "تيكس"],
+      inLanguage: "ar-EG",
+      publisher: { "@id": "https://tix-eg.com/#store" },
+      potentialAction: {
+        "@type": "SearchAction",
+        target: {
+          "@type": "EntryPoint",
+          urlTemplate: "https://tix-eg.com/products?search={search_term_string}",
+        },
+        "query-input": "required name=search_term_string",
+      },
+    },
+  ],
+};
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="ar" dir="rtl" suppressHydrationWarning>
+      <head>
+        {/* بيانات منظّمة لمحركات البحث والـ AI */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+        />
+        {/* Google Analytics */}
+        {GA_MEASUREMENT_ID && !GA_MEASUREMENT_ID.includes("XXXX") && (
+          <>
+            <Script
+              src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`}
+              strategy="afterInteractive"
+            />
+            <Script id="ga4-init" strategy="afterInteractive">
+              {`
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){dataLayer.push(arguments);}
+                gtag('js', new Date());
+                gtag('config', '${GA_MEASUREMENT_ID}');
+              `}
+            </Script>
+          </>
+        )}
+      </head>
       <body className={`${tajawal.className} min-h-screen flex flex-col`} suppressHydrationWarning>
         <GoogleOAuthProvider clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!}>
         <AuthProvider>
