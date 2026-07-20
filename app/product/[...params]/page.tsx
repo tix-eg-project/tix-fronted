@@ -101,54 +101,5 @@ export default async function ProductPage({ params }: Props) {
     permanentRedirect(parsed.shouldRedirect)
   }
 
-  const product = await getProduct(parsed.id)
-
-  // /product/79 with no slug → middleware handles 301, this is fallback
-  // /product/wrong-slug/79 → redirect to correct slug
-  if (product?.slug && parsed.slug && parsed.slug !== product.slug) {
-    permanentRedirect(`/product/${product.slug}/${parsed.id}`)
-  }
-
-  const jsonLd = product ? {
-    '@context': 'https://schema.org',
-    '@type': 'Product',
-    name: t(product.name),
-    description: stripHtml(product.long_description || product.short_description || ''),
-    image: product.images ?? [],
-    sku: String(product.id),
-    brand: product.brand?.name ? { '@type': 'Brand', name: product.brand.name } : undefined,
-    offers: {
-      '@type': 'Offer',
-      url: `${SITE_URL}/product/${product.slug || parsed.slug || ''}/${parsed.id}`,
-      priceCurrency: 'EGP',
-      price: product.price_after ?? product.price_before,
-      availability: (product.quantity ?? 0) > 0
-        ? 'https://schema.org/InStock'
-        : 'https://schema.org/OutOfStock',
-    },
-    ...(product.avg_rating && product.reviews?.count ? {
-      aggregateRating: {
-        '@type': 'AggregateRating',
-        ratingValue: product.avg_rating,
-        reviewCount: product.reviews.count,
-      },
-    } : {}),
-  } : null
-
-  return (
-    <>
-      {jsonLd && (
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify(jsonLd)
-              .replace(/</g, '\\u003c')
-              .replace(/>/g, '\\u003e')
-              .replace(/&/g, '\\u0026'),
-          }}
-        />
-      )}
-      <ProductDetailClient productId={parsed.id} />
-    </>
-  )
+  return <ProductDetailClient productId={parsed.id} />
 }
