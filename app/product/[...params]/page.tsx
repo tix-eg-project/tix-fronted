@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { permanentRedirect, notFound } from 'next/navigation'
 import ProductDetailClient from '../[id]/ProductDetailClient'
 import { t } from '@/utils/helpers'
+import slugMapJson from '@/lib/product-slug-map.json'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://admin.tix-eg.com'
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://tix-eg.com'
@@ -46,6 +47,14 @@ function parseParams(parts: string[]): { id: string; slug: string | null; should
     if (/^\d+$/.test(a) && !/^\d+$/.test(b)) return { id: a, slug: b, shouldRedirect: `/product/${b}/${a}` } // id/slug → redirect
   }
   return null
+}
+
+export const revalidate = 3600
+
+export async function generateStaticParams() {
+  return Object.entries(slugMapJson as Record<string, string>).map(([id, slug]) => ({
+    params: [slug, id],
+  }))
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
