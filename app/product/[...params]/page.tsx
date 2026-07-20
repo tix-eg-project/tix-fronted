@@ -62,41 +62,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const parsed = parseParams(parts)
   if (!parsed) return { title: 'منتج - TIX' }
 
-  const product = await getProduct(parsed.id)
-  if (!product) return { title: 'منتج - TIX' }
-
-  const description = stripHtml(
-    product.long_description || product.short_description || product.name || ''
-  ).substring(0, 160)
-
-  const slug = product.slug || parsed.slug || ''
+  const slug = parsed.slug || ''
   const url = slug
-    ? `${SITE_URL}/product/${slug}/${parsed.id}`
+    ? `${SITE_URL}/product/${parsed.id}/${slug}`
     : `${SITE_URL}/product/${parsed.id}`
 
-  const keywords: string[] | undefined = Array.isArray(product.keywords)
-    ? product.keywords
-    : typeof product.keywords === 'string' && product.keywords.trim()
-      ? product.keywords.split(',').map((k: string) => k.trim()).filter(Boolean)
-      : undefined
-
   return {
-    title: t(product.name),
-    description,
-    keywords,
+    title: 'منتج | TIX',
     alternates: { canonical: url },
-    openGraph: {
-      type: 'website', url,
-      title: `${t(product.name)} | TIX`,
-      description,
-      images: product.images?.[0] ? [{ url: product.images[0], alt: t(product.name) }] : [],
-    },
-    twitter: {
-      card: 'summary_large_image',
-      title: `${t(product.name)} | TIX`,
-      description,
-      images: product.images?.[0] ? [product.images[0]] : [],
-    },
   }
 }
 
