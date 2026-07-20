@@ -40,3 +40,12 @@ export function t(value: any): string {
   }
   return String(value);
 }
+
+// Extracts a valid image URL from product data regardless of API format
+export function getProductImage(p: any, fallback = "/pl1.jpg"): string {
+  const raw = p?.images?.[0] ?? p?.image ?? null;
+  if (!raw) return fallback;
+  if (typeof raw === "string") return raw || fallback;
+  if (typeof raw === "object") return raw.url || raw.path || raw.src || fallback;
+  return fallback;
+}

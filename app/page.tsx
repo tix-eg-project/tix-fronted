@@ -8,6 +8,7 @@ import Features from "@/components/Features";
 import Link from "next/link";
 import type { CategoryNavItem } from "@/utils/Types/navigation";
 import type { ProductCardProps } from "@/utils/Types/products";
+import { getProductImage } from "@/utils/helpers";
 
 export const metadata: Metadata = {
   title: "TIX - تسوق أفضل المنتجات بأفضل الأسعار",
@@ -34,7 +35,7 @@ async function fetchCategoryProducts(
         name: p.name,
         price: p.price_after || p.price,
         originalPrice: p.price_before,
-        image: p.images?.[0] || "/pl1.jpg",
+        image: getProductImage(p),
         rating: p.reviews?.average_rating || 0,
         reviewsCount: p.reviews?.count || 0,
         discount: p.discount || 0,
