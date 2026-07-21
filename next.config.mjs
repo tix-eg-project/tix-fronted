@@ -1,6 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
+    // الصور تتحمّل مباشرة من السيرفر بدون معالجة على سيرفر Next.js
+    // (المعالجة كانت بتعمل 504 لأن جدار الحماية بيحجب طلبات السيرفر المتلاحقة)
+    unoptimized: true,
     remotePatterns: [
       { protocol: 'https', hostname: 'admin.tix-eg.com' },
       { protocol: 'https', hostname: 'api.tix-eg.com' },
@@ -27,9 +30,11 @@ const nextConfig = {
 
   async redirects() {
     return [
-      { source: '/home', destination: '/', permanent: true },
-      // Convert trailing-slash 308 → 301 for product URLs
-      { source: '/product/:path*/', destination: '/product/:path*', statusCode: 301 },
+      {
+        source: '/home',
+        destination: '/',
+        permanent: true,
+      },
     ]
   },
 
