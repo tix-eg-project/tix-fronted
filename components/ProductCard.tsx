@@ -59,7 +59,7 @@ export default function ProductCard({
   };
 
   return (
-    <Link href={`/product/${generateSlug(productName)}/${id}`} className="block h-full">
+    <Link href={`/product/${id}/${generateSlug(productName)}`} className="block h-full">
       <Card className={`overflow-hidden hover:shadow-lg transition-all cursor-pointer h-full border border-gray-200 py-0 gap-0 ${
         isFlashDeal ? "bg-white border-red-200" : ""
       }`}>

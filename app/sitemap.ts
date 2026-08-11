@@ -17,7 +17,7 @@ const staticPages: MetadataRoute.Sitemap = [
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const productPages: MetadataRoute.Sitemap = Object.entries(slugMap).map(([id, slug]) => ({
-    url: `${BASE_URL}/product/${slug}/${id}`,
+    url: `${BASE_URL}/product/${id}/${slug}`,
     lastModified: new Date(),
     changeFrequency: 'weekly',
     priority: 0.9,

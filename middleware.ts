@@ -31,7 +31,7 @@ export function middleware(request: NextRequest) {
     const slug = (slugMap as Record<string, string>)[id]
     if (slug) {
       return NextResponse.redirect(
-        new URL(`/product/${slug}/${id}`, request.url),
+        new URL(`/product/${id}/${slug}`, request.url),
         { status: 301 }
       )
     }
