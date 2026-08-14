@@ -3,7 +3,6 @@ import { permanentRedirect, notFound } from 'next/navigation'
 // Note: slug redirect is handled client-side in ProductDetailClient
 import ProductDetailClient from '../[id]/ProductDetailClient'
 import { t, generateSlug } from '@/utils/helpers'
-import slugMapJson from '@/lib/product-slug-map.json'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://admin.tix-eg.com'
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://tix-eg.com'
@@ -49,13 +48,7 @@ function parseParams(parts: string[]): { id: string; slug: string | null; should
   return null
 }
 
-export const revalidate = 3600
-
-export async function generateStaticParams() {
-  return Object.entries(slugMapJson as Record<string, string>).map(([id, slug]) => ({
-    params: [id, slug],
-  }))
-}
+export const dynamic = 'force-dynamic'
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { params: parts } = await params
