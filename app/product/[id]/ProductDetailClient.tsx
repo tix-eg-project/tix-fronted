@@ -120,6 +120,13 @@ export default function ProductDetailClient({ productId }: { productId: string }
           setSelectedGroup(p.groups[0]);
           setSelectedItem(p.groups[0].items?.[0] || null);
         }
+        // Redirect to correct slug if name changed
+        const correctSlug = generateSlug(t(p.name))
+        const currentPath = window.location.pathname
+        const expectedPath = `/product/${productId}/${correctSlug}`
+        if (correctSlug && !currentPath.endsWith(correctSlug)) {
+          window.history.replaceState(null, '', expectedPath)
+        }
         // Fetch related + complementary from API
         fetchRelated(p.category_id || p.category?.id);
       }

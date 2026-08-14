@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { permanentRedirect, notFound } from 'next/navigation'
+// Note: slug redirect is handled client-side in ProductDetailClient
 import ProductDetailClient from '../[id]/ProductDetailClient'
 import { t, generateSlug } from '@/utils/helpers'
 import slugMapJson from '@/lib/product-slug-map.json'
@@ -109,16 +110,6 @@ export default async function ProductPage({ params }: Props) {
   // /product/old-slug/79 → /product/79/new-slug
   if (parsed.shouldRedirect) {
     permanentRedirect(parsed.shouldRedirect)
-  }
-
-  const product = await getProduct(parsed.id)
-
-  // If slug in URL doesn't match name-based slug → redirect to correct URL
-  if (product && parsed.slug) {
-    const currentSlug = generateSlug(t(product.name))
-    if (currentSlug && parsed.slug !== currentSlug) {
-      permanentRedirect(`/product/${parsed.id}/${currentSlug}`)
-    }
   }
 
   return <ProductDetailClient productId={parsed.id} />
