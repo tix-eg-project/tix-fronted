@@ -35,8 +35,8 @@ async function generateSlugMap() {
         if (!res.ok) return
         const data = await res.json()
         const p = data?.data
-        // prefer backend slug, fallback to Arabic name slug
-        const slug = p?.slug || generateSlug(p?.name?.ar || p?.name?.en || '')
+        // always generate slug from name (not from slug field)
+        const slug = generateSlug(p?.name?.ar || p?.name?.en || '')
         if (slug) slugMap[String(product.id)] = slug
       } catch {}
     })

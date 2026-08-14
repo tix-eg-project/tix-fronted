@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { permanentRedirect, notFound } from 'next/navigation'
 import ProductDetailClient from '../[id]/ProductDetailClient'
-import { t } from '@/utils/helpers'
+import { t, generateSlug } from '@/utils/helpers'
 import slugMapJson from '@/lib/product-slug-map.json'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://admin.tix-eg.com'
@@ -70,7 +70,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     stripHtml(product.short_description || product.long_description || product.name || '')
   ).substring(0, 160)
 
-  const slug = product.slug || parsed.slug || ''
+  const slug = generateSlug(t(product.name)) || parsed.slug || ''
   const url = slug
     ? `${SITE_URL}/product/${parsed.id}/${slug}`
     : `${SITE_URL}/product/${parsed.id}`
@@ -113,9 +113,12 @@ export default async function ProductPage({ params }: Props) {
 
   const product = await getProduct(parsed.id)
 
-  // If slug in URL doesn't match current product slug → redirect to correct URL
-  if (product?.slug && parsed.slug && parsed.slug !== product.slug) {
-    permanentRedirect(`/product/${parsed.id}/${product.slug}`)
+  // If slug in URL doesn't match name-based slug → redirect to correct URL
+  if (product && parsed.slug) {
+    const currentSlug = generateSlug(t(product.name))
+    if (currentSlug && parsed.slug !== currentSlug) {
+      permanentRedirect(`/product/${parsed.id}/${currentSlug}`)
+    }
   }
 
   return <ProductDetailClient productId={parsed.id} />
