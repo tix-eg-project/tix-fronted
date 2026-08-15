@@ -21,7 +21,7 @@ async function getProduct(id: string) {
   try {
     const res = await fetch(`${API_URL}/api/products/${id}`, {
       headers: { 'Accept-Language': 'ar', Accept: 'application/json' },
-      cache: 'no-store',
+      next: { revalidate: 60 },
     })
     if (!res.ok) return null
     const data = await res.json()
