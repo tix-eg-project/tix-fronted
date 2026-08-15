@@ -24,6 +24,11 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/', request.url))
   }
 
+  // encode non-ASCII chars in slug for safe Location header (keeps hyphens as-is)
+  function encodeSlug(slug: string) {
+    return slug.replace(/[^\x00-\x7F-]/g, c => encodeURIComponent(c))
+  }
+
   // 301 redirect: /product/{id} → /product/{id}/{slug}
   const noSlugMatch = pathname.match(/^\/product\/(\d+)\/?$/)
   if (noSlugMatch) {
@@ -31,7 +36,7 @@ export function middleware(request: NextRequest) {
     const slug = (slugMap as Record<string, string>)[id]
     if (slug) {
       return NextResponse.redirect(
-        new URL(`/product/${id}/${slug}`, request.url),
+        new URL(`/product/${id}/${encodeSlug(slug)}`, request.url),
         { status: 301 }
       )
     }
@@ -43,9 +48,11 @@ export function middleware(request: NextRequest) {
   if (withSlugMatch) {
     const [, id, urlSlug] = withSlugMatch
     const correctSlug = (slugMap as Record<string, string>)[id]
-    if (correctSlug && urlSlug !== correctSlug) {
+    // compare decoded URL slug with slug map entry
+    const decodedUrlSlug = decodeURIComponent(urlSlug)
+    if (correctSlug && decodedUrlSlug !== correctSlug) {
       return NextResponse.redirect(
-        new URL(`/product/${id}/${correctSlug}`, request.url),
+        new URL(`/product/${id}/${encodeSlug(correctSlug)}`, request.url),
         { status: 301 }
       )
     }
