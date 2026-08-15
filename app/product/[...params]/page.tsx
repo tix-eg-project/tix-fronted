@@ -105,5 +105,17 @@ export default async function ProductPage({ params }: Props) {
     permanentRedirect(parsed.shouldRedirect)
   }
 
+  // Server-side slug redirect: if URL slug doesn't match current product name, redirect (301)
+  // fetch is memoized with generateMetadata's call — no extra HTTP request
+  if (parsed.slug !== null) {
+    const product = await getProduct(parsed.id)
+    if (product) {
+      const correctSlug = generateSlug(t(product.name))
+      if (correctSlug && parsed.slug !== correctSlug) {
+        permanentRedirect(`/product/${parsed.id}/${correctSlug}`)
+      }
+    }
+  }
+
   return <ProductDetailClient productId={parsed.id} />
 }
