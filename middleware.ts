@@ -37,6 +37,20 @@ export function middleware(request: NextRequest) {
     }
   }
 
+  // 301 redirect: /product/{id}/{old-slug} → /product/{id}/{new-slug}
+  // handles product name changes — slug map is regenerated on each build
+  const withSlugMatch = pathname.match(/^\/product\/(\d+)\/([^/]+)\/?$/)
+  if (withSlugMatch) {
+    const [, id, urlSlug] = withSlugMatch
+    const correctSlug = (slugMap as Record<string, string>)[id]
+    if (correctSlug && urlSlug !== correctSlug) {
+      return NextResponse.redirect(
+        new URL(`/product/${id}/${correctSlug}`, request.url),
+        { status: 301 }
+      )
+    }
+  }
+
   return NextResponse.next()
 }
 
