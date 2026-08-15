@@ -83,7 +83,7 @@ function LoginForm() {
         <div className="flex items-center justify-between text-sm">
           <label className="flex items-center gap-2 text-text-muted cursor-pointer">
             <input type="checkbox" className="w-4 h-4 rounded accent-dark" />
-            تذكرني
+            تذكرنيmrrkrklr
           </label>
           <Link href="/forgot-password" className="text-sm text-dark hover:underline">
             نسيت كلمة المرور؟
