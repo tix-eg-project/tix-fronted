@@ -26,21 +26,18 @@ async function generateSlugMap() {
 
   const slugMap = {}
 
-  await Promise.all(
-    products.map(async (product) => {
-      try {
-        const res = await fetch(`${API_URL}/api/products/${product.id}`, {
-          headers: { Accept: 'application/json', 'Accept-Language': 'ar' },
-        })
-        if (!res.ok) return
-        const data = await res.json()
-        const p = data?.data
-        // always generate slug from name (not from slug field)
-        const slug = generateSlug(p?.name?.ar || p?.name?.en || '')
-        if (slug) slugMap[String(product.id)] = slug
-      } catch {}
-    })
-  )
+  // extract name string from either plain string or {ar, en} object
+  function extractName(name) {
+    if (!name) return ''
+    if (typeof name === 'string') return name
+    return name.ar || name.en || ''
+  }
+
+  for (const product of products) {
+    const nameStr = extractName(product.name)
+    const slug = generateSlug(nameStr)
+    if (slug) slugMap[String(product.id)] = slug
+  }
 
   const outPath = path.join(__dirname, '../lib/product-slug-map.json')
   fs.mkdirSync(path.dirname(outPath), { recursive: true })
