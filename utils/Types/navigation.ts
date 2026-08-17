@@ -5,4 +5,5 @@ export interface CategoryNavItem {
   name: string;
   icon?: LucideIcon;
   slug?: string | number;
+  image?: string;
 }

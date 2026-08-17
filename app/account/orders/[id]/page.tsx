@@ -9,13 +9,13 @@ import Link from "next/link";
 import { toast } from "react-toastify";
 
 const STATUS_MAP: Record<string, { label: string; color: string }> = {
-  pending:    { label: "قيد المراجعة",  color: "bg-yellow-100 text-yellow-700" },
-  confirmed:  { label: "مؤكد",          color: "bg-emerald-100 text-emerald-700" },
-  processing: { label: "جاري التجهيز",  color: "bg-blue-100 text-blue-700" },
-  shipped:    { label: "تم الشحن",      color: "bg-indigo-100 text-indigo-700" },
+  pending:    { label: "قيد المراجعة",  color: "bg-gray-100 text-gray-700" },
+  confirmed:  { label: "مؤكد",          color: "bg-gray-100 text-gray-700" },
+  processing: { label: "جاري التجهيز",  color: "bg-gray-100 text-gray-700" },
+  shipped:    { label: "تم الشحن",      color: "bg-gray-100 text-gray-700" },
   delivered:  { label: "تم التوصيل",   color: "bg-green-100 text-green-700" },
   cancelled:  { label: "ملغي",          color: "bg-red-100 text-red-700" },
-  returned:   { label: "مُرتجع",        color: "bg-gray-100 text-gray-600" },
+  returned:   { label: "مُرتجع",        color: "bg-gray-100 text-gray-500" },
 };
 
 const RETURN_REASONS = [
@@ -68,7 +68,7 @@ function ReturnModal({ item, orderId, onClose, onSuccess }: ReturnModalProps) {
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
           <h3 className="font-bold text-base flex items-center gap-2">
-            <RotateCcw className="w-4 h-4 text-primary" />
+            <RotateCcw className="w-4 h-4 text-black" />
             طلب إرجاع منتج
           </h3>
           <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors">

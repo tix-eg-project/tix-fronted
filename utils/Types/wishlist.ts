@@ -4,6 +4,7 @@ export interface WishlistItem {
   price: number;
   originalPrice?: number;
   image: string;
+  images?: string[];
   discount?: number;
 }
 

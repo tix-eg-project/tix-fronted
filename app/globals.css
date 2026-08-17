@@ -142,7 +142,7 @@
     transform: translateY(-1px);
   }
   .btn-primary:active {
-    background-color: #d96f00;
+    background-color: #000000;
     transform: scale(0.98);
   }
   .btn-primary:disabled {

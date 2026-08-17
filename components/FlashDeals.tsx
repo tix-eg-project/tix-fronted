@@ -36,10 +36,33 @@ function useCountdown(seconds: number | null) {
   return time;
 }
 
+// بيرجّع كام كارت بيتشاف مرة واحدة حسب عرض الشاشة الحالي (نفس حدود الـ breakpoints بتاعة السلايدر)
+function useViewportSlides() {
+  const [slides, setSlides] = useState(2);
+
+  useEffect(() => {
+    function update() {
+      const w = window.innerWidth;
+      if (w >= 1280) setSlides(5);
+      else if (w >= 1024) setSlides(4);
+      else if (w >= 640) setSlides(3);
+      else if (w >= 480) setSlides(2.5);
+      else setSlides(2);
+    }
+    update();
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, []);
+
+  return slides;
+}
+
 export default function FlashDeals() {
   const [products, setProducts] = useState<ProductCardProps[]>([]);
   const [endSeconds, setEndSeconds] = useState<number | null>(null);
   const countdown = useCountdown(endSeconds);
+  const viewportSlides = useViewportSlides();
+  const fitsInRow = products.length <= Math.floor(viewportSlides);
 
   useEffect(() => {
     async function fetchFlash() {
@@ -56,6 +79,7 @@ export default function FlashDeals() {
               price: p.price_after ?? p.price,
               originalPrice: p.price_before,
               image: p.images?.[0] || p.image || "/pl1.jpg",
+              images: p.images,
               discount: p.discount || 0,
               rating: p.reviews?.average_rating || 0,
               reviewsCount: p.reviews?.count || 0,
@@ -80,9 +104,9 @@ export default function FlashDeals() {
   return (
     <section className="mx-3 sm:mx-5 md:mx-8 mt-3 sm:mt-4 rounded-xl sm:rounded-2xl overflow-hidden"
       style={{ background: "linear-gradient(135deg, #dc2626 0%, #b91c1c 50%, #991b1b 100%)" }}>
-      <div className="px-3 sm:px-5 md:px-6 py-4 sm:py-5 md:py-6">
+      <div className="px-3 sm:px-5 md:px-6 py-3 sm:py-4">
         {/* Header + Timer */}
-        <div className="flex items-center justify-between gap-2 mb-3 sm:mb-4">
+        <div className="flex items-center justify-between gap-2 mb-2 sm:mb-3">
           <div className="flex items-center gap-2 sm:gap-3">
             <div>
               <h2 className="text-base sm:text-lg md:text-xl font-bold text-white leading-tight flex items-center gap-1.5">
@@ -111,7 +135,17 @@ export default function FlashDeals() {
           )}
         </div>
 
-        {/* Products Swiper */}
+        {/* Products */}
+        {fitsInRow ? (
+          // عدد الكروت بيتشاف كامل من غير سلايدر → بتترص في النص بمقاس زي كروت أحدث المنتجات
+          <div className="flex flex-wrap justify-center gap-4 sm:gap-6">
+            {products.map((product) => (
+              <div key={product.id} className="w-[calc(50%-8px)] sm:w-[calc(50%-12px)] md:w-[calc(33.333%-16px)] lg:w-[calc(25%-18px)] xl:w-[calc(20%-19px)] max-w-[220px]">
+                <ProductCard {...product} isFlashDeal={true} />
+              </div>
+            ))}
+          </div>
+        ) : (
         <div className="relative">
           <Swiper
             key="ar"
@@ -150,6 +184,7 @@ export default function FlashDeals() {
             <ChevronLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
           </button>
         </div>
+        )}
       </div>
     </section>
   );

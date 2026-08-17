@@ -7,13 +7,13 @@ import { formatCurrency } from "@/utils/helpers";
 import { Package, ChevronLeft, Loader2, ShoppingBag } from "lucide-react";
 
 const STATUS_MAP: Record<string, { label: string; color: string }> = {
-  pending:    { label: "قيد المراجعة",  color: "bg-yellow-100 text-yellow-700" },
-  confirmed:  { label: "مؤكد",          color: "bg-emerald-100 text-emerald-700" },
-  processing: { label: "جاري التجهيز",  color: "bg-blue-100 text-blue-700" },
-  shipped:    { label: "تم الشحن",      color: "bg-indigo-100 text-indigo-700" },
+  pending:    { label: "قيد المراجعة",  color: "bg-gray-100 text-gray-700" },
+  confirmed:  { label: "مؤكد",          color: "bg-gray-100 text-gray-700" },
+  processing: { label: "جاري التجهيز",  color: "bg-gray-100 text-gray-700" },
+  shipped:    { label: "تم الشحن",      color: "bg-gray-100 text-gray-700" },
   delivered:  { label: "تم التوصيل",   color: "bg-green-100 text-green-700" },
   cancelled:  { label: "ملغي",          color: "bg-red-100 text-red-700" },
-  returned:   { label: "مُرتجع",        color: "bg-gray-100 text-gray-600" },
+  returned:   { label: "مُرتجع",        color: "bg-gray-100 text-gray-500" },
 };
 
 function StatusBadge({ status }: { status: string }) {
@@ -51,7 +51,7 @@ export default function OrdersPage() {
   if (authState.isLoading || loading) {
     return (
       <div className="card p-6 flex justify-center py-20">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <Loader2 className="w-8 h-8 animate-spin text-black" />
       </div>
     );
   }
@@ -111,10 +111,10 @@ export default function OrdersPage() {
 
               {/* Total + arrow */}
               <div className="shrink-0 flex items-center gap-1.5">
-                <span className="font-bold text-primary text-sm whitespace-nowrap">
+                <span className="font-bold text-black text-sm whitespace-nowrap">
                   {formatCurrency(order.total || 0)}
                 </span>
-                <ChevronLeft className="w-4 h-4 text-text-faint group-hover:text-primary transition-colors" />
+                <ChevronLeft className="w-4 h-4 text-text-faint group-hover:text-black transition-colors" />
               </div>
             </Link>
           );

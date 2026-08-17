@@ -2,29 +2,28 @@
 import { useState, useEffect } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import Image from "next/image";
 import { Search } from "lucide-react";
 import api from "@/lib/api";
 import ProductCard from "@/components/ProductCard";
-import { t } from "@/utils/helpers";
 
-export default function SubcategoryPage() {
+export default function SubsubcategoryPage() {
   const params = useParams();
   const searchParams = useSearchParams();
-  const subcategoryId = params.id as string;
-  const subcategoryName = decodeURIComponent(searchParams.get("name") || "");
+  const subsubcategoryId = params.id as string;
+  const subsubcategoryName = decodeURIComponent(searchParams.get("name") || "");
+  const subcategoryId = searchParams.get("subcategory") || "";
+  const subcategoryName = decodeURIComponent(searchParams.get("subcategoryName") || "");
   const categoryId = searchParams.get("category") || "";
   const categoryName = decodeURIComponent(searchParams.get("categoryName") || "");
 
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [subsubcategories, setSubsubcategories] = useState<any[]>([]);
 
   useEffect(() => {
     const fetch = async () => {
       try {
         setLoading(true);
-        const res = await api.get(`/products?subcategory_id=${subcategoryId}&limit=40`);
+        const res = await api.get(`/products?subsubcategory_id=${subsubcategoryId}&limit=40`);
         if (res.data.status) {
           const data = Array.isArray(res.data.data) ? res.data.data : res.data.data?.data || [];
           setProducts(data.map((p: any) => ({
@@ -43,20 +42,9 @@ export default function SubcategoryPage() {
       finally { setLoading(false); }
     };
     fetch();
-  }, [subcategoryId]);
+  }, [subsubcategoryId]);
 
-  useEffect(() => {
-    api.get(`/subcategory/${subcategoryId}/subsubcategories`)
-      .then((res) => {
-        if (res.data.status) {
-          const raw = res.data.data;
-          setSubsubcategories(Array.isArray(raw) ? raw : raw?.data || []);
-        }
-      })
-      .catch(() => {});
-  }, [subcategoryId]);
-
-  const displayName = subcategoryName || "الفئة الفرعية";
+  const displayName = subsubcategoryName || "الفرع";
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
@@ -72,6 +60,17 @@ export default function SubcategoryPage() {
             <span>/</span>
           </>
         )}
+        {subcategoryName && subcategoryId && (
+          <>
+            <Link
+              href={`/subcategory/${subcategoryId}?name=${encodeURIComponent(subcategoryName)}&category=${categoryId}&categoryName=${encodeURIComponent(categoryName)}`}
+              className="hover:text-text transition-colors"
+            >
+              {subcategoryName}
+            </Link>
+            <span>/</span>
+          </>
+        )}
         <span className="text-text">{displayName}</span>
       </nav>
 
@@ -82,33 +81,6 @@ export default function SubcategoryPage() {
           <p className="text-text-muted text-sm mt-1">{products.length} منتج</p>
         )}
       </div>
-
-      {/* Sub-subcategories */}
-      {subsubcategories.length > 0 && (
-        <div className="mb-8">
-          <h2 className="text-lg font-bold mb-3">تصفح حسب الفرع</h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4">
-            {subsubcategories.map((sub) => (
-              <Link
-                key={sub.id}
-                href={`/subsubcategory/${sub.id}?name=${encodeURIComponent(t(sub.name))}&subcategory=${subcategoryId}&subcategoryName=${encodeURIComponent(displayName)}&category=${categoryId}&categoryName=${encodeURIComponent(categoryName)}`}
-                className="card p-3 flex flex-col items-center gap-2 text-center hover:shadow-md transition-shadow"
-              >
-                <div className="relative w-20 h-20 sm:w-28 sm:h-28 rounded-t-2xl overflow-hidden bg-gray-50">
-                  <Image
-                    src={sub.image || "/pl1.jpg"}
-                    alt={t(sub.name)}
-                    fill
-                    className="object-cover"
-                    sizes="112px"
-                  />
-                </div>
-                <span className="text-sm font-medium line-clamp-2">{t(sub.name)}</span>
-              </Link>
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* Products */}
       {loading ? (
@@ -124,7 +96,7 @@ export default function SubcategoryPage() {
       ) : (
         <div className="text-center py-20 text-text-muted">
           <Search className="w-12 h-12 mx-auto mb-3 opacity-30" />
-          <p className="text-lg">لا توجد منتجات في هذه الفئة حالياً</p>
+          <p className="text-lg">لا توجد منتجات في هذا الفرع حالياً</p>
         </div>
       )}
     </div>

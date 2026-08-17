@@ -33,6 +33,7 @@ export default function BrandPage() {
             price: item.price_after ?? item.price,
             originalPrice: item.price_before,
             image: item.images?.[0] || "/pl1.jpg",
+            images: item.images,
             discount: item.discount || 0,
             rating: item.avg_rating || 0,
             reviewsCount: item.reviews_count || 0,

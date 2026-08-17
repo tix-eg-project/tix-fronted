@@ -38,6 +38,7 @@ export default function OfferProductsPage() {
               price: p.price_after ?? p.price,
               originalPrice: p.price_before,
               image: p.images?.[0] || p.image || "/pl1.jpg",
+              images: p.images,
               discount: p.discount || 0,
               rating: p.avg_rating || p.reviews?.average_rating || 0,
               reviewsCount: p.reviews?.count || 0,

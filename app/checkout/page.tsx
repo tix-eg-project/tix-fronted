@@ -203,7 +203,7 @@ export default function CheckoutPage() {
   if (authState.isLoading) {
     return (
       <div className="max-w-5xl mx-auto px-4 py-12 flex justify-center">
-        <div className="animate-spin w-8 h-8 border-3 border-primary border-t-transparent rounded-full" />
+        <div className="animate-spin w-8 h-8 border-3 border-black border-t-transparent rounded-full" />
       </div>
     );
   }
@@ -238,7 +238,7 @@ export default function CheckoutPage() {
             {/* Shipping */}
             <div className="card p-5">
               <h3 className="font-bold flex items-center gap-2 mb-4">
-                <MapPin className="w-5 h-5 text-primary" />
+                <MapPin className="w-5 h-5 text-black" />
                 معلومات الشحن
               </h3>
 
@@ -256,12 +256,12 @@ export default function CheckoutPage() {
                           onClick={() => handleSelectAddress(addr)}
                           className={`w-full text-right p-3.5 rounded-xl border-2 transition-all flex items-start gap-3 ${
                             isSelected
-                              ? "border-primary bg-primary-light/40"
+                              ? "border-black bg-black/5"
                               : "border-border hover:border-text-faint"
                           }`}
                         >
                           <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${
-                            isSelected ? "bg-primary text-white" : "bg-surface-2 text-text-muted"
+                            isSelected ? "bg-black text-white" : "bg-surface-2 text-text-muted"
                           }`}>
                             {addr.label === "العمل" ? <Briefcase className="w-3.5 h-3.5" /> : <Home className="w-3.5 h-3.5" />}
                           </div>
@@ -269,8 +269,8 @@ export default function CheckoutPage() {
                             <div className="flex items-center gap-1.5 mb-0.5">
                               <span className="text-sm font-semibold">{addr.label}</span>
                               {addr.is_default && (
-                                <span className="inline-flex items-center gap-0.5 text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded-full">
-                                  <Star className="w-2.5 h-2.5 fill-primary" />
+                                <span className="inline-flex items-center gap-0.5 text-[10px] bg-black/10 text-black px-1.5 py-0.5 rounded-full">
+                                  <Star className="w-2.5 h-2.5 fill-black" />
                                   افتراضي
                                 </span>
                               )}
@@ -281,7 +281,7 @@ export default function CheckoutPage() {
                             </p>
                             <p className="text-xs text-text-faint mt-0.5">{addr.name} · {addr.phone}</p>
                           </div>
-                          {isSelected && <CheckCircle className="w-4 h-4 text-primary shrink-0 mt-1" />}
+                          {isSelected && <CheckCircle className="w-4 h-4 text-black shrink-0 mt-1" />}
                         </button>
                       );
                     })}
@@ -293,8 +293,8 @@ export default function CheckoutPage() {
                     onClick={handleShowNewForm}
                     className={`w-full mt-2 p-3 rounded-xl border-2 border-dashed text-sm font-medium transition-all flex items-center justify-center gap-2 ${
                       showNewForm
-                        ? "border-primary text-primary bg-primary-light/30"
-                        : "border-border text-text-muted hover:border-primary hover:text-primary"
+                        ? "border-black text-black bg-black/5"
+                        : "border-border text-text-muted hover:border-black hover:text-black"
                     }`}
                   >
                     <Plus className="w-4 h-4" />
@@ -320,7 +320,7 @@ export default function CheckoutPage() {
             {/* Payment */}
             <div className="card p-5">
               <h3 className="font-bold flex items-center gap-2 mb-4">
-                <CreditCard className="w-5 h-5 text-primary" />
+                <CreditCard className="w-5 h-5 text-black" />
                 طريقة الدفع
               </h3>
               <div className="space-y-2.5">
@@ -329,7 +329,7 @@ export default function CheckoutPage() {
                     key={method.id}
                     className={`flex items-center gap-3 p-3.5 border rounded-xl cursor-pointer transition-all ${
                       paymentMethod === method.id
-                        ? "border-primary bg-primary-light"
+                        ? "border-black bg-black/5"
                         : "border-border hover:border-text-faint"
                     }`}
                   >
@@ -339,7 +339,7 @@ export default function CheckoutPage() {
                       value={method.id}
                       checked={paymentMethod === method.id}
                       onChange={() => setPaymentMethod(method.id)}
-                      className="w-4 h-4 text-primary accent-primary"
+                      className="w-4 h-4 text-black accent-black"
                     />
                     <div>
                       <p className="text-sm font-medium">{method.name}</p>
@@ -366,7 +366,7 @@ export default function CheckoutPage() {
         <div className="lg:col-span-1">
           <div className="card p-5 sticky top-24">
             <h3 className="font-bold flex items-center gap-2 mb-4">
-              <ShoppingBag className="w-5 h-5 text-primary" />
+              <ShoppingBag className="w-5 h-5 text-black" />
               ملخص الطلب
             </h3>
 
@@ -394,13 +394,13 @@ export default function CheckoutPage() {
                 )}
                 <div className="flex justify-between font-bold text-base pt-3 border-t border-divider">
                   <span>الإجمالي</span>
-                  <span className="text-primary">{formatCurrency(summary.total)}</span>
+                  <span className="text-black">{formatCurrency(summary.total)}</span>
                 </div>
               </div>
             )}
 
             <div className="flex items-center gap-2 text-text-muted text-xs mt-4 p-3 bg-surface-2 rounded-xl">
-              <Truck className="w-4 h-4 text-primary flex-shrink-0" />
+              <Truck className="w-4 h-4 text-black flex-shrink-0" />
               <span>التوصيل خلال 2-3 أيام عمل</span>
             </div>
           </div>

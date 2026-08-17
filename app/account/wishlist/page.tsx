@@ -54,6 +54,7 @@ export default function WishlistPage() {
             price={item.price}
             originalPrice={item.originalPrice}
             image={item.image}
+            images={item.images}
             discount={item.discount}
           />
         ))}

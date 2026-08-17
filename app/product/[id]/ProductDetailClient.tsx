@@ -2,11 +2,6 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Swiper, SwiperSlide } from "swiper/react";
-import { Navigation, Pagination } from "swiper/modules";
-import "swiper/css";
-import "swiper/css/navigation";
-import "swiper/css/pagination";
 import {
   ShoppingCart,
   Heart,
@@ -99,6 +94,16 @@ export default function ProductDetailClient({ productId }: { productId: string }
   const [relatedProducts, setRelatedProducts] = useState<any[]>([]);
   const [complementaryProducts, setComplementaryProducts] = useState<any[]>([]);
   const [selectedBoughtTogether, setSelectedBoughtTogether] = useState<string[]>([]);
+  const [isImageZooming, setIsImageZooming] = useState(false);
+  const [zoomPosition, setZoomPosition] = useState({ x: 50, y: 50 });
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
+
+  const handleImageMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width) * 100;
+    const y = ((e.clientY - rect.top) / rect.height) * 100;
+    setZoomPosition({ x, y });
+  };
 
   const { addToCart } = useCart();
   const { state: authState } = useAuth();
@@ -116,6 +121,7 @@ export default function ProductDetailClient({ productId }: { productId: string }
       if (response.data.status) {
         const p = response.data.data;
         setProduct(p);
+        setActiveImageIndex(0);
         if (p.groups?.length > 0) {
           setSelectedGroup(p.groups[0]);
           setSelectedItem(p.groups[0].items?.[0] || null);
@@ -386,32 +392,71 @@ export default function ProductDetailClient({ productId }: { productId: string }
         </span>
       </nav>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-start">
         {/* ═══ Column 1: Images ═══ */}
-        <div className="rounded-2xl overflow-hidden" style={{ backgroundColor: "#F5F5F5" }}>
-          <Swiper
-            modules={[Navigation, Pagination]}
-            spaceBetween={0}
-            slidesPerView={1}
-            navigation
-            pagination={{ clickable: true }}
-            className="product-swiper aspect-square"
-          >
-            {images.map((img: string, index: number) => (
-              <SwiperSlide key={index}>
-                <div className="relative w-full h-full">
+        <div className="flex gap-2 sm:gap-3">
+          {/* Thumbnails rail — على يمين الصورة الرئيسية (أول عنصر داخل flex في صفحة RTL بيظهر على اليمين) */}
+          {images.length > 1 && (
+            <div className="flex flex-col gap-2 w-14 sm:w-16 flex-shrink-0 max-h-[420px] sm:max-h-[520px] overflow-y-auto scrollbar-hide">
+              {images.map((img: string, index: number) => (
+                <button
+                  key={index}
+                  onClick={() => setActiveImageIndex(index)}
+                  className={`relative aspect-square rounded-lg overflow-hidden flex-shrink-0 border-2 transition-colors ${
+                    index === activeImageIndex ? "border-black" : "border-gray-200 hover:border-gray-400"
+                  }`}
+                  style={{ backgroundColor: "#F5F5F5" }}
+                  aria-label={`صورة ${index + 1}`}
+                >
                   <Image
                     src={typeof img === "string" ? img : "/pl1.jpg"}
                     alt={`${t(product.name)} ${index + 1}`}
                     fill
-                    className="object-contain p-4"
-                    sizes="(max-width: 1024px) 100vw, 50vw"
-                    priority={index === 0}
+                    className="object-contain"
+                    sizes="64px"
                   />
-                </div>
-              </SwiperSlide>
-            ))}
-          </Swiper>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* الصورة الرئيسية */}
+          <div className="relative flex-1 rounded-2xl overflow-hidden aspect-square" style={{ backgroundColor: "#F5F5F5" }}>
+            <div
+              className="relative w-full h-full overflow-hidden"
+              onMouseEnter={() => setIsImageZooming(true)}
+              onMouseLeave={() => setIsImageZooming(false)}
+              onMouseMove={handleImageMouseMove}
+            >
+              <Image
+                src={typeof images[activeImageIndex] === "string" ? images[activeImageIndex] : "/pl1.jpg"}
+                alt=""
+                aria-hidden="true"
+                fill
+                className="object-cover scale-125 blur-lg opacity-25"
+                sizes="(max-width: 1024px) 100vw, 50vw"
+              />
+              <Image
+                src={typeof images[activeImageIndex] === "string" ? images[activeImageIndex] : "/pl1.jpg"}
+                alt={`${t(product.name)} ${activeImageIndex + 1}`}
+                fill
+                className="object-contain"
+                sizes="(max-width: 1024px) 100vw, 50vw"
+                priority={activeImageIndex === 0}
+              />
+              {isImageZooming && (
+                <div
+                  className="absolute inset-0 z-20 hidden lg:block pointer-events-none"
+                  style={{
+                    backgroundImage: `url(${typeof images[activeImageIndex] === "string" ? images[activeImageIndex] : "/pl1.jpg"})`,
+                    backgroundRepeat: "no-repeat",
+                    backgroundSize: "200%",
+                    backgroundPosition: `${zoomPosition.x}% ${zoomPosition.y}%`,
+                  }}
+                />
+              )}
+            </div>
+          </div>
         </div>
 
         {/* ═══ Column 2: Product Details ═══ */}
@@ -440,12 +485,12 @@ export default function ProductDetailClient({ productId }: { productId: string }
             <StarRating value={avgRating} />
             <span style={{ fontSize: 14, color: "#666" }}>
               {avgRating > 0 ? `${avgRating.toFixed(1)} · ` : ""}
-              {(reviewCount ?? 0).toLocaleString()} تقييم
+              {(reviewCount ?? 0).toLocaleString("en-US")} تقييم
             </span>
           </div>
 
           {/* Price */}
-          <div className="text-3xl font-bold text-black mt-4">
+          <div className={`text-3xl font-bold mt-4 ${discountPct > 0 ? "text-red-600" : "text-black"}`}>
             {(currentPrice ?? 0).toLocaleString("en-US")} EGP
           </div>
 
@@ -654,31 +699,10 @@ export default function ProductDetailClient({ productId }: { productId: string }
               ))}
             </div>
           )}
+        </div>
+      </div>
 
-          {/* ── Attributes / Specifications ── */}
-          {Array.isArray(product.attributes) && product.attributes.length > 0 && (
-            <div className="mt-6">
-              <Accordion title="المواصفات">
-                <div className="divide-y divide-gray-200 border border-gray-200 rounded-xl overflow-hidden bg-white">
-                  {product.attributes.map((attr: { name: string; value: string }, idx: number) => (
-                    <div
-                      key={idx}
-                      className={`flex items-center text-sm ${idx % 2 === 0 ? "bg-white" : "bg-gray-50"}`}
-                    >
-                      <span className="w-1/2 px-4 py-2.5 font-medium text-gray-700 border-l border-gray-200">
-                        {attr.name}
-                      </span>
-                      <span className="w-1/2 px-4 py-2.5 text-gray-600">
-                        {attr.value}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </Accordion>
-            </div>
-          )}
-
-          {/* ── Video ── */}
+      {/* ── Video: full width, below image + buy box ── */}
           {product.video && (
             <div className="mt-8">
               <h3 className="text-base font-bold mb-3">فيديو المنتج</h3>
@@ -693,37 +717,60 @@ export default function ProductDetailClient({ productId }: { productId: string }
             </div>
           )}
 
-          {/* ── Accordions ── */}
-          <div className="mt-6 border-t border-gray-100">
-            {/* Description */}
-            {product.long_description && (
-              <Accordion
-                title={
-                  <div className="flex items-center justify-between w-full">
-                    <span>الوصف</span>
-                    {hasMultiLang(product.long_description) && (
-                      <button
-                        onClick={(e) => { e.stopPropagation(); setDescLang(l => l === 'ar' ? 'en' : 'ar'); }}
-                        className="flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full border border-gray-200 hover:border-gray-400 text-gray-500 hover:text-black transition-colors mr-4"
+          {/* ── Accordions: 2 columns on wide screens ── */}
+          <div className="mt-6 border-t border-gray-100 grid grid-cols-1 lg:grid-cols-2 lg:gap-x-8 lg:divide-x lg:divide-x-reverse lg:divide-gray-100">
+            {/* Column A: Specs + Description */}
+            <div>
+              {Array.isArray(product.attributes) && product.attributes.length > 0 && (
+                <Accordion title="المواصفات">
+                  <div className="divide-y divide-gray-200 border border-gray-200 rounded-xl overflow-hidden bg-white">
+                    {product.attributes.map((attr: { name: string; value: string }, idx: number) => (
+                      <div
+                        key={idx}
+                        className={`flex items-center text-sm ${idx % 2 === 0 ? "bg-white" : "bg-gray-50"}`}
                       >
-                        <Languages className="w-3.5 h-3.5" />
-                        {descLang === 'ar' ? 'EN' : 'عربي'}
-                      </button>
-                    )}
+                        <span className="w-1/2 px-4 py-2.5 font-medium text-gray-700 border-l border-gray-200">
+                          {attr.name}
+                        </span>
+                        <span className="w-1/2 px-4 py-2.5 text-gray-600">
+                          {attr.value}
+                        </span>
+                      </div>
+                    ))}
                   </div>
-                }
-                defaultOpen
-              >
-                <div
-                  className="leading-relaxed prose prose-sm max-w-none text-gray-700 [&_p]:mb-3 [&_br]:block [&_ul]:list-disc [&_ul]:pr-5 [&_ol]:list-decimal [&_ol]:pr-5"
-                  dir={descLang === 'en' ? 'ltr' : 'rtl'}
-                  style={{ textAlign: descLang === 'en' ? 'left' : 'right' }}
-                  dangerouslySetInnerHTML={{ __html: tLang(product.long_description, descLang) }}
-                />
-              </Accordion>
-            )}
+                </Accordion>
+              )}
 
-            {/* Reviews */}
+              {product.long_description && (
+                <Accordion
+                  title={
+                    <div className="flex items-center justify-between w-full">
+                      <span>الوصف</span>
+                      {hasMultiLang(product.long_description) && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setDescLang(l => l === 'ar' ? 'en' : 'ar'); }}
+                          className="flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full border border-gray-200 hover:border-gray-400 text-gray-500 hover:text-black transition-colors mr-4"
+                        >
+                          <Languages className="w-3.5 h-3.5" />
+                          {descLang === 'ar' ? 'EN' : 'عربي'}
+                        </button>
+                      )}
+                    </div>
+                  }
+                  defaultOpen
+                >
+                  <div
+                    className="leading-relaxed prose prose-sm max-w-none text-gray-700 [&_p]:mb-3 [&_br]:block [&_ul]:list-disc [&_ul]:pr-5 [&_ol]:list-decimal [&_ol]:pr-5"
+                    dir={descLang === 'en' ? 'ltr' : 'rtl'}
+                    style={{ textAlign: descLang === 'en' ? 'left' : 'right' }}
+                    dangerouslySetInnerHTML={{ __html: tLang(product.long_description, descLang) }}
+                  />
+                </Accordion>
+              )}
+            </div>
+
+            {/* Column B: Reviews + FAQ */}
+            <div className="lg:pr-8">
             <Accordion title={`التقييمات ${reviewCount > 0 ? `(${reviewCount})` : ""}`} defaultOpen={reviewCount > 0}>
               {/* Rating Summary */}
               {reviewCount > 0 && (
@@ -874,9 +921,8 @@ export default function ProductDetailClient({ productId }: { productId: string }
                 </div>
               </Accordion>
             )}
+            </div>
           </div>
-        </div>
-      </div>
 
       {/* Frequently Bought Together Section - Larger Cards */}
       {complementaryProducts.length > 0 && (
@@ -893,11 +939,12 @@ export default function ProductDetailClient({ productId }: { productId: string }
                   onChange={() => toggleBoughtTogether(String(product.id))}
                   className="absolute top-2 right-2 z-10 w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer shadow-sm"
                 />
-                <Image src={images[0]} alt="" fill className="object-contain p-1" />
+                <Image src={images[0]} alt="" aria-hidden="true" fill className="object-cover scale-125 blur-lg opacity-25" />
+                <Image src={images[0]} alt="" fill className="object-contain" />
               </div>
               <div className="text-center w-full">
                 <p className="text-[11px] font-bold text-gray-900 leading-tight line-clamp-2 mb-1 h-7">{t(product.name)}</p>
-                <p className="text-xs font-black text-gray-900">{formatCurrency(currentPrice)}</p>
+                <p className={`text-xs font-black ${discountPct > 0 ? "text-red-600" : "text-gray-900"}`}>{formatCurrency(currentPrice)}</p>
               </div>
             </div>
 
@@ -914,11 +961,12 @@ export default function ProductDetailClient({ productId }: { productId: string }
                       onChange={() => toggleBoughtTogether(String(prod.id))}
                       className="absolute top-2 right-2 z-10 w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer shadow-sm"
                     />
-                    <Image src={prod.image} alt="" fill className="object-contain p-1" />
+                    <Image src={prod.image} alt="" aria-hidden="true" fill className="object-cover scale-125 blur-lg opacity-25" />
+                    <Image src={prod.image} alt="" fill className="object-contain" />
                   </div>
                   <div className="text-center w-full">
                     <p className="text-[11px] font-bold text-gray-900 leading-tight line-clamp-2 mb-1 h-7">{t(prod.name)}</p>
-                    <p className="text-xs font-black text-gray-900">{formatCurrency(prod.price)}</p>
+                    <p className={`text-xs font-black ${(prod.discount ?? 0) > 0 ? "text-red-600" : "text-gray-900"}`}>{formatCurrency(prod.price)}</p>
                   </div>
                 </div>
               </div>
@@ -970,8 +1018,8 @@ export default function ProductDetailClient({ productId }: { productId: string }
                   <span className="text-xs text-gray-400 mr-1">({prod.reviewsCount || 0})</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-bold">
-                    {(prod.price || 0).toLocaleString("ar-EG")} ج.م
+                  <span className={`text-sm font-bold ${(prod.discount ?? 0) > 0 ? "text-red-600" : "text-black"}`}>
+                    {formatCurrency(prod.price || 0)}
                   </span>
                   <span
                     className="w-7 h-7 bg-black text-white rounded-full flex items-center justify-center text-lg leading-none hover:bg-gray-800 transition-colors"
@@ -1007,32 +1055,6 @@ export default function ProductDetailClient({ productId }: { productId: string }
           </div>
         </section>
       )}
-
-      {/* Swiper custom styles */}
-      <style jsx global>{`
-        .product-swiper .swiper-button-next,
-        .product-swiper .swiper-button-prev {
-          color: #212121;
-          background: rgba(255, 255, 255, 0.9);
-          width: 40px;
-          height: 40px;
-          border-radius: 12px;
-          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        }
-        .product-swiper .swiper-button-next::after,
-        .product-swiper .swiper-button-prev::after {
-          font-size: 16px;
-          font-weight: bold;
-        }
-        .product-swiper .swiper-pagination-bullet {
-          background: #999;
-          opacity: 0.5;
-        }
-        .product-swiper .swiper-pagination-bullet-active {
-          background: #ff8c00;
-          opacity: 1;
-        }
-      `}</style>
     </div>
   );
 }

@@ -4,6 +4,7 @@ export interface ProductCardProps {
   price: number;
   originalPrice?: number;
   image: string;
+  images?: string[];
   rating?: number;
   reviewsCount?: number;
   discount?: number;

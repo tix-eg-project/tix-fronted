@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { useRouter, usePathname } from 'next/navigation'
 import { useCart } from '@/context/CartContext'
+import { useWishlist } from '@/context/WishlistContext'
 import { useAuth } from '@/context/AuthContext'
 import {
   Search, ShoppingCart, User, Menu, X, Heart,
@@ -21,6 +22,7 @@ export default function Header() {
   const [showSearchResults, setShowSearchResults] = useState(false)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const { state: cartState } = useCart()
+  const { items: wishlistItems } = useWishlist()
   const { state: authState, logout } = useAuth()
   const router = useRouter()
   const pathname = usePathname()
@@ -199,15 +201,20 @@ export default function Header() {
               </Link>
             )}
             <Link href="/wishlist">
-              <Button variant="ghost" size="icon" className="text-black hover:bg-gray-100">
+              <Button variant="ghost" size="icon" className="text-black hover:bg-gray-100 relative">
                 <Heart className="h-5 w-5" />
+                {wishlistItems.length > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-600 text-white text-[10px] font-bold rounded-full h-4 w-4 flex items-center justify-center">
+                    {wishlistItems.length > 99 ? '99+' : wishlistItems.length}
+                  </span>
+                )}
               </Button>
             </Link>
             <Link href="/cart">
               <Button variant="ghost" size="icon" className="text-black hover:bg-gray-100 relative">
                 <ShoppingCart className="h-5 w-5" />
                 {cartState.count > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-primary text-white text-[10px] font-bold rounded-full h-4 w-4 flex items-center justify-center">
+                  <span className="absolute -top-1 -right-1 bg-red-600 text-white text-[10px] font-bold rounded-full h-4 w-4 flex items-center justify-center">
                     {cartState.count > 99 ? '99+' : cartState.count}
                   </span>
                 )}

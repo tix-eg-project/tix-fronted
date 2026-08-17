@@ -1,13 +1,12 @@
 'use client'
 import { useWishlist } from '@/context/WishlistContext'
 import { useAuth } from '@/context/AuthContext'
-import { Heart, Trash2, Star, ShoppingBag } from 'lucide-react'
+import { Heart } from 'lucide-react'
 import Link from 'next/link'
-import Image from 'next/image'
 import { useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Button } from '@/components/ui/button'
-import { formatCurrency, formatPrice } from '@/utils/helpers'
+import ProductCard from '@/components/ProductCard'
 
 export default function WishlistPage() {
   const { items, isLoading, refreshWishlist } = useWishlist()
@@ -71,79 +70,15 @@ export default function WishlistPage() {
                 </Link>
               </motion.div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {items.map((item: any) => (
                   <motion.div
                     key={item.id}
                     layout
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-xl transition-all duration-300 group flex flex-col h-full"
                   >
-                    {/* Image Section */}
-                    <div className="relative h-48 bg-gray-50 overflow-hidden">
-                      <Image
-                        src={item.image || "/pl1.jpg"}
-                        alt={item.name}
-                        fill
-                        className="object-cover group-hover:scale-105 transition-transform duration-500"
-                      />
-                      {item.discount > 0 && (
-                        <div className="absolute top-2 right-2 bg-red-600 text-white px-2 py-1 rounded text-[10px] font-bold shadow-sm z-10">
-                          {item.discount}%-
-                        </div>
-                      )}
-                      <button
-                        onClick={() => {}} 
-                        className="absolute top-2 left-2 p-2 bg-white/90 backdrop-blur-sm rounded-full shadow-sm text-red-600 hover:scale-110 transition-all z-10"
-                      >
-                        <Heart className="w-4 h-4 fill-red-600" />
-                      </button>
-                    </div>
-
-                    {/* Content Section */}
-                    <div className="p-3 flex flex-col flex-1 space-y-2">
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-gray-900 text-sm line-clamp-2 leading-snug group-hover:text-primary transition-colors">
-                          {item.name}
-                        </h3>
-                        <div className="flex items-center gap-1 mt-1">
-                          <div className="flex items-center">
-                            {[...Array(5)].map((_, i) => (
-                              <Star
-                                key={i}
-                                className={`w-3 h-3 ${i < (item.rating || 5) ? 'fill-yellow-400 text-yellow-400' : 'text-gray-200'}`}
-                              />
-                            ))}
-                          </div>
-                          <span className="text-[10px] text-gray-400 mr-1">({formatPrice(item.reviews || 0)})</span>
-                        </div>
-                      </div>
-
-                      <div className="flex flex-col">
-                        <div className="flex items-center gap-2">
-                          <span className="font-bold text-base text-gray-900">{formatCurrency(item.price)}</span>
-                          {item.originalPrice > item.price && (
-                            <span className="text-xs text-gray-400 line-through">
-                              {formatCurrency(item.originalPrice)}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="flex gap-2 pt-1">
-                        <Button className="flex-1 bg-black hover:bg-gray-800 text-white text-[11px] h-9 font-bold rounded-lg transition-all">
-                          أضف للسلة
-                        </Button>
-                        <button
-                          onClick={() => {}} 
-                          className="w-9 h-9 flex items-center justify-center border border-gray-100 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
-                          title="حذف من المفضلة"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
+                    <ProductCard {...item} />
                   </motion.div>
                 ))}
               </div>

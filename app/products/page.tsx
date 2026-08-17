@@ -21,6 +21,7 @@ import { t, formatCurrency, generateSlug } from "@/utils/helpers";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "react-toastify";
+import ProductCard from "@/components/ProductCard";
 import type { ProductCardProps } from "@/utils/Types/products";
 
 const Checkbox = ({ checked, onCheckedChange }: { checked: boolean; onCheckedChange: () => void }) => (
@@ -126,20 +127,15 @@ function ProductsContent() {
       .catch(() => {});
   }, [selectedCategory, categories]);
 
-  // Fetch brands — filtered by category if one is selected
+  // Fetch brands once — brands are standalone and not filterable by category
   useEffect(() => {
-    const fetchBrands = async () => {
-      try {
-        const url = selectedCategory ? `/brands?category_id=${selectedCategory}` : "/brands";
-        const res = await api.get(url);
-        if (res.data.status) {
-          const raw = res.data.data;
-          setBrands(Array.isArray(raw) ? raw : raw?.data || []);
-        }
-      } catch {}
-    };
-    fetchBrands();
-  }, [selectedCategory]);
+    api.get("/brands").then((res) => {
+      if (res.data.status) {
+        const raw = res.data.data;
+        setBrands(Array.isArray(raw) ? raw : raw?.data || []);
+      }
+    }).catch(() => {});
+  }, []);
 
   // Debounce price
   useEffect(() => {
@@ -177,18 +173,15 @@ function ProductsContent() {
             price: p.price_after || p.price,
             originalPrice: p.price_before,
             image: p.images?.[0] || p.image || "/pl1.jpg",
+            images: p.images,
             discount: p.discount || 0,
             rating: p.avg_rating || p.reviews?.average_rating || 0,
             reviewsCount: p.reviews?.count || 0,
           }));
 
-          mapped = mapped.filter((p: ProductCardProps) => p.price >= priceRange[0] && p.price <= priceRange[1]);
           if (selectedRatings.length > 0) {
             mapped = mapped.filter((p: ProductCardProps) => selectedRatings.some((r) => (p.rating ?? 0) >= r));
           }
-          if (sortBy === "price_low") mapped.sort((a: ProductCardProps, b: ProductCardProps) => a.price - b.price);
-          else if (sortBy === "price_high") mapped.sort((a: ProductCardProps, b: ProductCardProps) => b.price - a.price);
-          else if (sortBy === "rating") mapped.sort((a: ProductCardProps, b: ProductCardProps) => (b.rating || 0) - (a.rating || 0));
 
           setProducts(mapped);
         }
@@ -242,7 +235,7 @@ function ProductsContent() {
                       : "border-transparent text-gray-500 hover:text-gray-900 hover:border-gray-200"
                   }`}
                 >
-                  <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center text-xs font-bold">
+                  <div className="w-20 h-20 sm:w-28 sm:h-28 rounded-t-2xl bg-gray-100 flex items-center justify-center text-xs font-bold">
                     الكل
                   </div>
                   <span className="text-xs font-semibold whitespace-nowrap">الكل</span>
@@ -257,14 +250,14 @@ function ProductsContent() {
                     href={`/subcategory/${sub.id}?name=${encodeURIComponent(t(sub.name))}&category=${selectedCategory}&categoryName=${encodeURIComponent(catName)}`}
                     className={`shrink-0 flex flex-col items-center gap-1.5 px-4 py-2.5 border-b-2 transition-all border-transparent text-gray-500 hover:text-gray-900 hover:border-gray-200`}
                   >
-                    <div className={`w-12 h-12 rounded-full overflow-hidden border-2 transition-all bg-white ${
+                    <div className={`w-20 h-20 sm:w-28 sm:h-28 rounded-t-2xl overflow-hidden border-2 transition-all bg-white ${
                       selectedSubcategory === String(sub.id) ? "border-red-600" : "border-gray-200"
                     }`}>
                       {sub.image ? (
                         <img
                           src={sub.image}
                           alt={t(sub.name)}
-                          style={{ width: "100%", height: "100%", objectFit: "contain", padding: "4px" }}
+                          style={{ width: "100%", height: "100%", objectFit: "cover" }}
                         />
                       ) : (
                         <div className="w-full h-full bg-gray-100 flex items-center justify-center text-xs font-bold text-gray-500">
@@ -443,52 +436,61 @@ function ProductsContent() {
                   ))}
                 </div>
               ) : products.length > 0 ? (
-                <div className={`grid ${viewType === "grid" ? "grid-cols-2 md:grid-cols-3 xl:grid-cols-4" : "grid-cols-1"} gap-3 sm:gap-4`}>
-                  {products.map((product) => (
-                    <Link
-                      key={product.id}
-                      href={`/product/${product.id}/${generateSlug(t(product.name))}`}
-                      className={`group bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-xl transition-all duration-300 relative flex flex-col h-full ${viewType === "list" ? "sm:flex-row sm:items-center gap-4 sm:gap-6" : ""}`}
-                    >
-                      <div className={`relative overflow-hidden bg-gray-50 flex-shrink-0 flex items-center justify-center ${viewType === "list" ? "w-48 h-48 sm:w-60 sm:h-60" : "w-full aspect-[4/5] lg:aspect-square"}`}>
-                        <Image src={product.image} alt={product.name} fill className="object-contain transition-transform duration-500" />
-                        {(product.discount ?? 0) > 0 && (
-                          <div className="absolute top-3 right-3 bg-red-600 text-white text-[10px] font-bold px-2 py-1 rounded-md shadow-lg z-10">
-                            -{product.discount}%
-                          </div>
-                        )}
-                      </div>
-                      <div className="p-3 sm:p-4 flex-1 flex flex-col group-hover:bg-black/[0.02] transition-colors duration-300">
-                        <div className="flex-1">
-                          <h3 className="font-bold text-sm text-gray-800 line-clamp-2 mb-2 h-10 overflow-hidden">{t(product.name)}</h3>
-                          <div className="flex items-center gap-1 mb-3">
-                            <div className="flex items-center">
-                              {[...Array(5)].map((_, i) => (
-                                <Star key={i} className={`w-3 h-3 ${i < Math.round(product.rating ?? 0) ? "fill-yellow-400 text-yellow-400" : "text-gray-200"}`} />
-                              ))}
+                viewType === "grid" ? (
+                  <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
+                    {products.map((product) => (
+                      <ProductCard key={product.id} {...product} />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 gap-3 sm:gap-4">
+                    {products.map((product) => (
+                      <Link
+                        key={product.id}
+                        href={`/product/${product.id}/${generateSlug(t(product.name))}`}
+                        className="group bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-xl transition-all duration-300 relative flex flex-col h-full sm:flex-row sm:items-center gap-4 sm:gap-6"
+                      >
+                        <div className="relative overflow-hidden bg-gray-50 flex-shrink-0 flex items-center justify-center w-48 h-48 sm:w-60 sm:h-60">
+                          <Image src={product.image} alt="" aria-hidden="true" fill className="object-cover scale-125 blur-lg opacity-25" />
+                          <Image src={product.image} alt={product.name} fill className="object-contain transition-transform duration-500" />
+                          {(product.discount ?? 0) > 0 && (
+                            <div className="absolute top-3 right-3 bg-red-600 text-white text-[10px] font-bold px-2 py-1 rounded-md shadow-lg z-10">
+                              -{product.discount}%
                             </div>
-                            <span className="text-[10px] text-gray-400">({product.reviewsCount})</span>
+                          )}
+                        </div>
+                        <div className="p-3 sm:p-4 flex-1 flex flex-col group-hover:bg-black/[0.02] transition-colors duration-300">
+                          <div className="flex-1">
+                            <h3 className="font-bold text-sm text-gray-800 line-clamp-2 mb-2 h-10 overflow-hidden">{t(product.name)}</h3>
+                            <div className="flex items-center gap-1 mb-3">
+                              <div className="flex items-center">
+                                {[...Array(5)].map((_, i) => (
+                                  <Star key={i} className={`w-3 h-3 ${i < Math.round(product.rating ?? 0) ? "fill-yellow-400 text-yellow-400" : "text-gray-200"}`} />
+                                ))}
+                              </div>
+                              <span className="text-[10px] text-gray-400">({product.reviewsCount})</span>
+                            </div>
+                          </div>
+                          <div className="mt-auto">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className={`text-lg font-bold ${(product.discount ?? 0) > 0 ? "text-red-600" : "text-gray-900"}`}>{formatCurrency(product.price)}</span>
+                              {(product.originalPrice ?? 0) > product.price && (
+                                <span className="text-sm text-gray-400 line-through">{formatCurrency(product.originalPrice ?? 0)}</span>
+                              )}
+                            </div>
+                            <Button
+                              onClick={(e) => handleAddToCart(e, String(product.id))}
+                              className="w-full mt-3 bg-gray-900 text-white hover:bg-black rounded-lg h-9 text-xs transition-colors flex items-center justify-center gap-1.5"
+                            >
+                              <ShoppingCart className="w-3.5 h-3.5" />
+                              أضف للسلة
+                            </Button>
                           </div>
                         </div>
-                        <div className="mt-auto">
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="text-lg font-bold text-gray-900">{formatCurrency(product.price)}</span>
-                            {(product.originalPrice ?? 0) > product.price && (
-                              <span className="text-sm text-gray-400 line-through">{formatCurrency(product.originalPrice ?? 0)}</span>
-                            )}
-                          </div>
-                          <Button
-                            onClick={(e) => handleAddToCart(e, String(product.id))}
-                            className="w-full mt-3 bg-gray-900 text-white hover:bg-black rounded-lg h-9 text-xs transition-colors flex items-center justify-center gap-1.5"
-                          >
-                            <ShoppingCart className="w-3.5 h-3.5" />
-                            أضف للسلة
-                          </Button>
-                        </div>
-                      </div>
-                    </Link>
-                  ))}
-                </div>
+                      </Link>
+                    ))}
+                  </div>
+                )
               ) : (
                 <div className="bg-white rounded-2xl border border-dashed border-gray-300 p-20 text-center">
                   <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-6">

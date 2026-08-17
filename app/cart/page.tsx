@@ -115,7 +115,7 @@ export default function CartPage() {
     return (
       <div className="max-w-5xl mx-auto px-4 py-12">
         <div className="flex justify-center">
-          <div className="animate-spin w-8 h-8 border-3 border-primary border-t-transparent rounded-full" />
+          <div className="animate-spin w-8 h-8 border-3 border-black border-t-transparent rounded-full" />
         </div>
       </div>
     );
@@ -125,7 +125,7 @@ export default function CartPage() {
     <div className="min-h-screen bg-gray-50" dir="rtl">
       <main className="container mx-auto px-4 py-8">
         <h1 className="text-2xl font-bold mb-6 flex items-center gap-2">
-          <ShoppingBag className="w-6 h-6 text-primary" />
+          <ShoppingBag className="w-6 h-6 text-black" />
           سلتك ({state.items.length} منتج)
         </h1>
 
@@ -141,7 +141,7 @@ export default function CartPage() {
               <h2 className="text-xl font-bold text-gray-900 mb-2">سلتك فارغة</h2>
               <p className="text-gray-500 mb-6">لم تقم بإضافة أي منتجات لسلتك بعد</p>
               <Link href="/">
-                <Button className="bg-primary hover:bg-primary/90 text-white px-8 h-11 rounded-lg">
+                <Button className="bg-black hover:bg-gray-800 text-white px-8 h-11 rounded-lg">
                   استكشف المتجر
                 </Button>
               </Link>
@@ -171,7 +171,7 @@ export default function CartPage() {
                     <div className="flex-1 min-w-0 flex flex-col justify-between">
                       <div>
                         <Link href={`/product/${item.productId}/${generateSlug(t(item.name))}`}>
-                          <h3 className="font-bold text-gray-900 line-clamp-1 hover:text-primary transition-colors">
+                          <h3 className="font-bold text-gray-900 line-clamp-2 text-sm sm:text-base">
                             {item.name}
                           </h3>
                         </Link>
@@ -187,9 +187,16 @@ export default function CartPage() {
                             ))}
                           </div>
                         )}
-                        <p className="text-sm font-bold text-gray-900 mt-1">
-                          {formatCurrency(item.price)}
-                        </p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <p className={`text-sm font-bold ${item.originalPrice && item.originalPrice > item.price ? "text-red-600" : "text-gray-900"}`}>
+                            {formatCurrency(item.price)}
+                          </p>
+                          {item.originalPrice && item.originalPrice > item.price && (
+                            <p className="text-xs text-gray-400 line-through">
+                              {formatCurrency(item.originalPrice)}
+                            </p>
+                          )}
+                        </div>
                       </div>
 
                       <div className="flex items-center gap-3 mt-3">
@@ -211,19 +218,16 @@ export default function CartPage() {
                             <Plus className="w-3.5 h-3.5" />
                           </button>
                         </div>
-                        <button
-                          onClick={() => handleRemove(item.id)}
-                          className="ms-auto text-red-600 hover:text-red-700 transition-colors p-1"
-                          aria-label="حذف"
-                        >
-                          <Trash2 className="w-5 h-5" />
-                        </button>
                       </div>
                     </div>
-                    <div className="text-end hidden sm:block">
-                      <p className="font-bold text-gray-900 whitespace-nowrap">
-                        {formatCurrency(item.price * item.quantity)}
-                      </p>
+                    <div className="flex items-center self-center">
+                      <button
+                        onClick={() => handleRemove(item.id)}
+                        className="text-red-600 hover:text-red-700 transition-colors p-1"
+                        aria-label="حذف"
+                      >
+                        <Trash2 className="w-5 h-5" />
+                      </button>
                     </div>
                   </motion.div>
                 ))}
@@ -267,7 +271,7 @@ export default function CartPage() {
                               setCouponError("");
                             }}
                             onKeyDown={(e) => { if (e.key === "Enter") handleApplyCode(); }}
-                            className="bg-gray-50 border-gray-200 focus-visible:ring-primary/20 focus-visible:border-primary pe-10"
+                            className="bg-gray-50 border-gray-200 focus-visible:ring-red-600/20 focus-visible:border-red-600 pe-10"
                           />
                           <Tag className="absolute end-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                           {summary?.coupon && (

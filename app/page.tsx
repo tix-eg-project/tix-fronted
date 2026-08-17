@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import HeroBanner from "@/components/HeroBanner";
 import FlashDeals from "@/components/FlashDeals";
 import OffersSection from "@/components/OffersSection";
@@ -36,6 +37,7 @@ async function fetchCategoryProducts(
         price: p.price_after || p.price,
         originalPrice: p.price_before,
         image: getProductImage(p),
+        images: p.images,
         rating: p.reviews?.average_rating || 0,
         reviewsCount: p.reviews?.count || 0,
         discount: p.discount || 0,
@@ -55,10 +57,11 @@ async function fetchCategories(): Promise<CategoryNavItem[]> {
     if (!res.ok) return [];
     const data = await res.json();
     return Array.isArray(data.data)
-      ? data.data.slice(0, 4).map((cat: any) => ({
+      ? data.data.map((cat: any) => ({
           id: String(cat.id),
           name: typeof cat.name === "object" ? cat.name?.ar || cat.name?.en || "" : cat.name,
           slug: String(cat.id),
+          image: cat.image,
         }))
       : [];
   } catch {
@@ -71,7 +74,7 @@ export default async function HomePage() {
 
   // Fetch products for each category showcase
   const categoryShowcases = await Promise.all(
-    categories.map(async (cat) => ({
+    categories.slice(0, 4).map(async (cat) => ({
       id: cat.id,
       name: cat.name,
       products: await fetchCategoryProducts(cat.id, 5),
@@ -88,6 +91,33 @@ export default async function HomePage() {
 
       {/* 3) Offers */}
       <OffersSection />
+
+      {/* 3.5) Shop by Category — circular icons */}
+      {categories.length > 0 && (
+        <section className="container mx-auto px-4 py-6">
+          <h2 className="text-lg sm:text-xl font-bold mb-4">تسوق حسب القسم</h2>
+          <div className="flex items-start gap-4 sm:gap-5 overflow-x-auto pb-2 scrollbar-hide">
+            {categories.map((cat) => (
+              <Link
+                key={cat.id}
+                href={`/products?category=${cat.slug || cat.id}`}
+                className="flex flex-col items-center gap-2 text-center flex-shrink-0 w-20 sm:w-28"
+              >
+                <div className="relative w-20 h-20 sm:w-28 sm:h-28 rounded-t-2xl overflow-hidden bg-gray-50 border border-gray-100">
+                  <Image
+                    src={cat.image || "/pl1.jpg"}
+                    alt={cat.name}
+                    fill
+                    className="object-cover"
+                    sizes="112px"
+                  />
+                </div>
+                <span className="text-xs sm:text-sm font-medium line-clamp-2">{cat.name}</span>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* 4) Latest Products */}
       <LatestProducts />

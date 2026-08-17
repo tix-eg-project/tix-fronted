@@ -1,4 +1,5 @@
 "use client";
+import { useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Heart, ShoppingCart, Star } from "lucide-react";
@@ -11,12 +12,16 @@ import type { ProductCardProps } from "@/utils/Types/products";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
+const HOVER_CYCLE_MS = 1400;
+const FADE_MS = 900;
+
 export default function ProductCard({
   id,
   name,
   price,
   originalPrice,
   image,
+  images,
   rating,
   reviewsCount,
   discount,
@@ -28,6 +33,25 @@ export default function ProductCard({
   const discountPct = discount || calculateDiscount(originalPrice || 0, price);
   const wishlisted = isInWishlist(id);
   const productName = t(name);
+
+  const gallery = images && images.length > 0 ? images : [image];
+  const [hoverIndex, setHoverIndex] = useState(0);
+  const hoverTimer = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const startHoverCycle = () => {
+    if (gallery.length <= 1) return;
+    hoverTimer.current = setInterval(() => {
+      setHoverIndex((i) => (i + 1) % gallery.length);
+    }, HOVER_CYCLE_MS);
+  };
+
+  const stopHoverCycle = () => {
+    if (hoverTimer.current) {
+      clearInterval(hoverTimer.current);
+      hoverTimer.current = null;
+    }
+    setHoverIndex(0);
+  };
 
   const handleAddToCart = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -63,18 +87,55 @@ export default function ProductCard({
       <Card className={`overflow-hidden hover:shadow-lg transition-all cursor-pointer h-full border border-gray-200 py-0 gap-0 ${
         isFlashDeal ? "bg-white border-red-200" : ""
       }`}>
-        <div className="relative h-40 w-full bg-gray-50">
-          <Image
-            src={image || "/pl1.jpg"}
-            alt={productName}
-            fill
-            className="object-contain p-2"
-            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 33vw, 25vw"
-          />
+        <div
+          className={`relative w-full bg-gray-50 overflow-hidden ${isFlashDeal ? "aspect-square" : "aspect-[4/5]"}`}
+          onMouseEnter={startHoverCycle}
+          onMouseLeave={stopHoverCycle}
+        >
+          {gallery.map((img, i) => (
+            <Image
+              key={`bg-${i}`}
+              src={img || "/pl1.jpg"}
+              alt=""
+              aria-hidden="true"
+              fill
+              className="object-cover scale-125 blur-lg"
+              style={{
+                opacity: i === hoverIndex ? 0.25 : 0,
+                transition: `opacity ${FADE_MS}ms ease-in-out`,
+              }}
+              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 33vw, 25vw"
+            />
+          ))}
+          {gallery.map((img, i) => (
+            <Image
+              key={`fg-${i}`}
+              src={img || "/pl1.jpg"}
+              alt={i === 0 ? productName : ""}
+              aria-hidden={i !== 0}
+              fill
+              className={`object-contain ${isFlashDeal ? "scale-110" : ""}`}
+              style={{
+                opacity: i === hoverIndex ? 1 : 0,
+                transition: `opacity ${FADE_MS}ms ease-in-out`,
+              }}
+              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 33vw, 25vw"
+            />
+          ))}
+          {gallery.length > 1 && (
+            <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 flex items-center gap-1 z-10">
+              {gallery.map((_, i) => (
+                <span
+                  key={i}
+                  className={`h-1 rounded-full transition-all ${
+                    i === hoverIndex ? "w-3 bg-white" : "w-1 bg-white/60"
+                  }`}
+                />
+              ))}
+            </div>
+          )}
           {discountPct > 0 && (
-            <span className={`absolute top-2 right-2 text-white text-[9px] font-bold px-1.5 py-0.5 rounded ${
-              isFlashDeal ? "bg-red-600" : "bg-red-600"
-            }`}>
+            <span className="absolute top-2 right-2 text-white text-xs sm:text-sm font-bold px-2 py-1 rounded bg-red-600">
               {discountPct}%
             </span>
           )}
@@ -85,10 +146,8 @@ export default function ProductCard({
             <Heart className={`w-3.5 h-3.5 ${wishlisted ? "fill-red-600 text-red-600" : "text-red-600"}`} />
           </button>
         </div>
-        <div className="p-3 flex flex-col flex-1">
-          <h3 className={`font-medium text-[13px] mb-1.5 line-clamp-1 leading-tight ${
-            isFlashDeal ? "text-black" : "text-gray-800"
-          }`}>{productName}</h3>
+        <div className="flex flex-col flex-1 p-3">
+          <h3 className="font-medium text-[13px] mb-1.5 line-clamp-1 leading-tight text-gray-800">{productName}</h3>
           <div className="flex items-center gap-1 mb-2">
             <div className="flex items-center gap-0.5">
               {Array.from({ length: 5 }).map((_, i) => (
@@ -104,20 +163,20 @@ export default function ProductCard({
           </div>
           <div className="mt-auto">
             <div className="flex items-center gap-2 mb-2.5">
-              <span className={`font-bold text-sm ${isFlashDeal ? "text-black" : "text-red-600"}`}>{formatCurrency(price)}</span>
+              <span className={`font-bold text-base sm:text-lg ${discountPct > 0 ? "text-red-600" : "text-black"}`}>{formatCurrency(price)}</span>
               {originalPrice && originalPrice > price && (
-                <span className={`line-through text-[10px] ${isFlashDeal ? "text-gray-400" : "text-gray-400"}`}>{formatCurrency(originalPrice)}</span>
+                <span className="line-through text-xs text-gray-400">{formatCurrency(originalPrice)}</span>
               )}
             </div>
             <Button
               onClick={handleAddToCart}
               className={`w-full text-[11px] h-8 rounded-md transition-colors ${
-                isFlashDeal 
-                ? "bg-red-600 text-white hover:bg-red-700" 
+                isFlashDeal
+                ? "bg-red-600 text-white hover:bg-red-700"
                 : "bg-black hover:bg-gray-800 text-white"
               }`}
             >
-              <ShoppingCart className={`w-3 h-3 me-1 ${isFlashDeal ? "text-white" : "text-white"}`} />
+              <ShoppingCart className="w-3 h-3 me-1 text-white" />
               أضف للسلة
             </Button>
           </div>

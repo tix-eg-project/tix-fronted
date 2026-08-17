@@ -113,6 +113,15 @@ export interface Subcategory {
   id: number | string;
   name: string;
   category_id: number | string;
+  image?: string;
+  subsubcategories?: Subsubcategory[];
+}
+
+export interface Subsubcategory {
+  id: number | string;
+  name: string;
+  subcategory_id?: number | string;
+  image?: string;
 }
 
 export interface Brand {
