@@ -64,15 +64,23 @@ function Accordion({
   const [open, setOpen] = useState(defaultOpen);
   return (
     <div className="border-b border-gray-100">
-      <button
-        className="flex items-center justify-between w-full py-4 text-base font-semibold hover:text-black transition-colors"
+      <div
+        role="button"
+        tabIndex={0}
+        className="flex items-center justify-between w-full py-4 text-base font-semibold hover:text-black transition-colors cursor-pointer"
         onClick={() => setOpen(!open)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            setOpen(!open);
+          }
+        }}
       >
         <span>{title}</span>
         <ChevronDown
           className={`h-5 w-5 text-gray-400 transition-transform ${open ? "rotate-180" : ""}`}
         />
-      </button>
+      </div>
       {open && <div className="text-sm text-gray-600 leading-relaxed pb-4">{children}</div>}
     </div>
   );

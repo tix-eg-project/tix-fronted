@@ -21,7 +21,8 @@ jobs:
           script_stop: true
           script: |
             cd /var/www/tix-fronted
-            git pull origin main
+            git fetch origin main
+            git reset --hard origin/main
             npm install
             npm run build
             pm2 restart tix-frontend
