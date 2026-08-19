@@ -11,7 +11,7 @@ export default function LatestProducts() {
 
   useEffect(() => {
     api
-      .get("/products", { params: { per_page: 10 } })
+      .get("/products", { params: { per_page: 250 } })
       .then((res) => {
         const raw: any[] = Array.isArray(res.data.data)
           ? res.data.data

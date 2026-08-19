@@ -35,13 +35,13 @@ export default function ProductCard({
   const productName = t(name);
 
   const gallery = images && images.length > 0 ? images : [image];
-  const [hoverIndex, setHoverIndex] = useState(0);
+  const [activeIndex, setActiveIndex] = useState(0);
   const hoverTimer = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const startHoverCycle = () => {
     if (gallery.length <= 1) return;
     hoverTimer.current = setInterval(() => {
-      setHoverIndex((i) => (i + 1) % gallery.length);
+      setActiveIndex((i) => (i + 1) % gallery.length);
     }, HOVER_CYCLE_MS);
   };
 
@@ -50,7 +50,14 @@ export default function ProductCard({
       clearInterval(hoverTimer.current);
       hoverTimer.current = null;
     }
-    setHoverIndex(0);
+    setActiveIndex(0);
+  };
+
+  const handleMobileScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const el = e.currentTarget;
+    if (el.clientWidth === 0) return;
+    const idx = Math.round(Math.abs(el.scrollLeft) / el.clientWidth);
+    setActiveIndex(Math.min(gallery.length - 1, Math.max(0, idx)));
   };
 
   const handleAddToCart = async (e: React.MouseEvent) => {
@@ -92,50 +99,81 @@ export default function ProductCard({
           onMouseEnter={startHoverCycle}
           onMouseLeave={stopHoverCycle}
         >
-          {gallery.map((img, i) => (
-            <Image
-              key={`bg-${i}`}
-              src={img || "/pl1.jpg"}
-              alt=""
-              aria-hidden="true"
-              fill
-              className="object-cover scale-125 blur-lg"
-              style={{
-                opacity: i === hoverIndex ? 0.25 : 0,
-                transition: `opacity ${FADE_MS}ms ease-in-out`,
-              }}
-              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 33vw, 25vw"
-            />
-          ))}
-          {gallery.map((img, i) => (
-            <Image
-              key={`fg-${i}`}
-              src={img || "/pl1.jpg"}
-              alt={i === 0 ? productName : ""}
-              aria-hidden={i !== 0}
-              fill
-              className={`object-contain ${isFlashDeal ? "scale-110" : ""}`}
-              style={{
-                opacity: i === hoverIndex ? 1 : 0,
-                transition: `opacity ${FADE_MS}ms ease-in-out`,
-              }}
-              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 33vw, 25vw"
-            />
-          ))}
+          {/* اللاب/الديسك توب — تبديل تلقائي بالـ hover */}
+          <div className="hidden lg:block absolute inset-0">
+            {gallery.map((img, i) => (
+              <Image
+                key={`bg-${i}`}
+                src={img || "/pl1.jpg"}
+                alt=""
+                aria-hidden="true"
+                fill
+                className="object-cover scale-125 blur-lg"
+                style={{
+                  opacity: i === activeIndex ? 0.25 : 0,
+                  transition: `opacity ${FADE_MS}ms ease-in-out`,
+                }}
+                sizes="25vw"
+              />
+            ))}
+            {gallery.map((img, i) => (
+              <Image
+                key={`fg-${i}`}
+                src={img || "/pl1.jpg"}
+                alt={i === 0 ? productName : ""}
+                aria-hidden={i !== 0}
+                fill
+                className="object-contain scale-110"
+                style={{
+                  opacity: i === activeIndex ? 1 : 0,
+                  transition: `opacity ${FADE_MS}ms ease-in-out`,
+                }}
+                sizes="25vw"
+              />
+            ))}
+          </div>
+
+          {/* الموبايل/التابلت — سحب بالإصبع (swipe) بين الصور */}
+          <div
+            className="lg:hidden absolute inset-0 flex overflow-x-auto snap-x snap-mandatory scrollbar-hide"
+            onScroll={handleMobileScroll}
+          >
+            {gallery.map((img, i) => (
+              <div key={`m-${i}`} className="relative w-full h-full flex-shrink-0 snap-center">
+                <Image
+                  src={img || "/pl1.jpg"}
+                  alt=""
+                  aria-hidden="true"
+                  fill
+                  className="object-cover scale-125 blur-lg opacity-25"
+                  sizes="(max-width: 640px) 100vw, 33vw"
+                />
+                <Image
+                  src={img || "/pl1.jpg"}
+                  alt={i === 0 ? productName : ""}
+                  aria-hidden={i !== 0}
+                  fill
+                  className="object-contain scale-110"
+                  sizes="(max-width: 640px) 100vw, 33vw"
+                />
+              </div>
+            ))}
+          </div>
+
           {gallery.length > 1 && (
-            <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 flex items-center gap-1 z-10">
+            <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 flex items-center gap-1 z-10 pointer-events-none">
               {gallery.map((_, i) => (
                 <span
                   key={i}
                   className={`h-1 rounded-full transition-all ${
-                    i === hoverIndex ? "w-3 bg-white" : "w-1 bg-white/60"
+                    i === activeIndex ? "w-3 bg-white" : "w-1 bg-white/60"
                   }`}
                 />
               ))}
             </div>
           )}
           {discountPct > 0 && (
-            <span className="absolute top-2 right-2 text-white text-xs sm:text-sm font-bold px-2 py-1 rounded bg-red-600">
+            <span className="absolute top-2 right-2 text-white text-[9px] sm:text-[11px] font-bold px-1.5 py-0.5 rounded bg-red-600">
               {discountPct}%
             </span>
           )}

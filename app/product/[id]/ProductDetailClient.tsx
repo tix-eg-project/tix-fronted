@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -8,9 +8,13 @@ import {
   Star,
   ChevronDown,
   ChevronUp,
+  ChevronLeft,
+  ChevronRight,
   CheckCircle,
   Plus as PlusIcon,
   Languages,
+  X,
+  ZoomIn,
 } from "lucide-react";
 import { toast } from "react-toastify";
 import api from "@/lib/api";
@@ -112,6 +116,70 @@ export default function ProductDetailClient({ productId }: { productId: string }
     const y = ((e.clientY - rect.top) / rect.height) * 100;
     setZoomPosition({ x, y });
   };
+
+  // Fullscreen lightbox — works on touch (mobile/tablet) and desktop alike
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxScale, setLightboxScale] = useState(1);
+  const [lightboxOffset, setLightboxOffset] = useState({ x: 0, y: 0 });
+  const lightboxDragRef = useRef<{ startX: number; startY: number; startOffsetX: number; startOffsetY: number } | null>(null);
+  const lastTapRef = useRef(0);
+
+  useEffect(() => {
+    document.body.style.overflow = lightboxOpen ? "hidden" : "";
+    return () => { document.body.style.overflow = ""; };
+  }, [lightboxOpen]);
+
+  const openLightbox = () => {
+    setLightboxScale(1);
+    setLightboxOffset({ x: 0, y: 0 });
+    setLightboxOpen(true);
+  };
+
+  const closeLightbox = () => setLightboxOpen(false);
+
+  const toggleLightboxZoom = (clientX: number, clientY: number, rect: DOMRect) => {
+    if (lightboxScale > 1) {
+      setLightboxScale(1);
+      setLightboxOffset({ x: 0, y: 0 });
+    } else {
+      setLightboxScale(2.2);
+      setLightboxOffset({
+        x: (rect.width / 2 - (clientX - rect.left)) * 1.2,
+        y: (rect.height / 2 - (clientY - rect.top)) * 1.2,
+      });
+    }
+  };
+
+  const handleLightboxPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const now = Date.now();
+    const isDoubleTap = now - lastTapRef.current < 300;
+    lastTapRef.current = now;
+    if (isDoubleTap) {
+      toggleLightboxZoom(e.clientX, e.clientY, rect);
+      lightboxDragRef.current = null;
+      return;
+    }
+    if (lightboxScale > 1) {
+      lightboxDragRef.current = {
+        startX: e.clientX,
+        startY: e.clientY,
+        startOffsetX: lightboxOffset.x,
+        startOffsetY: lightboxOffset.y,
+      };
+    }
+  };
+
+  const handleLightboxPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    const drag = lightboxDragRef.current;
+    if (!drag) return;
+    setLightboxOffset({
+      x: drag.startOffsetX + (e.clientX - drag.startX),
+      y: drag.startOffsetY + (e.clientY - drag.startY),
+    });
+  };
+
+  const endLightboxDrag = () => { lightboxDragRef.current = null; };
 
   const { addToCart } = useCart();
   const { state: authState } = useAuth();
@@ -402,15 +470,15 @@ export default function ProductDetailClient({ productId }: { productId: string }
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-start">
         {/* ═══ Column 1: Images ═══ */}
-        <div className="flex gap-2 sm:gap-3">
-          {/* Thumbnails rail — على يمين الصورة الرئيسية (أول عنصر داخل flex في صفحة RTL بيظهر على اليمين) */}
+        <div className="flex flex-col lg:flex-row gap-2 sm:gap-3">
+          {/* Thumbnails rail — صف أفقي تحت الصورة الرئيسية على الموبايل/التابلت، وعمود جنبها (يمين) على الشاشات الكبيرة */}
           {images.length > 1 && (
-            <div className="flex flex-col gap-2 w-14 sm:w-16 flex-shrink-0 max-h-[420px] sm:max-h-[520px] overflow-y-auto scrollbar-hide">
+            <div className="order-2 lg:order-1 flex flex-row lg:flex-col gap-2 overflow-x-auto lg:overflow-x-visible lg:overflow-y-auto scrollbar-hide lg:w-16 lg:max-h-[520px] lg:flex-shrink-0">
               {images.map((img: string, index: number) => (
                 <button
                   key={index}
                   onClick={() => setActiveImageIndex(index)}
-                  className={`relative aspect-square rounded-lg overflow-hidden flex-shrink-0 border-2 transition-colors ${
+                  className={`relative w-14 h-14 sm:w-16 sm:h-16 rounded-lg overflow-hidden flex-shrink-0 border-2 transition-colors ${
                     index === activeImageIndex ? "border-black" : "border-gray-200 hover:border-gray-400"
                   }`}
                   style={{ backgroundColor: "#F5F5F5" }}
@@ -429,12 +497,13 @@ export default function ProductDetailClient({ productId }: { productId: string }
           )}
 
           {/* الصورة الرئيسية */}
-          <div className="relative flex-1 rounded-2xl overflow-hidden aspect-square" style={{ backgroundColor: "#F5F5F5" }}>
+          <div className="relative order-1 lg:order-2 w-full lg:flex-1 rounded-2xl overflow-hidden aspect-square" style={{ backgroundColor: "#F5F5F5" }}>
             <div
-              className="relative w-full h-full overflow-hidden"
+              className="relative w-full h-full overflow-hidden cursor-zoom-in"
               onMouseEnter={() => setIsImageZooming(true)}
               onMouseLeave={() => setIsImageZooming(false)}
               onMouseMove={handleImageMouseMove}
+              onClick={openLightbox}
             >
               <Image
                 src={typeof images[activeImageIndex] === "string" ? images[activeImageIndex] : "/pl1.jpg"}
@@ -448,7 +517,7 @@ export default function ProductDetailClient({ productId }: { productId: string }
                 src={typeof images[activeImageIndex] === "string" ? images[activeImageIndex] : "/pl1.jpg"}
                 alt={`${t(product.name)} ${activeImageIndex + 1}`}
                 fill
-                className="object-contain"
+                className="object-contain scale-105"
                 sizes="(max-width: 1024px) 100vw, 50vw"
                 priority={activeImageIndex === 0}
               />
@@ -463,9 +532,87 @@ export default function ProductDetailClient({ productId }: { productId: string }
                   }}
                 />
               )}
+              <span className="absolute bottom-2 left-2 sm:bottom-3 sm:left-3 bg-black/50 text-white rounded-full p-1.5 sm:p-2 pointer-events-none z-10">
+                <ZoomIn className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              </span>
             </div>
           </div>
         </div>
+
+        {/* ═══ Lightbox: fullscreen viewer with double-tap/double-click zoom + drag-to-pan — works on mobile, tablet, and desktop ═══ */}
+        {lightboxOpen && (
+          <div
+            className="fixed inset-0 z-[1200] bg-black/95 flex items-center justify-center touch-none"
+            onClick={closeLightbox}
+          >
+            <button
+              onClick={(e) => { e.stopPropagation(); closeLightbox(); }}
+              className="absolute top-4 left-4 sm:top-6 sm:left-6 z-10 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
+              aria-label="إغلاق"
+            >
+              <X className="w-6 h-6" />
+            </button>
+
+            {images.length > 1 && (
+              <>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setActiveImageIndex((i) => (i - 1 + images.length) % images.length);
+                    setLightboxScale(1);
+                    setLightboxOffset({ x: 0, y: 0 });
+                  }}
+                  className="absolute top-1/2 -translate-y-1/2 right-2 sm:right-6 z-10 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
+                  aria-label="الصورة السابقة"
+                >
+                  <ChevronRight className="w-6 h-6" />
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setActiveImageIndex((i) => (i + 1) % images.length);
+                    setLightboxScale(1);
+                    setLightboxOffset({ x: 0, y: 0 });
+                  }}
+                  className="absolute top-1/2 -translate-y-1/2 left-2 sm:left-6 z-10 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
+                  aria-label="الصورة التالية"
+                >
+                  <ChevronLeft className="w-6 h-6" />
+                </button>
+              </>
+            )}
+
+            <div
+              className="relative w-full h-full max-w-4xl max-h-[85vh] m-auto overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+              onPointerDown={handleLightboxPointerDown}
+              onPointerMove={handleLightboxPointerMove}
+              onPointerUp={endLightboxDrag}
+              onPointerLeave={endLightboxDrag}
+              style={{ cursor: lightboxScale > 1 ? "grab" : "zoom-in", touchAction: "none" }}
+            >
+              <div
+                className="relative w-full h-full transition-transform"
+                style={{
+                  transform: `translate(${lightboxOffset.x}px, ${lightboxOffset.y}px) scale(${lightboxScale})`,
+                  transitionDuration: lightboxDragRef.current ? "0ms" : "200ms",
+                }}
+              >
+                <Image
+                  src={typeof images[activeImageIndex] === "string" ? images[activeImageIndex] : "/pl1.jpg"}
+                  alt={`${t(product.name)} ${activeImageIndex + 1}`}
+                  fill
+                  className="object-contain pointer-events-none"
+                  sizes="100vw"
+                />
+              </div>
+            </div>
+
+            <p className="absolute bottom-4 sm:bottom-6 inset-x-0 text-center text-white/60 text-xs">
+              دبل تاب / دبل كليك للتكبير
+            </p>
+          </div>
+        )}
 
         {/* ═══ Column 2: Product Details ═══ */}
         <div className="flex flex-col">
@@ -948,7 +1095,7 @@ export default function ProductDetailClient({ productId }: { productId: string }
                   className="absolute top-2 right-2 z-10 w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer shadow-sm"
                 />
                 <Image src={images[0]} alt="" aria-hidden="true" fill className="object-cover scale-125 blur-lg opacity-25" />
-                <Image src={images[0]} alt="" fill className="object-contain" />
+                <Image src={images[0]} alt="" fill className="object-contain scale-110" />
               </div>
               <div className="text-center w-full">
                 <p className="text-[11px] font-bold text-gray-900 leading-tight line-clamp-2 mb-1 h-7">{t(product.name)}</p>
@@ -970,7 +1117,7 @@ export default function ProductDetailClient({ productId }: { productId: string }
                       className="absolute top-2 right-2 z-10 w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer shadow-sm"
                     />
                     <Image src={prod.image} alt="" aria-hidden="true" fill className="object-cover scale-125 blur-lg opacity-25" />
-                    <Image src={prod.image} alt="" fill className="object-contain" />
+                    <Image src={prod.image} alt="" fill className="object-contain scale-110" />
                   </div>
                   <div className="text-center w-full">
                     <p className="text-[11px] font-bold text-gray-900 leading-tight line-clamp-2 mb-1 h-7">{t(prod.name)}</p>

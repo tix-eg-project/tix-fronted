@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import api from "@/lib/api";
 import type { CategoryNavItem } from "@/utils/Types/navigation";
@@ -23,6 +23,9 @@ const fallbackCategories: CategoryNavItem[] = [
 export default function CategoryBar() {
   const [categories, setCategories] = useState<CategoryNavItem[]>(fallbackCategories);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [canScrollPrev, setCanScrollPrev] = useState(false);
+  const [canScrollNext, setCanScrollNext] = useState(false);
+  const [fitsInRow, setFitsInRow] = useState(true);
 
   useEffect(() => {
     async function fetchCategories() {
@@ -43,6 +46,35 @@ export default function CategoryBar() {
     fetchCategories();
   }, []);
 
+  const updateScrollState = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const maxScroll = el.scrollWidth - el.clientWidth;
+    if (maxScroll <= 1) {
+      setCanScrollPrev(false);
+      setCanScrollNext(false);
+      setFitsInRow(true);
+      return;
+    }
+    setFitsInRow(false);
+    const scrolled = Math.abs(el.scrollLeft);
+    setCanScrollPrev(scrolled > 1);
+    setCanScrollNext(scrolled < maxScroll - 1);
+  }, []);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    updateScrollState();
+    const observer = new ResizeObserver(updateScrollState);
+    observer.observe(el);
+    window.addEventListener("resize", updateScrollState);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", updateScrollState);
+    };
+  }, [updateScrollState, categories.length]);
+
   const scrollCategories = (direction: "next" | "prev") => {
     if (!scrollRef.current) return;
     const isRtl = getComputedStyle(scrollRef.current).direction === "rtl";
@@ -57,23 +89,31 @@ export default function CategoryBar() {
   return (
     <section className="bg-white border-b border-gray-100">
       <div className="container mx-auto px-4 relative">
-        <button
-          type="button"
-          onClick={() => scrollCategories("prev")}
-          aria-label="تمرير الأقسام لليمين"
-          className="hidden lg:flex items-center justify-center absolute -right-6 top-1/2 -translate-y-1/2 z-10 text-gray-400 transition-colors"
+        {canScrollPrev && (
+          <button
+            type="button"
+            onClick={() => scrollCategories("prev")}
+            aria-label="تمرير الأقسام لليمين"
+            className="hidden lg:flex items-center justify-center absolute -right-6 top-1/2 -translate-y-1/2 z-10 text-gray-400 hover:text-black transition-colors"
+          >
+            <ChevronRight className="w-4 h-4" />
+          </button>
+        )}
+        {canScrollNext && (
+          <button
+            type="button"
+            onClick={() => scrollCategories("next")}
+            aria-label="تمرير الأقسام لليسار"
+            className="hidden lg:flex items-center justify-center absolute -left-6 top-1/2 -translate-y-1/2 z-10 text-gray-400 hover:text-black transition-colors"
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </button>
+        )}
+        <div
+          ref={scrollRef}
+          onScroll={updateScrollState}
+          className={`flex items-center gap-5 overflow-x-auto py-3 scrollbar-hide ${fitsInRow ? "justify-center" : ""}`}
         >
-          <ChevronRight className="w-4 h-4" />
-        </button>
-        <button
-          type="button"
-          onClick={() => scrollCategories("next")}
-          aria-label="تمرير الأقسام لليسار"
-          className="hidden lg:flex items-center justify-center absolute -left-6 top-1/2 -translate-y-1/2 z-10 text-gray-400 transition-colors"
-        >
-          <ChevronLeft className="w-4 h-4" />
-        </button>
-        <div ref={scrollRef} className="flex items-center gap-5 overflow-x-auto py-3 scrollbar-hide">
           <Link
             href="/offers"
             className="relative text-sm font-bold whitespace-nowrap text-error pb-1 transition-colors after:content-[''] after:absolute after:right-0 after:bottom-0 after:h-0.5 after:w-full after:bg-error"

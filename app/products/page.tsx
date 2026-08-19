@@ -1,5 +1,5 @@
 "use client";
-import { Suspense, useState, useEffect } from "react";
+import { Suspense, useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
@@ -91,6 +91,8 @@ function ProductsContent() {
   const [selectedRatings, setSelectedRatings] = useState<number[]>([]);
   const [viewType, setViewType] = useState<"grid" | "list">("grid");
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [page, setPage] = useState(1);
+  const [pagination, setPagination] = useState<{ current_page: number; last_page: number; total: number } | null>(null);
 
   // Sync from URL
   useEffect(() => {
@@ -148,48 +150,59 @@ function ProductsContent() {
   }, [minPrice, maxPrice]);
 
   // Fetch products
-  useEffect(() => {
-    const fetchProducts = async () => {
-      setLoading(true);
-      try {
-        const params = new URLSearchParams();
-        params.set("limit", "40");
-        if (selectedCategory) params.set("category_id", selectedCategory);
-        if (selectedSubcategory) params.set("subcategory_id", selectedSubcategory);
-        if (selectedBrand) params.set("brand_id", selectedBrand);
-        if (searchParam) params.set("search", searchParam);
-        if (priceRange[0] > 0) params.set("min_price", String(priceRange[0]));
-        if (priceRange[1] < 50000) params.set("max_price", String(priceRange[1]));
-        if (sortBy === "price_low") { params.set("sort", "price"); params.set("direction", "asc"); }
-        if (sortBy === "price_high") { params.set("sort", "price"); params.set("direction", "desc"); }
-        if (sortBy === "rating") { params.set("sort", "rating"); params.set("direction", "desc"); }
+  const fetchProducts = useCallback(async (p: number) => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams();
+      params.set("per_page", "40");
+      params.set("page", String(p));
+      if (selectedCategory) params.set("category_id", selectedCategory);
+      if (selectedSubcategory) params.set("subcategory_id", selectedSubcategory);
+      if (selectedBrand) params.set("brand_id", selectedBrand);
+      if (searchParam) params.set("search", searchParam);
+      if (priceRange[0] > 0) params.set("min_price", String(priceRange[0]));
+      if (priceRange[1] < 50000) params.set("max_price", String(priceRange[1]));
+      if (sortBy === "price_low") { params.set("sort", "price"); params.set("direction", "asc"); }
+      if (sortBy === "price_high") { params.set("sort", "price"); params.set("direction", "desc"); }
+      if (sortBy === "rating") { params.set("sort", "rating"); params.set("direction", "desc"); }
 
-        const res = await api.get(`/products?${params.toString()}`);
-        if (res.data.status) {
-          const data = Array.isArray(res.data.data) ? res.data.data : res.data.data?.data || [];
-          let mapped = data.map((p: any): ProductCardProps => ({
-            id: String(p.id),
-            name: p.name,
-            price: p.price_after || p.price,
-            originalPrice: p.price_before,
-            image: p.images?.[0] || p.image || "/pl1.jpg",
-            images: p.images,
-            discount: p.discount || 0,
-            rating: p.avg_rating || p.reviews?.average_rating || 0,
-            reviewsCount: p.reviews?.count || 0,
-          }));
+      const res = await api.get(`/products?${params.toString()}`);
+      if (res.data.status) {
+        const container = res.data.data;
+        const data = Array.isArray(container) ? container : container?.data || [];
+        let mapped = data.map((p: any): ProductCardProps => ({
+          id: String(p.id),
+          name: p.name,
+          price: p.price_after || p.price,
+          originalPrice: p.price_before,
+          image: p.images?.[0] || p.image || "/pl1.jpg",
+          images: p.images,
+          discount: p.discount || 0,
+          rating: p.avg_rating || p.reviews?.average_rating || 0,
+          reviewsCount: p.reviews?.count || 0,
+        }));
 
-          if (selectedRatings.length > 0) {
-            mapped = mapped.filter((p: ProductCardProps) => selectedRatings.some((r) => (p.rating ?? 0) >= r));
-          }
-
-          setProducts(mapped);
+        if (selectedRatings.length > 0) {
+          mapped = mapped.filter((p: ProductCardProps) => selectedRatings.some((r) => (p.rating ?? 0) >= r));
         }
-      } catch {}
-      finally { setLoading(false); }
-    };
-    fetchProducts();
+
+        setProducts(mapped);
+        setPagination(res.data.pagination ?? null);
+      }
+    } catch {}
+    finally { setLoading(false); }
   }, [selectedCategory, selectedSubcategory, selectedBrand, sortBy, searchParam, priceRange, selectedRatings]);
+
+  useEffect(() => {
+    setPage(1);
+    fetchProducts(1);
+  }, [fetchProducts]);
+
+  const handlePageChange = (p: number) => {
+    setPage(p);
+    fetchProducts(p);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   const resetFilters = () => {
     setMinPrice("0");
@@ -222,7 +235,7 @@ function ProductsContent() {
             <h1 className="text-2xl md:text-3xl font-bold text-gray-900">
               {searchParam ? `نتائج البحث عن: "${searchParam}"` : "تسوق جميع المنتجات"}
             </h1>
-            <p className="text-gray-500 mt-1 mb-5">{products.length} منتج متاح</p>
+            <p className="text-gray-500 mt-1 mb-5">{pagination?.total ?? products.length} منتج متاح</p>
 
             {/* Subcategory tabs */}
             {subcategories.length > 0 && (
@@ -436,7 +449,8 @@ function ProductsContent() {
                   ))}
                 </div>
               ) : products.length > 0 ? (
-                viewType === "grid" ? (
+                <>
+                {viewType === "grid" ? (
                   <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
                     {products.map((product) => (
                       <ProductCard key={product.id} {...product} />
@@ -452,7 +466,7 @@ function ProductsContent() {
                       >
                         <div className="relative overflow-hidden bg-gray-50 flex-shrink-0 flex items-center justify-center w-48 h-48 sm:w-60 sm:h-60">
                           <Image src={product.image} alt="" aria-hidden="true" fill className="object-cover scale-125 blur-lg opacity-25" />
-                          <Image src={product.image} alt={product.name} fill className="object-contain transition-transform duration-500" />
+                          <Image src={product.image} alt={product.name} fill className="object-contain scale-110 transition-transform duration-500" />
                           {(product.discount ?? 0) > 0 && (
                             <div className="absolute top-3 right-3 bg-red-600 text-white text-[10px] font-bold px-2 py-1 rounded-md shadow-lg z-10">
                               -{product.discount}%
@@ -490,7 +504,53 @@ function ProductsContent() {
                       </Link>
                     ))}
                   </div>
-                )
+                )}
+
+                {pagination && pagination.last_page > 1 && (
+                  <div className="flex justify-center items-center gap-2 mt-8">
+                    <button
+                      onClick={() => handlePageChange(page - 1)}
+                      disabled={page === 1}
+                      className="px-4 py-2 rounded-xl border border-gray-200 text-sm font-medium disabled:opacity-40 hover:border-red-600 hover:text-red-600 transition-colors"
+                    >
+                      السابق
+                    </button>
+
+                    {Array.from({ length: pagination.last_page }, (_, i) => i + 1)
+                      .filter((pnum) => pnum === 1 || pnum === pagination.last_page || Math.abs(pnum - page) <= 1)
+                      .reduce<(number | "...")[]>((acc, pnum, idx, arr) => {
+                        if (idx > 0 && pnum - (arr[idx - 1] as number) > 1) acc.push("...");
+                        acc.push(pnum);
+                        return acc;
+                      }, [])
+                      .map((pnum, i) =>
+                        pnum === "..." ? (
+                          <span key={`dots-${i}`} className="px-2 text-gray-400">…</span>
+                        ) : (
+                          <button
+                            key={pnum}
+                            onClick={() => handlePageChange(pnum as number)}
+                            className={`w-9 h-9 rounded-xl text-sm font-medium transition-colors ${
+                              page === pnum
+                                ? "bg-red-600 text-white"
+                                : "border border-gray-200 hover:border-red-600 hover:text-red-600"
+                            }`}
+                          >
+                            {pnum}
+                          </button>
+                        )
+                      )}
+
+                    <button
+                      onClick={() => handlePageChange(page + 1)}
+                      disabled={page === pagination.last_page}
+                      className="px-4 py-2 rounded-xl border border-gray-200 text-sm font-medium disabled:opacity-40 hover:border-red-600 hover:text-red-600 transition-colors"
+                    >
+                      التالي
+                    </button>
+                  </div>
+                )}
+                </>
               ) : (
                 <div className="bg-white rounded-2xl border border-dashed border-gray-300 p-20 text-center">
                   <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-6">
