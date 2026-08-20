@@ -56,7 +56,7 @@ export default function OfferProductsPage() {
   const expired = days !== null && days <= 0;
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-white">
       {/* Hero Banner */}
       <div className="relative overflow-hidden bg-gradient-to-l from-red-700 via-red-600 to-orange-500">
         {offer?.image_url && (

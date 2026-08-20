@@ -108,13 +108,13 @@ export default function SubcategoryPage() {
                 href={`/subsubcategory/${sub.id}?name=${encodeURIComponent(t(sub.name))}&subcategory=${subcategoryId}&subcategoryName=${encodeURIComponent(displayName)}&category=${categoryId}&categoryName=${encodeURIComponent(categoryName)}`}
                 className="card p-3 flex flex-col items-center gap-2 text-center hover:shadow-md transition-shadow"
               >
-                <div className="relative w-20 h-20 sm:w-28 sm:h-28 rounded-t-2xl overflow-hidden bg-gray-50">
+                <div className="relative w-28 h-28 sm:w-36 sm:h-36 lg:w-40 lg:h-40 rounded-t-2xl overflow-hidden bg-gray-50">
                   <Image
                     src={sub.image || "/pl1.jpg"}
                     alt={t(sub.name)}
                     fill
                     className="object-cover"
-                    sizes="112px"
+                    sizes="(min-width: 1024px) 160px, (min-width: 640px) 144px, 112px"
                   />
                 </div>
                 <span className="text-sm font-medium line-clamp-2">{t(sub.name)}</span>

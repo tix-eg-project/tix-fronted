@@ -76,11 +76,12 @@ export default function CategoryBar() {
   }, [updateScrollState, categories.length]);
 
   const scrollCategories = (direction: "next" | "prev") => {
-    if (!scrollRef.current) return;
-    const isRtl = getComputedStyle(scrollRef.current).direction === "rtl";
-    const step = 220;
+    const el = scrollRef.current;
+    if (!el) return;
+    const isRtl = getComputedStyle(el).direction === "rtl";
+    const step = el.clientWidth * 0.9;
     const delta = direction === "next" ? step : -step;
-    scrollRef.current.scrollBy({
+    el.scrollBy({
       left: isRtl ? -delta : delta,
       behavior: "smooth",
     });

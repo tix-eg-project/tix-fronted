@@ -27,7 +27,7 @@ export default function WishlistPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex flex-col" dir="rtl">
+      <div className="min-h-screen bg-white flex flex-col" dir="rtl">
         <div className="container mx-auto px-4 py-8">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 animate-pulse">
             {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
@@ -40,7 +40,7 @@ export default function WishlistPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col" dir="rtl">
+    <div className="min-h-screen bg-white flex flex-col" dir="rtl">
       <main className="flex-1">
         {/* Header Section */}
         <div className="bg-white border-b border-gray-200">

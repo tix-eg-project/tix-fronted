@@ -450,23 +450,51 @@ export default function ProductDetailClient({ productId }: { productId: string }
   return (
     <div style={{ maxWidth: 1200, margin: "0 auto", padding: "24px 20px" }}>
       {/* Breadcrumb */}
-      <nav className="flex items-center gap-2 text-sm mb-6" style={{ color: "#666" }}>
-        <Link href="/" className="hover:text-black transition-colors">
+      <nav className="flex items-center gap-2 text-sm mb-6 overflow-x-auto scrollbar-hide whitespace-nowrap" style={{ color: "#666" }}>
+        <Link href="/" className="hover:text-black transition-colors shrink-0">
           الرئيسية
         </Link>
-        <span>/</span>
+        <span className="shrink-0">/</span>
         {product.category && (
           <>
-            <Link href="/products" className="hover:text-black transition-colors">
+            <Link href="/products" className="hover:text-black transition-colors shrink-0">
               {t(product.category)}
             </Link>
-            <span>/</span>
+            <span className="shrink-0">/</span>
           </>
         )}
-        <span style={{ color: "#212121" }} className="truncate max-w-[200px]">
+        <span style={{ color: "#212121" }} className="truncate max-w-[160px] sm:max-w-[280px] shrink-0">
           {t(product.name)}
         </span>
       </nav>
+
+      {/* Mobile: Brand + Title + Rating above the image */}
+      <div className="lg:hidden mb-4">
+        {product?.brand?.id ? (
+          <Link
+            href={`/brand/${product.brand.id}?name=${encodeURIComponent(t(product.brand.name ?? product.brand))}`}
+            className="text-sm font-semibold text-primary hover:underline inline-block"
+          >
+            {t(product.brand.name ?? product.brand)}
+          </Link>
+        ) : product?.brand ? (
+          <span className="text-sm font-semibold text-primary block">
+            {t(typeof product.brand === "object" ? product.brand.name : product.brand)}
+          </span>
+        ) : null}
+
+        <h1 className="text-xl font-bold leading-tight mt-1" style={{ color: "#212121" }}>
+          {t(product.name)}
+        </h1>
+
+        <div className="flex items-center gap-2 mt-2">
+          <StarRating value={avgRating} />
+          <span style={{ fontSize: 14, color: "#666" }}>
+            {avgRating > 0 ? `${avgRating.toFixed(1)} ` : ""}
+            ({(reviewCount ?? 0).toLocaleString("en-US")} تقييم)
+          </span>
+        </div>
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-start">
         {/* ═══ Column 1: Images ═══ */}
@@ -616,27 +644,27 @@ export default function ProductDetailClient({ productId }: { productId: string }
 
         {/* ═══ Column 2: Product Details ═══ */}
         <div className="flex flex-col">
-          {/* Brand */}
+          {/* Brand — desktop only, shown above the image on mobile */}
           {product?.brand?.id ? (
             <Link
               href={`/brand/${product.brand.id}?name=${encodeURIComponent(t(product.brand.name ?? product.brand))}`}
-              className="text-sm font-semibold text-primary hover:underline mb-1 self-start"
+              className="hidden lg:inline-block text-sm font-semibold text-primary hover:underline mb-1 self-start"
             >
               {t(product.brand.name ?? product.brand)}
             </Link>
           ) : product?.brand ? (
-            <span className="text-sm font-semibold text-primary mb-1">
+            <span className="hidden lg:block text-sm font-semibold text-primary mb-1">
               {t(typeof product.brand === "object" ? product.brand.name : product.brand)}
             </span>
           ) : null}
 
-          {/* Title */}
-          <h1 className="text-xl md:text-2xl font-bold leading-tight" style={{ color: "#212121" }}>
+          {/* Title — desktop only, shown above the image on mobile */}
+          <h1 className="hidden lg:block text-xl md:text-2xl font-bold leading-tight" style={{ color: "#212121" }}>
             {t(product.name)}
           </h1>
 
-          {/* Rating */}
-          <div className="flex items-center gap-2 mt-2">
+          {/* Rating — desktop only, shown above the image on mobile */}
+          <div className="hidden lg:flex items-center gap-2 mt-2">
             <StarRating value={avgRating} />
             <span style={{ fontSize: 14, color: "#666" }}>
               {avgRating > 0 ? `${avgRating.toFixed(1)} · ` : ""}
@@ -828,19 +856,19 @@ export default function ProductDetailClient({ productId }: { productId: string }
 
           {/* ── Feature Values ── */}
           {Array.isArray(product.feature_values) && product.feature_values.length > 0 && (
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-6 pt-6 border-t border-gray-100">
+            <div className="grid grid-cols-3 gap-2 sm:gap-3 mt-6 pt-6 border-t border-gray-100">
               {product.feature_values.map((f: any) => (
                 <div
                   key={f.id}
-                  className="flex flex-col items-center text-center gap-1.5 p-3 rounded-xl bg-gray-50"
+                  className="flex flex-col items-center text-center gap-1 sm:gap-1.5 p-2 sm:p-3 rounded-xl bg-gray-50"
                 >
                   {f.logo_url ? (
-                    <img src={f.logo_url} alt={f.title} className="w-6 h-6 object-contain" />
+                    <img src={f.logo_url} alt={f.title} className="w-5 h-5 sm:w-6 sm:h-6 object-contain" />
                   ) : (
-                    <span className="w-6 h-6" />
+                    <span className="w-5 h-5 sm:w-6 sm:h-6" />
                   )}
-                  <span className="text-xs font-semibold text-gray-800">{f.title}</span>
-                  {f.value && <span className="text-xs text-gray-500">{f.value}</span>}
+                  <span className="text-[10px] sm:text-xs font-semibold text-gray-800">{f.title}</span>
+                  {f.value && <span className="text-[10px] sm:text-xs text-gray-500">{f.value}</span>}
                 </div>
               ))}
             </div>
@@ -1087,15 +1115,16 @@ export default function ProductDetailClient({ productId }: { productId: string }
           <div className="flex items-start gap-4 overflow-x-auto pb-4 scrollbar-hide">
             {/* Main Product */}
             <div className="flex-shrink-0 w-32 flex flex-col items-center gap-3">
-              <div className="relative w-32 h-32 bg-gray-50 rounded-xl border border-gray-100 overflow-hidden group">
+              <div className="relative w-32 h-32 bg-white rounded-xl overflow-hidden group">
                 <input
                   type="checkbox"
                   checked={selectedBoughtTogether.includes(String(product.id))}
                   onChange={() => toggleBoughtTogether(String(product.id))}
                   className="absolute top-2 right-2 z-10 w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer shadow-sm"
                 />
-                <Image src={images[0]} alt="" aria-hidden="true" fill className="object-cover scale-125 blur-lg opacity-25" />
-                <Image src={images[0]} alt="" fill className="object-contain scale-110" />
+                <div className="relative w-full h-full p-2">
+                  <Image src={images[0]} alt={t(product.name)} fill className="object-contain" sizes="128px" />
+                </div>
               </div>
               <div className="text-center w-full">
                 <p className="text-[11px] font-bold text-gray-900 leading-tight line-clamp-2 mb-1 h-7">{t(product.name)}</p>
@@ -1109,15 +1138,16 @@ export default function ProductDetailClient({ productId }: { productId: string }
                   <PlusIcon className="w-4 h-4" />
                 </div>
                 <div className="flex-shrink-0 w-32 flex flex-col items-center gap-3">
-                  <div className="relative w-32 h-32 bg-gray-50 rounded-xl border border-gray-100 overflow-hidden group">
+                  <div className="relative w-32 h-32 bg-white rounded-xl overflow-hidden group">
                     <input
                       type="checkbox"
                       checked={selectedBoughtTogether.includes(String(prod.id))}
                       onChange={() => toggleBoughtTogether(String(prod.id))}
                       className="absolute top-2 right-2 z-10 w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer shadow-sm"
                     />
-                    <Image src={prod.image} alt="" aria-hidden="true" fill className="object-cover scale-125 blur-lg opacity-25" />
-                    <Image src={prod.image} alt="" fill className="object-contain scale-110" />
+                    <div className="relative w-full h-full p-2">
+                      <Image src={prod.image} alt={t(prod.name)} fill className="object-contain" sizes="128px" />
+                    </div>
                   </div>
                   <div className="text-center w-full">
                     <p className="text-[11px] font-bold text-gray-900 leading-tight line-clamp-2 mb-1 h-7">{t(prod.name)}</p>
@@ -1149,15 +1179,15 @@ export default function ProductDetailClient({ productId }: { productId: string }
               <Link
                 key={prod.id}
                 href={`/product/${prod.id}/${generateSlug(t(prod.name))}`}
-                className="shrink-0 w-44 md:w-auto bg-white rounded-xl border border-gray-100 p-3 hover:shadow-md transition-shadow"
+                className="shrink-0 w-44 md:w-auto bg-transparent rounded-xl p-3 transition-shadow"
               >
-                <div className="aspect-square rounded-lg overflow-hidden bg-gray-50 mb-2">
+                <div className="relative aspect-square rounded-lg overflow-hidden bg-white mb-2 p-2">
                   <Image
                     src={prod.image || "/pl1.jpg"}
                     alt={t(prod.name)}
-                    width={200}
-                    height={200}
-                    className="object-cover w-full h-full"
+                    fill
+                    className="object-contain"
+                    sizes="176px"
                   />
                 </div>
                 <p className="text-sm font-medium line-clamp-2 mb-1" style={{ color: "#212121" }}>

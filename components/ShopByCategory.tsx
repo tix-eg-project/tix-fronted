@@ -41,11 +41,12 @@ export default function ShopByCategory({ categories }: { categories: CategoryNav
   }, [updateScrollState, categories.length]);
 
   const scroll = (direction: "prev" | "next") => {
-    if (!scrollRef.current) return;
-    const isRtl = getComputedStyle(scrollRef.current).direction === "rtl";
-    const step = 220;
+    const el = scrollRef.current;
+    if (!el) return;
+    const isRtl = getComputedStyle(el).direction === "rtl";
+    const step = el.clientWidth * 0.9;
     const delta = direction === "next" ? step : -step;
-    scrollRef.current.scrollBy({ left: isRtl ? -delta : delta, behavior: "smooth" });
+    el.scrollBy({ left: isRtl ? -delta : delta, behavior: "smooth" });
   };
 
   if (categories.length === 0) return null;
@@ -86,15 +87,15 @@ export default function ShopByCategory({ categories }: { categories: CategoryNav
             <Link
               key={cat.id}
               href={`/products?category=${cat.slug || cat.id}`}
-              className="flex flex-col items-center gap-2 text-center flex-shrink-0 w-20 sm:w-28"
+              className="flex flex-col items-center gap-2 text-center flex-shrink-0 w-28 sm:w-40 lg:w-48"
             >
-              <div className="relative w-20 h-20 sm:w-28 sm:h-28 rounded-t-2xl overflow-hidden bg-gray-50 border border-gray-100">
+              <div className="relative w-28 h-28 sm:w-40 sm:h-40 lg:w-48 lg:h-48 rounded-t-2xl overflow-hidden bg-gray-50 border border-gray-100">
                 <Image
                   src={cat.image || "/pl1.jpg"}
                   alt={cat.name}
                   fill
                   className="object-cover"
-                  sizes="112px"
+                  sizes="(min-width: 1024px) 192px, (min-width: 640px) 160px, 112px"
                 />
               </div>
               <span className="text-xs sm:text-sm font-medium line-clamp-2">{cat.name}</span>

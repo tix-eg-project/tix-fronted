@@ -91,46 +91,33 @@ export default function ProductCard({
 
   return (
     <Link href={`/product/${id}/${generateSlug(productName)}`} className="block h-full">
-      <Card className={`overflow-hidden hover:shadow-lg transition-all cursor-pointer h-full border border-gray-200 py-0 gap-0 ${
-        isFlashDeal ? "bg-white border-red-200" : ""
+      <Card className={`overflow-hidden transition-all cursor-pointer h-full border-0 shadow-none py-0 gap-0 bg-transparent ${
+        isFlashDeal ? "bg-white" : ""
       }`}>
         <div
-          className={`relative w-full bg-gray-50 overflow-hidden ${isFlashDeal ? "aspect-square" : "aspect-[4/5]"}`}
+          className={`relative w-full bg-white overflow-hidden ${isFlashDeal ? "aspect-square" : "aspect-[4/5]"}`}
           onMouseEnter={startHoverCycle}
           onMouseLeave={stopHoverCycle}
         >
           {/* اللاب/الديسك توب — تبديل تلقائي بالـ hover */}
-          <div className="hidden lg:block absolute inset-0">
-            {gallery.map((img, i) => (
-              <Image
-                key={`bg-${i}`}
-                src={img || "/pl1.jpg"}
-                alt=""
-                aria-hidden="true"
-                fill
-                className="object-cover scale-125 blur-lg"
-                style={{
-                  opacity: i === activeIndex ? 0.25 : 0,
-                  transition: `opacity ${FADE_MS}ms ease-in-out`,
-                }}
-                sizes="25vw"
-              />
-            ))}
-            {gallery.map((img, i) => (
-              <Image
-                key={`fg-${i}`}
-                src={img || "/pl1.jpg"}
-                alt={i === 0 ? productName : ""}
-                aria-hidden={i !== 0}
-                fill
-                className="object-contain scale-110"
-                style={{
-                  opacity: i === activeIndex ? 1 : 0,
-                  transition: `opacity ${FADE_MS}ms ease-in-out`,
-                }}
-                sizes="25vw"
-              />
-            ))}
+          <div className="hidden lg:block absolute inset-0 p-1.5">
+            <div className="relative w-full h-full">
+              {gallery.map((img, i) => (
+                <Image
+                  key={`fg-${i}`}
+                  src={img || "/pl1.jpg"}
+                  alt={i === 0 ? productName : ""}
+                  aria-hidden={i !== 0}
+                  fill
+                  className="object-contain"
+                  style={{
+                    opacity: i === activeIndex ? 1 : 0,
+                    transition: `opacity ${FADE_MS}ms ease-in-out`,
+                  }}
+                  sizes="25vw"
+                />
+              ))}
+            </div>
           </div>
 
           {/* الموبايل/التابلت — سحب بالإصبع (swipe) بين الصور */}
@@ -139,23 +126,17 @@ export default function ProductCard({
             onScroll={handleMobileScroll}
           >
             {gallery.map((img, i) => (
-              <div key={`m-${i}`} className="relative w-full h-full flex-shrink-0 snap-center">
-                <Image
-                  src={img || "/pl1.jpg"}
-                  alt=""
-                  aria-hidden="true"
-                  fill
-                  className="object-cover scale-125 blur-lg opacity-25"
-                  sizes="(max-width: 640px) 100vw, 33vw"
-                />
-                <Image
-                  src={img || "/pl1.jpg"}
-                  alt={i === 0 ? productName : ""}
-                  aria-hidden={i !== 0}
-                  fill
-                  className="object-contain scale-110"
-                  sizes="(max-width: 640px) 100vw, 33vw"
-                />
+              <div key={`m-${i}`} className="w-full h-full flex-shrink-0 snap-center p-1">
+                <div className="relative w-full h-full">
+                  <Image
+                    src={img || "/pl1.jpg"}
+                    alt={i === 0 ? productName : ""}
+                    aria-hidden={i !== 0}
+                    fill
+                    className="object-contain"
+                    sizes="(max-width: 640px) 100vw, 33vw"
+                  />
+                </div>
               </div>
             ))}
           </div>
