@@ -1,11 +1,15 @@
+"use client";
 import ProductCard from "./ProductCard";
 import type { ProductCardProps } from "@/utils/Types/products";
+import { useLanguage } from "@/context/LanguageContext";
 
 export default function ProductGrid({ products }: { products: ProductCardProps[] }) {
+  const { t } = useLanguage();
+
   if (!products || products.length === 0) {
     return (
       <div className="text-center py-16">
-        <p className="text-text-muted text-lg">لا توجد منتجات متاحة حالياً</p>
+        <p className="text-text-muted text-lg">{t("products.noProductsAvailable")}</p>
       </div>
     );
   }

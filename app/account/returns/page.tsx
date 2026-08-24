@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import { useAuth } from "@/context/AuthContext";
+import { useLanguage } from "@/context/LanguageContext";
 import api from "@/lib/api";
 import { formatCurrency } from "@/utils/helpers";
 import { RotateCcw, Package, Clock, CheckCircle, XCircle } from "lucide-react";
@@ -39,6 +40,7 @@ const statusIcon = (status: string | null) => {
 
 export default function ReturnsPage() {
   const { state: authState } = useAuth();
+  const { t, lang } = useLanguage();
   const [returns, setReturns] = useState<ReturnRequest[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -72,8 +74,8 @@ export default function ReturnsPage() {
     return (
       <div className="card p-10 text-center">
         <RotateCcw className="w-14 h-14 mx-auto text-text-faint mb-4" />
-        <h2 className="text-lg font-bold mb-2">لا توجد طلبات إرجاع</h2>
-        <p className="text-text-muted text-sm">لم تقم بطلب إرجاع أي منتج بعد</p>
+        <h2 className="text-lg font-bold mb-2">{t('account.noReturnRequests')}</h2>
+        <p className="text-text-muted text-sm">{t('account.noReturnRequestsDesc')}</p>
       </div>
     );
   }
@@ -82,7 +84,7 @@ export default function ReturnsPage() {
     <div className="space-y-4">
       <h2 className="text-lg font-bold flex items-center gap-2">
         <RotateCcw className="w-5 h-5 text-primary" />
-        طلبات الإرجاع
+        {t('account.returnRequests')}
       </h2>
       {returns.map((ret) => (
         <div key={ret.id} className="card p-4">
@@ -99,21 +101,21 @@ export default function ReturnsPage() {
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between mb-1">
                 <h3 className="text-sm font-medium truncate">
-                  {ret.item?.product_name || `طلب إرجاع #${ret.id}`}
+                  {ret.item?.product_name || `${t('account.returnRequest')} ${t('account.orderHash')}${ret.id}`}
                 </h3>
                 <div className="flex items-center gap-1.5 text-xs">
                   {statusIcon(ret.status_label)}
-                  <span className="font-medium">{ret.status_label || "قيد المراجعة"}</span>
+                  <span className="font-medium">{ret.status_label || t('account.underReview')}</span>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-2 text-xs text-text-muted mt-2">
-                <span>طلب #{ret.order?.id}</span>
-                <span>الكمية: {ret.quantity}</span>
-                {ret.reason_label && <span>السبب: {ret.reason_label}</span>}
-                <span>المبلغ: {formatCurrency(ret.refunds?.total || 0)}</span>
+                <span>{t('account.orderHash')}{ret.order?.id}</span>
+                <span>{t('account.quantity')}: {ret.quantity}</span>
+                {ret.reason_label && <span>{t('account.reason')}: {ret.reason_label}</span>}
+                <span>{t('account.amount')}: {formatCurrency(ret.refunds?.total || 0)}</span>
               </div>
               <div className="text-xs text-text-faint mt-2">
-                {new Date(ret.created_at).toLocaleDateString("ar-EG")}
+                {new Date(ret.created_at).toLocaleDateString(lang === 'en' ? 'en-US' : 'ar-EG')}
               </div>
             </div>
           </div>

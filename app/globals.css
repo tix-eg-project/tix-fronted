@@ -46,7 +46,6 @@
   body {
     background-color: var(--color-bg);
     color: var(--color-text);
-    direction: rtl;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     font-size: 16px;
@@ -297,7 +296,7 @@
     font-size: 14px;
     color: #999999;
     text-decoration: line-through;
-    margin-right: 8px;
+    margin-inline-start: 8px;
   }
 
   /* ── Skeleton ── */

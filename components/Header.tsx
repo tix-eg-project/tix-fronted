@@ -5,17 +5,20 @@ import { useRouter, usePathname } from 'next/navigation'
 import { useCart } from '@/context/CartContext'
 import { useWishlist } from '@/context/WishlistContext'
 import { useAuth } from '@/context/AuthContext'
+import { useLanguage } from '@/context/LanguageContext'
 import {
   Search, ShoppingCart, User, Menu, X, Heart,
   ChevronDown, LogOut, Package, UserCircle
 } from 'lucide-react'
 import api from '@/lib/api'
-import { generateSlug, t } from '@/utils/helpers'
+import { generateSlug, t as tApi } from '@/utils/helpers'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import CategoryBar from './CategoryBar'
+import LanguageSwitcher from './LanguageSwitcher'
 
 export default function Header() {
+  const { lang, t } = useLanguage()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState<any[]>([])
@@ -67,7 +70,7 @@ export default function Header() {
     setSearchQuery('')
     setSearchResults([])
     setShowSearchResults(false)
-    const slug = generateSlug(t(name))
+    const slug = generateSlug(tApi(name, lang))
     router.push(slug ? `/product/${id}/${slug}` : `/product/${id}`)
   }
 
@@ -88,11 +91,11 @@ export default function Header() {
   }
 
   const navLinks = [
-    { href: '/', label: 'الرئيسية' },
-    { href: '/products', label: 'المنتجات' },
-    { href: '/offers', label: 'العروض' },
-    { href: '/about', label: 'من نحن' },
-    { href: '/contact', label: 'تواصل معنا' },
+    { href: '/', label: t('header.home') },
+    { href: '/products', label: t('header.products') },
+    { href: '/offers', label: t('header.offers') },
+    { href: '/about', label: t('header.about') },
+    { href: '/contact', label: t('header.contact') },
   ]
 
   const isAuthPage = pathname === '/login' || pathname === '/register' || pathname === '/forgot-password'
@@ -112,15 +115,15 @@ export default function Header() {
             <div className="relative w-full">
               <Input
                 type="search"
-                placeholder="ابحث عن منتجات..."
+                placeholder={t('header.searchPlaceholder')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyDown={handleSearchKeyDown}
-                className="w-full bg-white border border-gray-400 text-black placeholder:text-gray-500 pr-10 focus-visible:border-black focus-visible:ring-0"
+                className="w-full bg-white border border-gray-400 text-black placeholder:text-gray-500 ps-10 focus-visible:border-black focus-visible:ring-0"
               />
               <button
                 onClick={handleSearchAll}
-                className="absolute left-0 top-0 h-full px-3 flex items-center hover:text-black text-gray-600 transition-colors"
+                className="absolute end-0 top-0 h-full px-3 flex items-center hover:text-black text-gray-600 transition-colors"
               >
                 <Search className="h-4 w-4" />
               </button>
@@ -134,15 +137,15 @@ export default function Header() {
                       <button
                         key={item.id}
                         onClick={() => handleSearchSelect(item.id, item.name)}
-                        className="w-full text-right px-4 py-3 flex items-center gap-3 hover:bg-gray-100 transition-colors border-b border-gray-100 last:border-0"
+                        className="w-full text-start px-4 py-3 flex items-center gap-3 hover:bg-gray-100 transition-colors border-b border-gray-100 last:border-0"
                       >
                         <Search className="w-4 h-4 flex-shrink-0 text-gray-400" />
-                        <span className="text-sm text-gray-900 truncate">{item.name}</span>
+                        <span className="text-sm text-gray-900 truncate">{tApi(item.name, lang)}</span>
                       </button>
                     ))
                   ) : (
                     <div className="px-4 py-4 text-center text-sm text-gray-500">
-                      لا توجد نتائج
+                      {t('common.noResults')}
                     </div>
                   )}
                 </div>
@@ -151,7 +154,7 @@ export default function Header() {
                   className="w-full flex items-center justify-center gap-2 px-4 py-3 text-sm font-semibold text-white bg-black hover:bg-gray-900 transition-colors border-t border-gray-200"
                 >
                   <Search className="w-4 h-4" />
-                  عرض كل نتائج &quot;{searchQuery}&quot;
+                  {t('header.viewAllResults', { query: searchQuery })}
                 </button>
               </div>
             )}
@@ -170,25 +173,25 @@ export default function Header() {
                   <ChevronDown className="h-4 w-4 hidden md:block" />
                 </button>
                 {userMenuOpen && (
-                  <div className="absolute top-full left-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-lg z-50 min-w-48 overflow-hidden">
+                  <div className="absolute top-full start-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-lg z-50 min-w-48 overflow-hidden">
                     <div className="px-4 py-3 border-b border-gray-100">
                       <p className="text-sm font-semibold text-gray-900 truncate">{authState.user?.name}</p>
                       <p className="text-xs text-gray-500 truncate" dir="ltr">{authState.user?.email}</p>
                     </div>
                     <Link href="/account" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2 px-4 py-2 text-sm hover:bg-gray-100">
                       <UserCircle className="h-4 w-4" />
-                      حسابي
+                      {t('header.myAccount')}
                     </Link>
                     <Link href="/account/orders" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2 px-4 py-2 text-sm hover:bg-gray-100">
                       <Package className="h-4 w-4" />
-                      طلباتي
+                      {t('header.myOrders')}
                     </Link>
                     <button
                       onClick={handleLogout}
-                      className="w-full text-right px-4 py-2 text-sm hover:bg-gray-100 flex items-center gap-2 text-red-600 border-top border-gray-100"
+                      className="w-full text-start px-4 py-2 text-sm hover:bg-gray-100 flex items-center gap-2 text-red-600 border-top border-gray-100"
                     >
                       <LogOut className="h-4 w-4" />
-                      تسجيل الخروج
+                      {t('header.logout')}
                     </button>
                   </div>
                 )}
@@ -204,7 +207,7 @@ export default function Header() {
               <Button variant="ghost" size="icon" className="text-black hover:bg-gray-100 relative">
                 <Heart className="h-5 w-5" />
                 {wishlistItems.length > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-red-600 text-white text-[10px] font-bold rounded-full h-4 w-4 flex items-center justify-center">
+                  <span className="absolute -top-1 -end-1 bg-red-600 text-white text-[10px] font-bold rounded-full h-4 w-4 flex items-center justify-center">
                     {wishlistItems.length > 99 ? '99+' : wishlistItems.length}
                   </span>
                 )}
@@ -214,12 +217,13 @@ export default function Header() {
               <Button variant="ghost" size="icon" className="text-black hover:bg-gray-100 relative">
                 <ShoppingCart className="h-5 w-5" />
                 {cartState.count > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-red-600 text-white text-[10px] font-bold rounded-full h-4 w-4 flex items-center justify-center">
+                  <span className="absolute -top-1 -end-1 bg-red-600 text-white text-[10px] font-bold rounded-full h-4 w-4 flex items-center justify-center">
                     {cartState.count > 99 ? '99+' : cartState.count}
                   </span>
                 )}
               </Button>
             </Link>
+            <LanguageSwitcher />
           </div>
         </div>
 
@@ -228,7 +232,7 @@ export default function Header() {
           <div className="relative">
             <Input
               type="search"
-              placeholder="ابحث عن منتجات..."
+              placeholder={t('header.searchPlaceholder')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyDown={handleSearchKeyDown}
@@ -236,7 +240,7 @@ export default function Header() {
             />
             <button
               onClick={handleSearchAll}
-              className="absolute left-0 top-0 h-full px-3 flex items-center text-gray-500 hover:text-black transition-colors"
+              className="absolute end-0 top-0 h-full px-3 flex items-center text-gray-500 hover:text-black transition-colors"
             >
               <Search className="h-4 w-4" />
             </button>

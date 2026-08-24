@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useAuth } from '@/context/AuthContext'
+import { useLanguage } from '@/context/LanguageContext'
 import { MapPin, Plus, Pencil, Trash2, Star, X, Save, Loader2, Home, Briefcase, ChevronDown, Search } from 'lucide-react'
 import { toast } from 'react-toastify'
 import api from '@/lib/api'
@@ -29,6 +30,7 @@ const LABEL_SUGGESTIONS = ['المنزل', 'العمل', 'العائلة', 'آخ
 
 export default function AddressesPage() {
   const { state: authState } = useAuth()
+  const { t } = useLanguage()
   const [addresses, setAddresses] = useState<Address[]>([])
   const [loading, setLoading] = useState(true)
   const [cities, setCities] = useState<ShippingCity[]>([])
@@ -56,7 +58,7 @@ export default function AddressesPage() {
       const data = res.data?.data || res.data || []
       setAddresses(Array.isArray(data) ? data : [])
     } catch {
-      toast.error('تعذر تحميل العناوين')
+      toast.error(t('account.loadAddressesError'))
     } finally {
       setLoading(false)
     }
@@ -121,7 +123,7 @@ export default function AddressesPage() {
   async function handleSave(e: React.FormEvent) {
     e.preventDefault()
     if (!form.label.trim() || !form.name.trim() || !form.phone.trim() || !form.address.trim()) {
-      toast.error('الرجاء ملء الحقول المطلوبة')
+      toast.error(t('account.fillRequiredFields'))
       return
     }
     setSaving(true)
@@ -137,15 +139,15 @@ export default function AddressesPage() {
       }
       if (editId) {
         await api.put(`/addresses/${editId}`, payload)
-        toast.success('تم تعديل العنوان')
+        toast.success(t('account.addressUpdated'))
       } else {
         await api.post('/addresses', payload)
-        toast.success('تم إضافة العنوان')
+        toast.success(t('account.addressAdded'))
       }
       closeModal()
       await fetchAddresses()
     } catch (err: any) {
-      toast.error(err.response?.data?.message || 'حدث خطأ')
+      toast.error(err.response?.data?.message || t('common.error'))
     } finally {
       setSaving(false)
     }
@@ -155,10 +157,10 @@ export default function AddressesPage() {
     setDeletingId(id)
     try {
       await api.delete(`/addresses/${id}`)
-      toast.success('تم حذف العنوان')
+      toast.success(t('account.addressDeleted'))
       setAddresses(prev => prev.filter(a => a.id !== id))
     } catch {
-      toast.error('تعذر حذف العنوان')
+      toast.error(t('account.deleteAddressError'))
     } finally {
       setDeletingId(null)
       setConfirmDeleteId(null)
@@ -169,10 +171,10 @@ export default function AddressesPage() {
     setSettingDefaultId(id)
     try {
       await api.post(`/addresses/${id}/set-default`)
-      toast.success('تم تعيين العنوان الافتراضي')
+      toast.success(t('account.defaultAddressSet'))
       setAddresses(prev => prev.map(a => ({ ...a, is_default: a.id === id })))
     } catch {
-      toast.error('تعذر تعيين العنوان الافتراضي')
+      toast.error(t('account.setDefaultError'))
     } finally {
       setSettingDefaultId(null)
     }
@@ -194,10 +196,10 @@ export default function AddressesPage() {
     <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-bold">عناويني</h2>
+        <h2 className="text-lg font-bold">{t('account.myAddresses')}</h2>
         <button onClick={openAdd} className="btn-primary flex items-center gap-2 !py-2 !px-4 text-sm">
           <Plus className="w-4 h-4" />
-          إضافة عنوان
+          {t('account.addAddress')}
         </button>
       </div>
 
@@ -205,11 +207,11 @@ export default function AddressesPage() {
       {addresses.length === 0 && (
         <div className="card p-10 flex flex-col items-center text-center text-text-muted gap-3">
           <MapPin className="w-12 h-12 text-text-faint" />
-          <p className="font-medium">لا توجد عناوين محفوظة</p>
-          <p className="text-sm">أضف عنواناً لتسريع عملية الطلب</p>
+          <p className="font-medium">{t('account.noAddressesSaved')}</p>
+          <p className="text-sm">{t('account.addAddressHint')}</p>
           <button onClick={openAdd} className="btn-primary flex items-center gap-2 !py-2 !px-5 text-sm mt-2">
             <Plus className="w-4 h-4" />
-            إضافة عنوان جديد
+            {t('account.addNewAddress')}
           </button>
         </div>
       )}
@@ -236,7 +238,7 @@ export default function AddressesPage() {
                     {addr.is_default && (
                       <span className="inline-flex items-center gap-1 text-xs bg-primary text-white px-2 py-0.5 rounded-full">
                         <Star className="w-3 h-3 fill-white" />
-                        افتراضي
+                        {t('account.default')}
                       </span>
                     )}
                   </div>
@@ -255,7 +257,7 @@ export default function AddressesPage() {
                   <button
                     onClick={() => handleSetDefault(addr.id)}
                     disabled={settingDefaultId === addr.id}
-                    title="تعيين كافتراضي"
+                    title={t('account.setAsDefault')}
                     className="p-2 rounded-lg text-text-muted hover:text-primary hover:bg-primary-light transition-colors"
                   >
                     {settingDefaultId === addr.id
@@ -265,14 +267,14 @@ export default function AddressesPage() {
                 )}
                 <button
                   onClick={() => openEdit(addr)}
-                  title="تعديل"
+                  title={t('common.edit')}
                   className="p-2 rounded-lg text-text-muted hover:text-primary hover:bg-primary-light transition-colors"
                 >
                   <Pencil className="w-4 h-4" />
                 </button>
                 <button
                   onClick={() => setConfirmDeleteId(addr.id)}
-                  title="حذف"
+                  title={t('common.delete')}
                   className="p-2 rounded-lg text-text-muted hover:text-error hover:bg-red-50 transition-colors"
                 >
                   <Trash2 className="w-4 h-4" />
@@ -291,19 +293,19 @@ export default function AddressesPage() {
               <Trash2 className="w-5 h-5 text-error" />
             </div>
             <div>
-              <p className="font-semibold">حذف العنوان</p>
-              <p className="text-sm text-text-muted mt-1">هل أنت متأكد من حذف هذا العنوان؟</p>
+              <p className="font-semibold">{t('account.deleteAddressTitle')}</p>
+              <p className="text-sm text-text-muted mt-1">{t('account.deleteAddressConfirm')}</p>
             </div>
             <div className="flex gap-2">
               <button onClick={() => setConfirmDeleteId(null)} className="flex-1 btn-outline !py-2 text-sm">
-                إلغاء
+                {t('common.cancel')}
               </button>
               <button
                 onClick={() => handleDelete(confirmDeleteId)}
                 disabled={deletingId === confirmDeleteId}
                 className="flex-1 bg-error text-white rounded-lg py-2 text-sm font-medium hover:bg-red-700 transition-colors disabled:opacity-60 flex items-center justify-center"
               >
-                {deletingId === confirmDeleteId ? <Loader2 className="w-4 h-4 animate-spin" /> : 'حذف'}
+                {deletingId === confirmDeleteId ? <Loader2 className="w-4 h-4 animate-spin" /> : t('common.delete')}
               </button>
             </div>
           </div>
@@ -315,7 +317,7 @@ export default function AddressesPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
           <div className="card w-full max-w-md max-h-[90vh] overflow-y-auto shadow-xl">
             <div className="flex items-center justify-between p-5 border-b border-divider sticky top-0 bg-surface z-10">
-              <h3 className="font-bold text-base">{editId ? 'تعديل العنوان' : 'إضافة عنوان جديد'}</h3>
+              <h3 className="font-bold text-base">{editId ? t('account.editAddress') : t('account.addNewAddress')}</h3>
               <button onClick={closeModal} className="p-1.5 rounded-lg hover:bg-surface-2 transition-colors">
                 <X className="w-4 h-4" />
               </button>
@@ -325,7 +327,7 @@ export default function AddressesPage() {
               {/* Label */}
               <div>
                 <label className="text-xs font-medium mb-1.5 block">
-                  تسمية العنوان <span className="text-error">*</span>
+                  {t('account.addressLabel')} <span className="text-error">*</span>
                 </label>
                 <div className="flex gap-2 flex-wrap mb-2">
                   {LABEL_SUGGESTIONS.map(s => (
@@ -347,7 +349,7 @@ export default function AddressesPage() {
                   type="text"
                   value={form.label}
                   onChange={e => setForm(prev => ({ ...prev, label: e.target.value }))}
-                  placeholder="أو اكتب تسمية مخصصة"
+                  placeholder={t('account.customLabelPlaceholder')}
                   className="input-field text-sm"
                   maxLength={100}
                 />
@@ -356,13 +358,13 @@ export default function AddressesPage() {
               {/* Name */}
               <div>
                 <label className="text-xs font-medium mb-1 block">
-                  اسم المستلم <span className="text-error">*</span>
+                  {t('account.recipientName')} <span className="text-error">*</span>
                 </label>
                 <input
                   type="text"
                   value={form.name}
                   onChange={e => setForm(prev => ({ ...prev, name: e.target.value }))}
-                  placeholder="محمد أحمد"
+                  placeholder={t('auth.fullNamePlaceholder')}
                   className="input-field text-sm"
                   maxLength={255}
                 />
@@ -371,7 +373,7 @@ export default function AddressesPage() {
               {/* Phone */}
               <div>
                 <label className="text-xs font-medium mb-1 block">
-                  رقم الهاتف <span className="text-error">*</span>
+                  {t('account.phone')} <span className="text-error">*</span>
                 </label>
                 <input
                   type="tel"
@@ -386,7 +388,7 @@ export default function AddressesPage() {
 
               {/* City dropdown */}
               <div ref={cityRef}>
-                <label className="text-xs font-medium mb-1 block">المحافظة</label>
+                <label className="text-xs font-medium mb-1 block">{t('account.governorate')}</label>
                 <div className="relative">
                   <button
                     type="button"
@@ -394,36 +396,36 @@ export default function AddressesPage() {
                     className="input-field text-sm flex items-center justify-between w-full"
                   >
                     <span className={selectedCity ? 'text-text' : 'text-text-faint'}>
-                      {selectedCity ? selectedCity.name : 'اختر المحافظة'}
+                      {selectedCity ? selectedCity.name : t('account.selectGovernorate')}
                     </span>
                     <ChevronDown className={`w-4 h-4 text-text-muted transition-transform ${cityOpen ? 'rotate-180' : ''}`} />
                   </button>
 
                   {cityOpen && (
-                    <div className="absolute top-full right-0 left-0 mt-1 bg-surface border border-divider rounded-lg shadow-lg z-50 overflow-hidden">
+                    <div className="absolute top-full start-0 end-0 mt-1 bg-surface border border-divider rounded-lg shadow-lg z-50 overflow-hidden">
                       <div className="p-2 border-b border-divider">
                         <div className="relative">
-                          <Search className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-text-faint" />
+                          <Search className="absolute start-2 top-1/2 -translate-y-1/2 w-4 h-4 text-text-faint" />
                           <input
                             type="text"
                             value={citySearch}
                             onChange={e => setCitySearch(e.target.value)}
-                            placeholder="ابحث..."
-                            className="w-full h-9 border border-divider rounded text-sm outline-none pr-8 pl-3"
+                            placeholder={t('common.search')}
+                            className="w-full h-9 border border-divider rounded text-sm outline-none ps-8 pe-3"
                             autoFocus
                           />
                         </div>
                       </div>
                       <div className="max-h-48 overflow-y-auto">
                         {filteredCities.length === 0 && (
-                          <p className="text-center text-text-muted text-sm py-4">لا توجد نتائج</p>
+                          <p className="text-center text-text-muted text-sm py-4">{t('common.noResults')}</p>
                         )}
                         {filteredCities.map(city => (
                           <button
                             key={city.id}
                             type="button"
                             onClick={() => { setSelectedCity(city); setCityOpen(false); setCitySearch('') }}
-                            className={`w-full text-right px-4 py-2.5 text-sm hover:bg-surface-2 flex justify-between items-center ${
+                            className={`w-full text-start px-4 py-2.5 text-sm hover:bg-surface-2 flex justify-between items-center ${
                               selectedCity?.id === city.id ? 'bg-primary-light text-primary font-medium' : ''
                             }`}
                           >
@@ -438,7 +440,7 @@ export default function AddressesPage() {
                             onClick={() => { setSelectedCity(null); setCityOpen(false) }}
                             className="w-full text-center text-xs text-text-muted hover:text-error py-1"
                           >
-                            إلغاء الاختيار
+                            {t('account.clearSelection')}
                           </button>
                         </div>
                       )}
@@ -450,17 +452,17 @@ export default function AddressesPage() {
               {/* Address */}
               <div>
                 <label className="text-xs font-medium mb-1 block">
-                  العنوان التفصيلي <span className="text-error">*</span>
+                  {t('account.detailedAddress')} <span className="text-error">*</span>
                 </label>
                 <textarea
                   value={form.address}
                   onChange={e => setForm(prev => ({ ...prev, address: e.target.value }))}
-                  placeholder="الشارع، رقم المبنى، الدور، رقم الشقة..."
+                  placeholder={t('account.addressPlaceholder')}
                   className="input-field text-sm resize-none"
                   rows={3}
                   maxLength={500}
                 />
-                <p className="text-xs text-text-faint text-left mt-0.5">{form.address.length}/500</p>
+                <p className="text-xs text-text-faint text-end mt-0.5">{form.address.length}/500</p>
               </div>
 
               {/* Is Default */}
@@ -471,12 +473,12 @@ export default function AddressesPage() {
                   onChange={e => setForm(prev => ({ ...prev, is_default: e.target.checked }))}
                   className="w-4 h-4 accent-primary rounded"
                 />
-                <span className="text-sm">تعيين كعنوان افتراضي</span>
+                <span className="text-sm">{t('account.setAsDefaultAddress')}</span>
               </label>
 
               <div className="flex gap-2 pt-1">
                 <button type="button" onClick={closeModal} className="flex-1 btn-outline !py-2.5 text-sm">
-                  إلغاء
+                  {t('common.cancel')}
                 </button>
                 <button
                   type="submit"
@@ -485,7 +487,7 @@ export default function AddressesPage() {
                 >
                   {saving
                     ? <Loader2 className="w-4 h-4 animate-spin" />
-                    : <><Save className="w-4 h-4" />{editId ? 'حفظ التعديلات' : 'إضافة العنوان'}</>}
+                    : <><Save className="w-4 h-4" />{editId ? t('account.saveEdits') : t('account.addAddress')}</>}
                 </button>
               </div>
             </form>

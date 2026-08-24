@@ -1,8 +1,10 @@
 "use client";
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Tag, Clock, ChevronLeft } from "lucide-react";
+import { Tag, Clock, ChevronLeft, ChevronRight } from "lucide-react";
 import api from "@/lib/api";
+import { useLanguage } from "@/context/LanguageContext";
+import { t as tApi } from "@/utils/helpers";
 
 interface Offer {
   id: number;
@@ -22,6 +24,7 @@ function getRemainingDays(endDate: string) {
 }
 
 export default function OffersSection() {
+  const { t, lang, dir } = useLanguage();
   const [offers, setOffers] = useState<Offer[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -35,7 +38,7 @@ export default function OffersSection() {
       })
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, []);
+  }, [lang]);
 
   if (loading) {
     return (
@@ -59,11 +62,11 @@ export default function OffersSection() {
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-2">
           <div className="w-1 h-7 bg-red-600 rounded-full" />
-          <h2 className="text-2xl font-bold">العروض الحصرية</h2>
+          <h2 className="text-2xl font-bold">{t("home.exclusiveOffers")}</h2>
         </div>
         <Link href="/offers" className="flex items-center gap-1 text-red-600 font-semibold text-sm hover:underline">
-          عرض الكل
-          <ChevronLeft className="w-4 h-4" />
+          {t("common.viewAll")}
+          {dir === "rtl" ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
         </Link>
       </div>
 
@@ -71,11 +74,12 @@ export default function OffersSection() {
         {offers.map((offer) => {
           const days = getRemainingDays(offer.end_date);
           const expired = days <= 0;
+          const offerName = tApi(offer.name, lang);
 
           return (
             <Link
               key={offer.id}
-              href={`/offers/${offer.id}?name=${encodeURIComponent(offer.name)}`}
+              href={`/offers/${offer.id}?name=${encodeURIComponent(offerName)}`}
               className="group relative rounded-2xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-lg transition-all duration-300 bg-white flex flex-col"
             >
               {/* Image / Gradient bg */}
@@ -83,7 +87,7 @@ export default function OffersSection() {
                 {offer.image_url ? (
                   <img
                     src={offer.image_url}
-                    alt={offer.name}
+                    alt={offerName}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   />
                 ) : (
@@ -96,7 +100,7 @@ export default function OffersSection() {
                 {expired && (
                   <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
                     <span className="text-white font-bold text-sm bg-black/60 px-3 py-1 rounded-full">
-                      انتهى العرض
+                      {t("home.offerExpired")}
                     </span>
                   </div>
                 )}
@@ -105,17 +109,17 @@ export default function OffersSection() {
               {/* Content */}
               <div className="p-3 flex-1 flex flex-col gap-2">
                 <h3 className="font-bold text-sm text-gray-900 line-clamp-2 leading-snug">
-                  {offer.name}
+                  {offerName}
                 </h3>
 
                 {!expired && days <= 30 && (
                   <div className="flex items-center gap-1 text-xs text-orange-500 font-medium mt-auto">
                     <Clock className="w-3.5 h-3.5" />
                     {days === 0
-                      ? "ينتهي اليوم!"
+                      ? t("home.endsToday")
                       : days === 1
-                      ? "يوم متبقي"
-                      : `${days} يوم متبقي`}
+                      ? t("home.oneDayLeft")
+                      : t("home.daysLeft", { days })}
                   </div>
                 )}
               </div>

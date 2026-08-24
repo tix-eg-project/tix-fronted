@@ -31,11 +31,16 @@ export function calculateDiscount(originalPrice: number, currentPrice: number): 
 /**
  * Extract text from a localized API field.
  * The API may return either a plain string or an object like {ar: "...", en: "..."}.
+ * `lang` picks which key to prefer; defaults to "ar" to preserve existing behavior
+ * for callers that haven't been updated to pass the active site language yet.
  */
-export function t(value: any): string {
+export function t(value: any, lang: "ar" | "en" = "ar"): string {
   if (value == null) return "";
   if (typeof value === "string") return value;
   if (typeof value === "object") {
+    if (lang === "en") {
+      return value.en || value.ar || Object.values(value).find((v) => typeof v === "string") || "";
+    }
     return value.ar || value.en || Object.values(value).find((v) => typeof v === "string") || "";
   }
   return String(value);

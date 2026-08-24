@@ -1,0 +1,38 @@
+const header = {
+  ar: {
+    home: "الرئيسية",
+    products: "المنتجات",
+    offers: "العروض",
+    about: "من نحن",
+    contact: "تواصل معنا",
+    searchPlaceholder: "ابحث عن منتجات...",
+    noResults: "لا توجد نتائج",
+    viewAllResults: 'عرض كل نتائج "{query}"',
+    myAccount: "حسابي",
+    myOrders: "طلباتي",
+    logout: "تسجيل الخروج",
+    login: "تسجيل الدخول",
+    switchToEnglish: "English",
+    switchToArabic: "العربية",
+    language: "اللغة",
+  },
+  en: {
+    home: "Home",
+    products: "Products",
+    offers: "Offers",
+    about: "About Us",
+    contact: "Contact Us",
+    searchPlaceholder: "Search for products...",
+    noResults: "No results",
+    viewAllResults: 'View all results for "{query}"',
+    myAccount: "My Account",
+    myOrders: "My Orders",
+    logout: "Log Out",
+    login: "Log In",
+    switchToEnglish: "English",
+    switchToArabic: "العربية",
+    language: "Language",
+  },
+};
+
+export default header;

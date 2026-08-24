@@ -1,28 +1,42 @@
 import type { Metadata } from 'next'
+import { cookies } from 'next/headers'
 import { Users, Target, Award, Globe } from 'lucide-react'
+import dictionaries from '@/lib/i18n/dictionaries'
 
-export const metadata: Metadata = {
-  title: 'من نحن',
-  description: 'تعرف على منصة TIX للتجارة الإلكترونية في مصر',
+async function getLang(): Promise<'ar' | 'en'> {
+  const cookieStore = await cookies()
+  return cookieStore.get('lang')?.value === 'en' ? 'en' : 'ar'
 }
 
-export default function AboutPage() {
+export async function generateMetadata(): Promise<Metadata> {
+  const lang = await getLang()
+  const d = dictionaries.about[lang]
+  return {
+    title: d.metaTitle,
+    description: d.metaDescription,
+  }
+}
+
+export default async function AboutPage() {
+  const lang = await getLang()
+  const t = dictionaries.about[lang]
+
   const cards = [
-    { icon: Target, title: 'رؤيتنا', desc: 'أن نكون المنصة الأولى للتسوق الإلكتروني في مصر.' },
-    { icon: Award, title: 'مهمتنا', desc: 'توفير منتجات عالية الجودة بأسعار تنافسية مع خدمة توصيل ممتازة.' },
-    { icon: Users, title: 'فريقنا', desc: 'فريق شاب ومتحمس يعمل لتحسين تجربة التسوق الإلكتروني يومياً.' },
-    { icon: Globe, title: 'تغطيتنا', desc: 'نوصل لجميع محافظات مصر خلال 2-5 أيام عمل.' },
+    { icon: Target, title: t.visionTitle, desc: t.visionDesc },
+    { icon: Award, title: t.missionTitle, desc: t.missionDesc },
+    { icon: Users, title: t.teamTitle, desc: t.teamDesc },
+    { icon: Globe, title: t.coverageTitle, desc: t.coverageDesc },
   ]
 
   return (
-    <div className="min-h-screen bg-white" dir="rtl">
+    <div className="min-h-screen bg-white">
       <main>
         {/* Hero Banner */}
         <section className="bg-gradient-to-l from-dark to-dark-light text-white py-16">
           <div className="max-w-6xl mx-auto px-4 text-center">
-            <h1 className="text-5xl font-bold mb-4">من نحن</h1>
+            <h1 className="text-5xl font-bold mb-4">{t.heroTitle}</h1>
             <p className="text-xl text-gray-200">
-              TIX هي منصة تجارة إلكترونية مصرية تهدف إلى تقديم أفضل تجربة تسوق عبر الإنترنت لعملائنا في جميع أنحاء مصر.
+              {t.heroSubtitle}
             </p>
           </div>
         </section>

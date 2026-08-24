@@ -5,10 +5,12 @@ import Link from "next/link";
 import { Search } from "lucide-react";
 import api from "@/lib/api";
 import ProductCard from "@/components/ProductCard";
+import { useLanguage } from "@/context/LanguageContext";
 
 const PER_PAGE = 40;
 
 export default function SubsubcategoryPage() {
+  const { t, lang } = useLanguage();
   const params = useParams();
   const searchParams = useSearchParams();
   const subsubcategoryId = params.id as string;
@@ -45,7 +47,7 @@ export default function SubsubcategoryPage() {
       }
     } catch {}
     finally { setLoading(false); }
-  }, [subsubcategoryId]);
+  }, [subsubcategoryId, lang]);
 
   useEffect(() => {
     setPage(1);
@@ -58,13 +60,13 @@ export default function SubsubcategoryPage() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const displayName = subsubcategoryName || "الفرع";
+  const displayName = subsubcategoryName || t('subcategory.defaultSubsubcategoryName');
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
       {/* Breadcrumb */}
       <nav className="flex items-center gap-2 text-sm mb-6 text-text-muted flex-wrap">
-        <Link href="/" className="hover:text-text transition-colors">الرئيسية</Link>
+        <Link href="/" className="hover:text-text transition-colors">{t('header.home')}</Link>
         <span>/</span>
         {categoryName && categoryId && (
           <>
@@ -92,7 +94,7 @@ export default function SubsubcategoryPage() {
       <div className="card p-6 mb-8">
         <h1 className="text-2xl font-bold">{displayName}</h1>
         {!loading && (
-          <p className="text-text-muted text-sm mt-1">{pagination?.total ?? products.length} منتج</p>
+          <p className="text-text-muted text-sm mt-1">{pagination?.total ?? products.length} {t('subcategory.productUnit')}</p>
         )}
       </div>
 
@@ -116,7 +118,7 @@ export default function SubsubcategoryPage() {
                 disabled={page === 1}
                 className="px-4 py-2 rounded-xl border border-border text-sm font-medium disabled:opacity-40 hover:border-primary hover:text-primary transition-colors"
               >
-                السابق
+                {t('common.previous')}
               </button>
 
               {Array.from({ length: pagination.last_page }, (_, i) => i + 1)
@@ -149,7 +151,7 @@ export default function SubsubcategoryPage() {
                 disabled={page === pagination.last_page}
                 className="px-4 py-2 rounded-xl border border-border text-sm font-medium disabled:opacity-40 hover:border-primary hover:text-primary transition-colors"
               >
-                التالي
+                {t('common.next')}
               </button>
             </div>
           )}
@@ -157,7 +159,7 @@ export default function SubsubcategoryPage() {
       ) : (
         <div className="text-center py-20 text-text-muted">
           <Search className="w-12 h-12 mx-auto mb-3 opacity-30" />
-          <p className="text-lg">لا توجد منتجات في هذا الفرع حالياً</p>
+          <p className="text-lg">{t('subcategory.noProductsInSubsubcategory')}</p>
         </div>
       )}
     </div>

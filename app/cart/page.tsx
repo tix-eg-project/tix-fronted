@@ -8,7 +8,8 @@ import { toast } from "react-toastify";
 import api from "@/lib/api";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
-import { formatCurrency, generateSlug, t } from "@/utils/helpers";
+import { useLanguage } from "@/context/LanguageContext";
+import { formatCurrency, generateSlug, t as tApi } from "@/utils/helpers";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { CartSummary } from "@/utils/Types/common";
@@ -16,6 +17,7 @@ import type { CartSummary } from "@/utils/Types/common";
 export default function CartPage() {
   const { state, removeFromCart, updateQuantity, refreshCart } = useCart();
   const { state: authState } = useAuth();
+  const { t, lang } = useLanguage();
   const [summary, setSummary] = useState<CartSummary | null>(null);
   const [couponCode, setCouponCode] = useState("");
   const [couponError, setCouponError] = useState("");
@@ -45,11 +47,12 @@ export default function CartPage() {
       refreshCart();
       fetchSummary();
     }
-  }, [authState.isAuthenticated]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authState.isAuthenticated, lang]);
 
   const handleRemove = async (id: number | string) => {
     await removeFromCart(id);
-    toast.success("تم الحذف من السلة");
+    toast.success(t("cart.removedFromCart"));
     fetchSummary();
   };
 
@@ -70,7 +73,7 @@ export default function CartPage() {
       const res = await api.post("/summary", formData);
       if (res.data.status || res.data.success) {
         setSummary(res.data.data);
-        toast.success(res.data.message || "تم تطبيق الكوبون");
+        toast.success(res.data.message || t("cart.couponApplied"));
         setIsApplying(false);
         return;
       }
@@ -83,14 +86,14 @@ export default function CartPage() {
         setCouponCode("");
         await refreshCart();
         await fetchSummary();
-        toast.success(res.data.message || "تم تفعيل الكود وإضافة المنتجات لسلتك");
+        toast.success(res.data.message || t("cart.codeRedeemed"));
         setIsApplying(false);
         return;
       }
     } catch {
       // الكود المخفي فشل برضو
     }
-    setCouponError("كود غير صالح");
+    setCouponError(t("cart.invalidCode"));
     setIsApplying(false);
   };
 
@@ -102,10 +105,10 @@ export default function CartPage() {
       if (res.data.status || res.data.success) {
         setCouponCode("");
         fetchSummary();
-        toast.success("تم حذف الكوبون");
+        toast.success(t("cart.couponRemoved"));
       }
     } catch {
-      toast.error("خطأ في حذف الكوبون");
+      toast.error(t("cart.couponRemoveError"));
     } finally {
       setIsApplying(false);
     }
@@ -122,11 +125,11 @@ export default function CartPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50" dir="rtl">
+    <div className="min-h-screen bg-gray-50">
       <main className="container mx-auto px-4 py-8">
         <h1 className="text-2xl font-bold mb-6 flex items-center gap-2">
           <ShoppingBag className="w-6 h-6 text-black" />
-          سلتك ({state.items.length} منتج)
+          {t("cart.title", { count: state.items.length })}
         </h1>
 
         <AnimatePresence mode="wait">
@@ -138,11 +141,11 @@ export default function CartPage() {
               className="text-center py-16 bg-white rounded-xl shadow-sm border border-gray-100"
             >
               <Package className="w-16 h-16 mx-auto text-gray-300 mb-4" />
-              <h2 className="text-xl font-bold text-gray-900 mb-2">سلتك فارغة</h2>
-              <p className="text-gray-500 mb-6">لم تقم بإضافة أي منتجات لسلتك بعد</p>
+              <h2 className="text-xl font-bold text-gray-900 mb-2">{t("cart.emptyTitle")}</h2>
+              <p className="text-gray-500 mb-6">{t("cart.emptyDesc")}</p>
               <Link href="/">
                 <Button className="bg-black hover:bg-gray-800 text-white px-8 h-11 rounded-lg">
-                  استكشف المتجر
+                  {t("cart.exploreStore")}
                 </Button>
               </Link>
             </motion.div>
@@ -159,10 +162,10 @@ export default function CartPage() {
                     exit={{ opacity: 0, x: -20 }}
                     className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 flex gap-4 transition-all hover:shadow-md"
                   >
-                    <Link href={`/product/${item.productId}/${generateSlug(t(item.name))}`} className="flex-shrink-0">
+                    <Link href={`/product/${item.productId}/${generateSlug(tApi(item.name, lang))}`} className="flex-shrink-0">
                       <Image
                         src={item.image || "/pl1.jpg"}
-                        alt={item.name}
+                        alt={tApi(item.name, lang)}
                         width={100}
                         height={100}
                         className="w-24 h-24 object-cover rounded-lg bg-gray-50"
@@ -170,9 +173,9 @@ export default function CartPage() {
                     </Link>
                     <div className="flex-1 min-w-0 flex flex-col justify-between">
                       <div>
-                        <Link href={`/product/${item.productId}/${generateSlug(t(item.name))}`}>
+                        <Link href={`/product/${item.productId}/${generateSlug(tApi(item.name, lang))}`}>
                           <h3 className="font-bold text-gray-900 line-clamp-2 text-sm sm:text-base">
-                            {item.name}
+                            {tApi(item.name, lang)}
                           </h3>
                         </Link>
                         {item.selections && item.selections.length > 0 && (
@@ -224,7 +227,7 @@ export default function CartPage() {
                       <button
                         onClick={() => handleRemove(item.id)}
                         className="text-red-600 hover:text-red-700 transition-colors p-1"
-                        aria-label="حذف"
+                        aria-label={t("cart.removeAria")}
                       >
                         <Trash2 className="w-5 h-5" />
                       </button>
@@ -236,26 +239,26 @@ export default function CartPage() {
               {/* Order Summary Sidebar */}
               <div className="lg:col-span-1">
                 <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 sticky top-24 space-y-4">
-                  <h2 className="text-lg font-bold text-gray-900">ملخص الطلب</h2>
+                  <h2 className="text-lg font-bold text-gray-900">{t("cart.orderSummary")}</h2>
 
                   {/* Pricing Details */}
                   {summary && (
                     <div className="space-y-4 pt-2">
                       <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">السعر الفرعي</span>
+                        <span className="text-gray-600">{t("cart.subtotal")}</span>
                         <span className="font-bold text-gray-900">{formatCurrency(summary.subtotal)}</span>
                       </div>
 
                       <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">التوصيل</span>
+                        <span className="text-gray-600">{t("cart.shipping")}</span>
                         <span className="font-bold text-gray-900">
-                          {summary.shipping_zone?.price === 0 ? "مجاني" : formatCurrency(summary.shipping_zone?.price || 0)}
+                          {summary.shipping_zone?.price === 0 ? t("cart.free") : formatCurrency(summary.shipping_zone?.price || 0)}
                         </span>
                       </div>
 
                       {summary.discount > 0 && (
                         <div className="flex justify-between text-sm text-green-600">
-                          <span>الخصم</span>
+                          <span>{t("cart.discount")}</span>
                           <span className="font-bold">-{formatCurrency(summary.discount)}</span>
                         </div>
                       )}
@@ -264,7 +267,7 @@ export default function CartPage() {
                       <div className="flex gap-2 pt-2">
                         <div className="relative flex-1">
                           <Input
-                            placeholder="أدخل الكود"
+                            placeholder={t("cart.couponPlaceholder")}
                             value={couponCode}
                             onChange={(e) => {
                               setCouponCode(e.target.value);
@@ -288,13 +291,13 @@ export default function CartPage() {
                           disabled={isApplying || !couponCode.trim()}
                           className="bg-black text-white hover:bg-gray-800 px-6"
                         >
-                          تطبيق
+                          {t("cart.apply")}
                         </Button>
                       </div>
                       {couponError && <p className="text-red-600 text-xs mt-1">{couponError}</p>}
 
                       <div className="flex justify-between font-bold text-lg border-t border-gray-100 pt-4 mt-2 text-gray-900">
-                        <span>الإجمالي</span>
+                        <span>{t("cart.total")}</span>
                         <span className="text-gray-900">{formatCurrency(summary.total)}</span>
                       </div>
                     </div>
@@ -302,7 +305,7 @@ export default function CartPage() {
 
                   <Link href="/checkout" className="block pt-2">
                     <Button className="w-full h-11 bg-black hover:bg-gray-800 text-white font-bold rounded-lg transition-all flex items-center justify-center gap-2">
-                      المتابعة للدفع
+                      {t("cart.proceedToCheckout")}
                       <ArrowLeft className="w-4 h-4 rtl:rotate-0 ltr:rotate-180" />
                     </Button>
                   </Link>

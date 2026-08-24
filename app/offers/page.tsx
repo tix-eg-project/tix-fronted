@@ -3,9 +3,11 @@ import { useState, useEffect } from "react";
 import ProductGrid from "@/components/ProductGrid";
 import { BadgePercent } from "lucide-react";
 import api from "@/lib/api";
+import { useLanguage } from "@/context/LanguageContext";
 import type { ProductCardProps } from "@/utils/Types/products";
 
 export default function OffersPage() {
+  const { t, lang } = useLanguage();
   const [products, setProducts] = useState<ProductCardProps[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -37,19 +39,19 @@ export default function OffersPage() {
       }
     }
     fetchOffers();
-  }, []);
+  }, [lang]);
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-6 md:py-10">
-      <div className="rounded-2xl border border-divider bg-gradient-to-l from-dark to-dark-light text-white p-6 md:p-8 mb-8 overflow-hidden">
+      <div className="rounded-2xl border border-divider rtl:bg-gradient-to-l ltr:bg-gradient-to-r from-dark to-dark-light text-white p-6 md:p-8 mb-8 overflow-hidden">
         <div className="flex items-start gap-4">
           <div className="w-12 h-12 rounded-2xl bg-white/10 border border-white/15 flex items-center justify-center flex-shrink-0">
             <BadgePercent className="w-6 h-6 text-error" />
           </div>
           <div className="min-w-0">
-            <h1 className="text-3xl md:text-4xl font-bold leading-tight">العروض والخصومات</h1>
+            <h1 className="text-3xl md:text-4xl font-bold leading-tight">{t('offers.heroTitle')}</h1>
             <p className="text-gray-200 mt-2 text-sm md:text-base">
-              أفضل العروض والخصومات المتاحة الآن
+              {t('offers.heroSubtitle')}
             </p>
           </div>
         </div>

@@ -1,6 +1,7 @@
 'use client'
 import { GoogleLogin } from '@react-oauth/google'
 import { useAuth } from '@/context/AuthContext'
+import { useLanguage } from '@/context/LanguageContext'
 import { toast } from 'react-toastify'
 import { useState } from 'react'
 
@@ -10,19 +11,20 @@ interface Props {
 
 export default function GoogleAuthButton({ onSuccess }: Props) {
   const { loginWithGoogle } = useAuth()
+  const { t } = useLanguage()
   const [loading, setLoading] = useState(false)
 
   const handleSuccess = async (credential: string) => {
     setLoading(true)
     try {
       await loginWithGoogle(credential)
-      toast.success('تم تسجيل الدخول بنجاح')
+      toast.success(t('auth.loginSuccess'))
       if (onSuccess) {
         // full reload ensures cookie is sent with the next request (fixes Mac/Safari)
         setTimeout(() => { onSuccess() }, 100)
       }
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'فشل تسجيل الدخول بجوجل'
+      const message = error instanceof Error ? error.message : t('auth.googleLoginFailed')
       toast.error(message)
       setLoading(false)
     }
@@ -44,7 +46,7 @@ export default function GoogleAuthButton({ onSuccess }: Props) {
             handleSuccess(credentialResponse.credential)
           }
         }}
-        onError={() => toast.error('فشل تسجيل الدخول بجوجل')}
+        onError={() => toast.error(t('auth.googleLoginFailed'))}
         text="signin_with"
         shape="rectangular"
         size="large"

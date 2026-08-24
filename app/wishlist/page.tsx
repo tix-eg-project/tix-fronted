@@ -1,6 +1,7 @@
 'use client'
 import { useWishlist } from '@/context/WishlistContext'
 import { useAuth } from '@/context/AuthContext'
+import { useLanguage } from '@/context/LanguageContext'
 import { Heart } from 'lucide-react'
 import Link from 'next/link'
 import { useEffect } from 'react'
@@ -11,6 +12,7 @@ import ProductCard from '@/components/ProductCard'
 export default function WishlistPage() {
   const { items, isLoading, refreshWishlist } = useWishlist()
   const { state: authState } = useAuth()
+  const { t } = useLanguage()
 
   // Redirect if not logged in
   useEffect(() => {
@@ -27,7 +29,7 @@ export default function WishlistPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-white flex flex-col" dir="rtl">
+      <div className="min-h-screen bg-white flex flex-col">
         <div className="container mx-auto px-4 py-8">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 animate-pulse">
             {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
@@ -40,12 +42,12 @@ export default function WishlistPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white flex flex-col" dir="rtl">
+    <div className="min-h-screen bg-white flex flex-col">
       <main className="flex-1">
         {/* Header Section */}
         <div className="bg-white border-b border-gray-200">
           <div className="container mx-auto px-4 py-8">
-            <h1 className="text-3xl font-bold text-gray-900">المفضلة ({items.length} منتج)</h1>
+            <h1 className="text-3xl font-bold text-gray-900">{t('wishlist.title', { count: items.length })}</h1>
           </div>
         </div>
 
@@ -61,11 +63,11 @@ export default function WishlistPage() {
                 <div className="inline-flex items-center justify-center w-24 h-24 bg-gray-50 rounded-full mb-6">
                   <Heart className="w-12 h-12 text-gray-300" />
                 </div>
-                <h2 className="text-2xl font-bold mb-3 text-gray-900">قائمة المفضلة فارغة</h2>
-                <p className="text-gray-500 mb-8 max-w-md mx-auto">لم تضف أي منتجات للمفضلة بعد. استكشف منتجاتنا الرائعة وأضف ما يعجبك هنا.</p>
+                <h2 className="text-2xl font-bold mb-3 text-gray-900">{t('wishlist.emptyTitle')}</h2>
+                <p className="text-gray-500 mb-8 max-w-md mx-auto">{t('wishlist.emptyDesc')}</p>
                 <Link href="/">
                   <Button className="bg-black text-white hover:bg-gray-800 px-10 rounded-xl h-12 font-bold text-lg transition-all shadow-lg shadow-black/10">
-                    استكشف المتجر
+                    {t('wishlist.exploreStore')}
                   </Button>
                 </Link>
               </motion.div>

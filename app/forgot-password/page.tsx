@@ -4,10 +4,12 @@ import Link from "next/link";
 import { Mail, KeyRound, ArrowRight, CheckCircle, ShieldCheck } from "lucide-react";
 import { toast } from "react-toastify";
 import api from "@/lib/api";
+import { useLanguage } from "@/context/LanguageContext";
 
 type Step = "email" | "verify" | "reset" | "done";
 
 export default function ForgotPasswordPage() {
+  const { t } = useLanguage();
   const [step, setStep] = useState<Step>("email");
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
@@ -22,13 +24,13 @@ export default function ForgotPasswordPage() {
     try {
       const res = await api.post("/auth/user/send-reset-code", { email });
       if (res.data.status || res.data.success) {
-        toast.success(res.data.message || "تم إرسال كود التحقق");
+        toast.success(res.data.message || t("auth.codeSent"));
         setStep("verify");
       } else {
-        toast.error(res.data.message || "حدث خطأ");
+        toast.error(res.data.message || t("auth.genericError"));
       }
     } catch (error: any) {
-      toast.error(error.response?.data?.message || "حدث خطأ في إرسال الكود");
+      toast.error(error.response?.data?.message || t("auth.sendCodeError"));
     } finally {
       setLoading(false);
     }
@@ -38,9 +40,9 @@ export default function ForgotPasswordPage() {
     setLoading(true);
     try {
       await api.post("/auth/user/resend-reset-code", { email });
-      toast.success("تم إعادة إرسال الكود");
+      toast.success(t("auth.resendCodeSuccess"));
     } catch {
-      toast.error("حدث خطأ في إعادة الإرسال");
+      toast.error(t("auth.resendCodeError"));
     } finally {
       setLoading(false);
     }
@@ -53,13 +55,13 @@ export default function ForgotPasswordPage() {
     try {
       const res = await api.post("/auth/user/verify-reset-code", { email, code });
       if (res.data.status || res.data.success) {
-        toast.success("تم التحقق بنجاح");
+        toast.success(t("auth.verifiedSuccess"));
         setStep("reset");
       } else {
-        toast.error(res.data.message || "كود غير صحيح");
+        toast.error(res.data.message || t("auth.invalidCode"));
       }
     } catch (error: any) {
-      toast.error(error.response?.data?.message || "كود غير صحيح");
+      toast.error(error.response?.data?.message || t("auth.invalidCode"));
     } finally {
       setLoading(false);
     }
@@ -68,11 +70,11 @@ export default function ForgotPasswordPage() {
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     if (password.length < 6) {
-      toast.error("كلمة المرور يجب أن تكون 6 أحرف على الأقل");
+      toast.error(t("auth.passwordMinLength"));
       return;
     }
     if (password !== passwordConfirmation) {
-      toast.error("كلمة المرور غير متطابقة");
+      toast.error(t("auth.passwordMismatch"));
       return;
     }
     setLoading(true);
@@ -84,22 +86,22 @@ export default function ForgotPasswordPage() {
         password_confirmation: passwordConfirmation,
       });
       if (res.data.status || res.data.success) {
-        toast.success("تم تغيير كلمة المرور بنجاح");
+        toast.success(t("auth.resetSuccess"));
         setStep("done");
       } else {
-        toast.error(res.data.message || "حدث خطأ");
+        toast.error(res.data.message || t("auth.genericError"));
       }
     } catch (error: any) {
-      toast.error(error.response?.data?.message || "حدث خطأ في تغيير كلمة المرور");
+      toast.error(error.response?.data?.message || t("auth.resetError"));
     } finally {
       setLoading(false);
     }
   };
 
   const stepLabels = [
-    { key: "email", label: "البريد", icon: Mail },
-    { key: "verify", label: "التحقق", icon: ShieldCheck },
-    { key: "reset", label: "كلمة المرور", icon: KeyRound },
+    { key: "email", label: t("auth.stepEmail"), icon: Mail },
+    { key: "verify", label: t("auth.stepVerify"), icon: ShieldCheck },
+    { key: "reset", label: t("auth.stepPassword"), icon: KeyRound },
   ];
 
   const stepIndex = step === "done" ? 3 : stepLabels.findIndex((s) => s.key === step);
@@ -109,7 +111,7 @@ export default function ForgotPasswordPage() {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-primary mb-2">TIX</h1>
-          <p className="text-text-muted">إعادة تعيين كلمة المرور</p>
+          <p className="text-text-muted">{t("auth.resetPasswordTitle")}</p>
         </div>
 
         {/* Steps indicator */}
@@ -138,9 +140,9 @@ export default function ForgotPasswordPage() {
         <div className="card p-6 md:p-8">
           {step === "email" && (
             <form onSubmit={handleSendCode} className="space-y-4">
-              <p className="text-sm text-text-muted mb-2">أدخل بريدك الإلكتروني وسنرسل لك كود للتحقق</p>
+              <p className="text-sm text-text-muted mb-2">{t("auth.enterEmailForCode")}</p>
               <div>
-                <label className="text-sm font-medium mb-1.5 block">البريد الإلكتروني</label>
+                <label className="text-sm font-medium mb-1.5 block">{t("auth.email")}</label>
                 <input
                   type="email"
                   value={email}
@@ -152,10 +154,10 @@ export default function ForgotPasswordPage() {
                 />
               </div>
               <button type="submit" className="btn-primary w-full !py-3.5" disabled={loading}>
-                {loading ? "جاري الإرسال..." : "إرسال كود التحقق"}
+                {loading ? t("auth.sending") : t("auth.sendCode")}
               </button>
               <Link href="/login" className="text-sm text-primary hover:underline block text-center mt-3">
-                العودة لتسجيل الدخول
+                {t("auth.backToLogin")}
               </Link>
             </form>
           )}
@@ -163,22 +165,22 @@ export default function ForgotPasswordPage() {
           {step === "verify" && (
             <form onSubmit={handleVerifyCode} className="space-y-4">
               <p className="text-sm text-text-muted mb-2">
-                أدخل كود التحقق المرسل إلى <strong dir="ltr">{email}</strong>
+                {t("auth.enterCodeSentTo")} <strong dir="ltr">{email}</strong>
               </p>
               <div>
-                <label className="text-sm font-medium mb-1.5 block">كود التحقق</label>
+                <label className="text-sm font-medium mb-1.5 block">{t("auth.verificationCode")}</label>
                 <input
                   type="text"
                   value={code}
                   onChange={(e) => setCode(e.target.value)}
                   className="input-field text-center tracking-widest text-lg"
-                  placeholder="أدخل الكود"
+                  placeholder={t("auth.enterCodePlaceholder")}
                   dir="ltr"
                   required
                 />
               </div>
               <button type="submit" className="btn-primary w-full !py-3.5" disabled={loading}>
-                {loading ? "جاري التحقق..." : "تحقق"}
+                {loading ? t("auth.verifying") : t("auth.verify")}
               </button>
               <button
                 type="button"
@@ -186,42 +188,42 @@ export default function ForgotPasswordPage() {
                 disabled={loading}
                 className="text-sm text-primary hover:underline block text-center w-full mt-2"
               >
-                إعادة إرسال الكود
+                {t("auth.resendCode")}
               </button>
             </form>
           )}
 
           {step === "reset" && (
             <form onSubmit={handleResetPassword} className="space-y-4">
-              <p className="text-sm text-text-muted mb-2">أدخل كلمة المرور الجديدة</p>
+              <p className="text-sm text-text-muted mb-2">{t("auth.enterNewPassword")}</p>
               <div>
-                <label className="text-sm font-medium mb-1.5 block">كلمة المرور الجديدة</label>
+                <label className="text-sm font-medium mb-1.5 block">{t("auth.newPassword")}</label>
                 <input
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="input-field"
-                  placeholder="6 أحرف على الأقل"
+                  placeholder={t("auth.newPasswordPlaceholder")}
                   dir="ltr"
                   required
                   minLength={6}
                 />
               </div>
               <div>
-                <label className="text-sm font-medium mb-1.5 block">تأكيد كلمة المرور</label>
+                <label className="text-sm font-medium mb-1.5 block">{t("auth.confirmPassword")}</label>
                 <input
                   type="password"
                   value={passwordConfirmation}
                   onChange={(e) => setPasswordConfirmation(e.target.value)}
                   className="input-field"
-                  placeholder="أعد كتابة كلمة المرور"
+                  placeholder={t("auth.confirmPasswordPlaceholder")}
                   dir="ltr"
                   required
                   minLength={6}
                 />
               </div>
               <button type="submit" className="btn-primary w-full !py-3.5" disabled={loading}>
-                {loading ? "جاري التغيير..." : "تغيير كلمة المرور"}
+                {loading ? t("auth.changing") : t("auth.changePassword")}
               </button>
             </form>
           )}
@@ -229,10 +231,10 @@ export default function ForgotPasswordPage() {
           {step === "done" && (
             <div className="text-center py-6">
               <CheckCircle className="w-16 h-16 text-success mx-auto mb-4" />
-              <h2 className="text-xl font-bold mb-2">تم بنجاح!</h2>
-              <p className="text-text-muted mb-6">تم تغيير كلمة المرور بنجاح. يمكنك الآن تسجيل الدخول.</p>
+              <h2 className="text-xl font-bold mb-2">{t("auth.doneTitle")}</h2>
+              <p className="text-text-muted mb-6">{t("auth.doneDesc")}</p>
               <Link href="/login" className="btn-primary inline-block !px-8 !py-3">
-                تسجيل الدخول
+                {t("auth.loginButton")}
               </Link>
             </div>
           )}

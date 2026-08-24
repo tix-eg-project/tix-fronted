@@ -1,18 +1,21 @@
 import type { Metadata } from "next";
 import Script from "next/script";
+import { cookies } from "next/headers";
 import "./globals.css";
 import { Tajawal } from "next/font/google";
 import GoogleAuthProvider from "@/components/GoogleAuthProvider";
 import { AuthProvider } from "@/context/AuthContext";
 import { CartProvider } from "@/context/CartContext";
 import { WishlistProvider } from "@/context/WishlistContext";
+import { LanguageProvider } from "@/context/LanguageContext";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import { ToastContainer } from "react-toastify";
+import AppToastContainer from "@/components/AppToastContainer";
+import { API_BASE_URL } from "@/lib/api";
 
 const tajawal = Tajawal({
-  subsets: ["arabic"],
-  weight: ["200", "300", "400", "500", "700", "800", "900"],
+  subsets: ["arabic", "latin"],
+  weight: ["400", "500", "700", "800", "900"],
 });
 
 export const metadata: Metadata = {
@@ -129,10 +132,17 @@ const structuredData = {
   ],
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const cookieStore = await cookies();
+  const lang = cookieStore.get("lang")?.value === "en" ? "en" : "ar";
+  const dir = lang === "en" ? "ltr" : "rtl";
+
   return (
-    <html lang="ar" dir="rtl" suppressHydrationWarning>
+    <html lang={lang} dir={dir} suppressHydrationWarning>
       <head>
+        {/* تسريع الاتصال بسيرفر الـAPI والصور — بيبدأ DNS/TCP/TLS بدري بدل ما يستنى أول طلب فعلي */}
+        <link rel="preconnect" href={API_BASE_URL} />
+        <link rel="dns-prefetch" href={API_BASE_URL} />
         {/* بيانات منظّمة لمحركات البحث والـ AI */}
         <script
           type="application/ld+json"
@@ -169,29 +179,20 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         )}
       </head>
       <body className={`${tajawal.className} min-h-screen flex flex-col`} suppressHydrationWarning>
-        <GoogleAuthProvider>
-        <AuthProvider>
-          <CartProvider>
-            <WishlistProvider>
-              <Header />
-              <main className="flex-1">{children}</main>
-              <Footer />
-              <ToastContainer
-                position="top-left"
-                autoClose={3000}
-                hideProgressBar={false}
-                newestOnTop
-                closeOnClick
-                rtl
-                pauseOnFocusLoss
-                draggable
-                pauseOnHover
-                theme="light"
-              />
-            </WishlistProvider>
-          </CartProvider>
-        </AuthProvider>
-        </GoogleAuthProvider>
+        <LanguageProvider initialLang={lang}>
+          <GoogleAuthProvider>
+          <AuthProvider>
+            <CartProvider>
+              <WishlistProvider>
+                <Header />
+                <main className="flex-1">{children}</main>
+                <Footer />
+                <AppToastContainer />
+              </WishlistProvider>
+            </CartProvider>
+          </AuthProvider>
+          </GoogleAuthProvider>
+        </LanguageProvider>
       </body>
     </html>
   );

@@ -4,6 +4,8 @@ import { useParams, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Tag, Clock, ShoppingBag } from "lucide-react";
 import api from "@/lib/api";
+import { t as tApi } from "@/utils/helpers";
+import { useLanguage } from "@/context/LanguageContext";
 import ProductCard from "@/components/ProductCard";
 
 function getRemainingDays(endDate: string) {
@@ -12,10 +14,11 @@ function getRemainingDays(endDate: string) {
 }
 
 export default function OfferProductsPage() {
+  const { t, lang } = useLanguage();
   const params = useParams();
   const searchParams = useSearchParams();
   const offerId = params.id as string;
-  const offerName = decodeURIComponent(searchParams.get("name") || "العرض");
+  const offerName = decodeURIComponent(searchParams.get("name") || t('offers.defaultOfferName'));
 
   const [offer, setOffer] = useState<any>(null);
   const [products, setProducts] = useState<any[]>([]);
@@ -49,16 +52,16 @@ export default function OfferProductsPage() {
       finally { setLoading(false); }
     };
     fetchData();
-  }, [offerId]);
+  }, [offerId, lang]);
 
-  const displayName = offer?.name || offerName;
+  const displayName = tApi(offer?.name, lang) || offerName;
   const days = offer?.end_date ? getRemainingDays(offer.end_date) : null;
   const expired = days !== null && days <= 0;
 
   return (
     <div className="min-h-screen bg-white">
       {/* Hero Banner */}
-      <div className="relative overflow-hidden bg-gradient-to-l from-red-700 via-red-600 to-orange-500">
+      <div className="relative overflow-hidden rtl:bg-gradient-to-l ltr:bg-gradient-to-r from-red-700 via-red-600 to-orange-500">
         {offer?.image_url && (
           <img
             src={offer.image_url}
@@ -69,9 +72,9 @@ export default function OfferProductsPage() {
         <div className="relative container mx-auto px-4 py-10">
           {/* Breadcrumb */}
           <nav className="flex items-center gap-2 text-sm text-white/70 mb-4">
-            <Link href="/" className="hover:text-white transition-colors">الرئيسية</Link>
+            <Link href="/" className="hover:text-white transition-colors">{t('offers.home')}</Link>
             <span>/</span>
-            <Link href="/offers" className="hover:text-white transition-colors">العروض</Link>
+            <Link href="/offers" className="hover:text-white transition-colors">{t('offers.offers')}</Link>
             <span>/</span>
             <span className="text-white">{displayName}</span>
           </nav>
@@ -86,11 +89,11 @@ export default function OfferProductsPage() {
                 {days !== null && !expired && (
                   <span className="flex items-center gap-1.5 text-white/90 text-sm">
                     <Clock className="w-4 h-4" />
-                    {days === 0 ? "ينتهي اليوم!" : days === 1 ? "يوم متبقي" : `${days} يوم متبقي`}
+                    {days === 0 ? t('offers.endsToday') : days === 1 ? t('offers.oneDayLeft') : t('offers.daysLeft', { days })}
                   </span>
                 )}
                 {expired && (
-                  <span className="bg-black/30 text-white text-sm px-3 py-1 rounded-full">انتهى العرض</span>
+                  <span className="bg-black/30 text-white text-sm px-3 py-1 rounded-full">{t('offers.offerExpired')}</span>
                 )}
               </div>
             </div>
@@ -108,7 +111,7 @@ export default function OfferProductsPage() {
           </div>
         ) : products.length > 0 ? (
           <>
-            <p className="text-text-muted text-sm mb-5">{products.length} منتج في هذا العرض</p>
+            <p className="text-text-muted text-sm mb-5">{t('offers.productsInOffer', { count: products.length })}</p>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
               {products.map((p) => <ProductCard key={p.id} {...p} offerId={offerId} />)}
             </div>
@@ -116,9 +119,9 @@ export default function OfferProductsPage() {
         ) : (
           <div className="text-center py-24 text-text-muted">
             <ShoppingBag className="w-14 h-14 mx-auto mb-4 opacity-25" />
-            <p className="text-xl font-semibold mb-1">لا توجد منتجات في هذا العرض</p>
+            <p className="text-xl font-semibold mb-1">{t('offers.noProductsInOffer')}</p>
             <Link href="/offers" className="text-primary hover:underline text-sm mt-2 inline-block">
-              تصفح العروض الأخرى
+              {t('offers.browseOtherOffers')}
             </Link>
           </div>
         )}

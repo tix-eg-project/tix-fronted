@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { cookies } from 'next/headers'
 import { permanentRedirect, notFound } from 'next/navigation'
 // Note: slug redirect is handled client-side in ProductDetailClient
 import ProductDetailClient from '../[id]/ProductDetailClient'
@@ -9,18 +10,18 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://tix-eg.com'
 
 type Props = { params: Promise<{ params: string[] }> }
 
-function stripHtml(value: unknown): string {
+function stripHtml(value: unknown, lang: 'ar' | 'en' = 'ar'): string {
   if (!value) return ''
   const str = typeof value === 'object'
-    ? ((value as any).ar || (value as any).en || '')
+    ? (lang === 'en' ? (value as any).en || (value as any).ar : (value as any).ar || (value as any).en) || ''
     : String(value)
   return str.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()
 }
 
-async function getProduct(id: string) {
+async function getProduct(id: string, lang: string = 'ar') {
   try {
     const res = await fetch(`${API_URL}/api/products/${id}`, {
-      headers: { 'Accept-Language': 'ar', Accept: 'application/json' },
+      headers: { 'Accept-Language': lang, lang, Accept: 'application/json' },
       next: { revalidate: 60 },
     })
     if (!res.ok) return null
@@ -55,16 +56,19 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const parsed = parseParams(parts)
   if (!parsed) return { title: 'منتج - TIX' }
 
-  const product = await getProduct(parsed.id)
+  const cookieStore = await cookies()
+  const lang = cookieStore.get('lang')?.value === 'en' ? 'en' : 'ar'
+
+  const product = await getProduct(parsed.id, lang)
   if (!product) return { title: 'منتج - TIX' }
 
-  const name = t(product.meta_title) || t(product.name)
+  const name = t(product.meta_title, lang) || t(product.name, lang)
   const description = (
-    t(product.meta_description) ||
-    stripHtml(product.short_description || product.long_description || product.name || '')
+    t(product.meta_description, lang) ||
+    stripHtml(product.short_description || product.long_description || product.name || '', lang)
   ).substring(0, 160)
 
-  const slug = generateSlug(t(product.name)) || parsed.slug || ''
+  const slug = generateSlug(t(product.name, lang)) || parsed.slug || ''
   const url = slug
     ? `${SITE_URL}/product/${parsed.id}/${slug}`
     : `${SITE_URL}/product/${parsed.id}`

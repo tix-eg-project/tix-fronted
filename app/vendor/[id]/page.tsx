@@ -5,7 +5,8 @@ import Link from "next/link";
 import { Store, Star, Package } from "lucide-react";
 import api from "@/lib/api";
 import ProductCard from "@/components/ProductCard";
-import { t } from "@/utils/helpers";
+import { t as tApi } from "@/utils/helpers";
+import { useLanguage } from "@/context/LanguageContext";
 
 function StarRating({ value }: { value: number }) {
   const rounded = Math.min(5, Math.max(0, Math.round(value || 0)));
@@ -22,6 +23,7 @@ function StarRating({ value }: { value: number }) {
 }
 
 export default function VendorStorePage() {
+  const { t, lang } = useLanguage();
   const params = useParams();
   const vendorId = params.id as string;
 
@@ -60,7 +62,7 @@ export default function VendorStorePage() {
     };
 
     fetchVendorData();
-  }, [vendorId]);
+  }, [vendorId, lang]);
 
   if (loading) {
     return (
@@ -75,7 +77,7 @@ export default function VendorStorePage() {
     );
   }
 
-  const storeName = profile?.company_name || profile?.store_name || "المتجر";
+  const storeName = profile?.company_name || profile?.store_name || t('brand.defaultStoreName');
   const avgRating = profile?.avg_rating || 0;
   const description = profile?.description || "";
 
@@ -83,9 +85,9 @@ export default function VendorStorePage() {
     <div className="max-w-6xl mx-auto px-4 py-8">
       {/* Breadcrumb */}
       <nav className="flex items-center gap-2 text-sm mb-6 text-text-muted">
-        <Link href="/" className="hover:text-text transition-colors">الرئيسية</Link>
+        <Link href="/" className="hover:text-text transition-colors">{t('header.home')}</Link>
         <span>/</span>
-        <span className="text-text">{t(storeName)}</span>
+        <span className="text-text">{tApi(storeName, lang)}</span>
       </nav>
 
       {/* Store Header */}
@@ -93,7 +95,7 @@ export default function VendorStorePage() {
         {profile?.image ? (
           <img
             src={profile.image}
-            alt={t(storeName)}
+            alt={tApi(storeName, lang)}
             className="w-16 h-16 rounded-2xl object-cover shrink-0"
           />
         ) : (
@@ -102,7 +104,7 @@ export default function VendorStorePage() {
           </div>
         )}
         <div className="flex-1">
-          <h1 className="text-2xl font-bold mb-1">{t(storeName)}</h1>
+          <h1 className="text-2xl font-bold mb-1">{tApi(storeName, lang)}</h1>
           {profile?.name && (
             <p className="text-text-muted text-sm mb-1">{profile.name}</p>
           )}
@@ -118,7 +120,7 @@ export default function VendorStorePage() {
             )}
             <div className="flex items-center gap-1.5">
               <Package className="w-4 h-4" />
-              <span>{products.length} منتج</span>
+              <span>{products.length} {t('brand.productUnit')}</span>
             </div>
           </div>
         </div>
@@ -127,7 +129,7 @@ export default function VendorStorePage() {
       {/* Products Grid */}
       {products.length > 0 ? (
         <>
-          <h2 className="text-lg font-bold mb-4">منتجات المتجر</h2>
+          <h2 className="text-lg font-bold mb-4">{t('brand.storeProducts')}</h2>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
             {products.map((product) => (
               <ProductCard key={product.id} {...product} />
@@ -137,7 +139,7 @@ export default function VendorStorePage() {
       ) : (
         <div className="text-center py-20 text-text-muted">
           <Store className="w-12 h-12 mx-auto mb-3 opacity-30" />
-          <p className="text-lg">لا توجد منتجات في هذا المتجر حالياً</p>
+          <p className="text-lg">{t('brand.noProductsForStore')}</p>
         </div>
       )}
     </div>

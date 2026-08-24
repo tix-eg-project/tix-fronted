@@ -6,7 +6,8 @@ import { Heart, ShoppingCart, Star } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { useWishlist } from "@/context/WishlistContext";
 import { useAuth } from "@/context/AuthContext";
-import { formatCurrency, calculateDiscount, t, generateSlug } from "@/utils/helpers";
+import { useLanguage } from "@/context/LanguageContext";
+import { formatCurrency, calculateDiscount, t as tApi, generateSlug } from "@/utils/helpers";
 import { toast } from "react-toastify";
 import type { ProductCardProps } from "@/utils/Types/products";
 import { Card } from "@/components/ui/card";
@@ -30,9 +31,10 @@ export default function ProductCard({
   const { addToCart } = useCart();
   const { toggleWishlist, isInWishlist } = useWishlist();
   const { state: authState } = useAuth();
+  const { t, lang } = useLanguage();
   const discountPct = discount || calculateDiscount(originalPrice || 0, price);
   const wishlisted = isInWishlist(id);
-  const productName = t(name);
+  const productName = tApi(name, lang);
 
   const gallery = images && images.length > 0 ? images : [image];
   const [activeIndex, setActiveIndex] = useState(0);
@@ -64,14 +66,14 @@ export default function ProductCard({
     e.preventDefault();
     e.stopPropagation();
     if (!authState.isAuthenticated) {
-      toast.info("سجّل الدخول أولاً لإضافة المنتجات للسلة");
+      toast.info(t("products.loginFirstToAddToCart"));
       return;
     }
     try {
       await addToCart(id);
-      toast.success("تمت الإضافة للسلة");
+      toast.success(t("products.addedToCart"));
     } catch {
-      toast.error("حدث خطأ");
+      toast.error(t("common.error"));
     }
   };
 
@@ -79,13 +81,13 @@ export default function ProductCard({
     e.preventDefault();
     e.stopPropagation();
     if (!authState.isAuthenticated) {
-      toast.info("سجّل الدخول أولاً");
+      toast.info(t("products.loginFirstGeneric"));
       return;
     }
     try {
       await toggleWishlist(id);
     } catch {
-      toast.error("حدث خطأ");
+      toast.error(t("common.error"));
     }
   };
 
@@ -154,13 +156,13 @@ export default function ProductCard({
             </div>
           )}
           {discountPct > 0 && (
-            <span className="absolute top-2 right-2 text-white text-[9px] sm:text-[11px] font-bold px-1.5 py-0.5 rounded bg-red-600">
+            <span className="absolute top-2 start-2 text-white text-[9px] sm:text-[11px] font-bold px-1.5 py-0.5 rounded bg-red-600">
               {discountPct}%
             </span>
           )}
           <button
             onClick={handleToggleWishlist}
-            className="absolute top-2 left-2 p-1 bg-white/80 backdrop-blur-sm rounded-full hover:bg-white transition-colors z-10 shadow-sm"
+            className="absolute top-2 end-2 p-1 bg-white/80 backdrop-blur-sm rounded-full hover:bg-white transition-colors z-10 shadow-sm"
           >
             <Heart className={`w-3.5 h-3.5 ${wishlisted ? "fill-red-600 text-red-600" : "text-red-600"}`} />
           </button>
@@ -196,7 +198,7 @@ export default function ProductCard({
               }`}
             >
               <ShoppingCart className="w-3 h-3 me-1 text-white" />
-              أضف للسلة
+              {t("products.addToCart")}
             </Button>
           </div>
         </div>

@@ -21,7 +21,8 @@ import api from "@/lib/api";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 import { useWishlist } from "@/context/WishlistContext";
-import { formatCurrency, calculateDiscount, t, generateSlug } from "@/utils/helpers";
+import { useLanguage } from "@/context/LanguageContext";
+import { formatCurrency, calculateDiscount, t as tApi, generateSlug } from "@/utils/helpers";
 import ProductCard from "@/components/ProductCard";
 import type { Product, VariantGroup, VariantItem } from "@/utils/Types/common";
 import { useRouter } from "next/navigation";
@@ -184,8 +185,9 @@ export default function ProductDetailClient({ productId }: { productId: string }
   const { addToCart } = useCart();
   const { state: authState } = useAuth();
   const { toggleWishlist, isInWishlist } = useWishlist();
+  const { t, lang, dir } = useLanguage();
   const router = useRouter();
-  const [descLang, setDescLang] = useState<'ar' | 'en'>('ar');
+  const [descLang, setDescLang] = useState<'ar' | 'en'>(lang);
 
   // Reset quantity when variant changes
   useEffect(() => { setQuantity(1); }, [selectedItem]);
@@ -203,7 +205,7 @@ export default function ProductDetailClient({ productId }: { productId: string }
           setSelectedItem(p.groups[0].items?.[0] || null);
         }
         // Redirect to correct slug if name changed
-        const correctSlug = generateSlug(t(p.name))
+        const correctSlug = generateSlug(tApi(p.name, lang))
         const currentPath = window.location.pathname
         const expectedPath = `/product/${productId}/${correctSlug}`
         if (correctSlug && !currentPath.endsWith(correctSlug)) {
@@ -213,7 +215,7 @@ export default function ProductDetailClient({ productId }: { productId: string }
         fetchRelated(p.category_id || p.category?.id);
       }
     } catch (error: any) {
-      toast.error(error.response?.data?.message || "خطأ في تحميل المنتج");
+      toast.error(error.response?.data?.message || t('product.errorLoadingProduct'));
     } finally {
       setLoading(false);
     }
@@ -278,19 +280,20 @@ export default function ProductDetailClient({ productId }: { productId: string }
     fetchProduct();
     fetchReviews();
     window.scrollTo(0, 0);
-  }, [productId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [productId, lang]);
 
   const handleAddToCart = async () => {
     if (!authState.isAuthenticated) {
-      toast.info("سجّل الدخول أولاً");
+      toast.info(t('product.loginFirst'));
       return;
     }
     try {
       setAddingToCart(true);
       await addToCart(product!.id, quantity, selectedItem?.id || null);
-      toast.success("تمت الإضافة للسلة");
+      toast.success(t('product.addedToCart'));
     } catch (error: any) {
-      toast.error(error.response?.data?.message || "خطأ في الإضافة");
+      toast.error(error.response?.data?.message || t('product.errorAdding'));
     } finally {
       setAddingToCart(false);
     }
@@ -298,21 +301,21 @@ export default function ProductDetailClient({ productId }: { productId: string }
 
   const handleToggleWishlist = async () => {
     if (!authState.isAuthenticated) {
-      toast.info("سجّل الدخول أولاً");
+      toast.info(t('product.loginFirst'));
       return;
     }
     try {
       await toggleWishlist(product!.id);
       fetchProduct();
     } catch {
-      toast.error("خطأ");
+      toast.error(t('common.error'));
     }
   };
 
   const handleReviewSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!authState.isAuthenticated) {
-      toast.info("سجّل الدخول أولاً لإضافة تقييم");
+      toast.info(t('product.loginFirstToReview'));
       return;
     }
     try {
@@ -328,13 +331,13 @@ export default function ProductDetailClient({ productId }: { productId: string }
       await api.post(`/products/${productId}/reviews`, formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
-      toast.success("تم حفظ تقييمك");
+      toast.success(t('product.reviewSaved'));
       setReviewText("");
       setReviewImage(null);
       fetchProduct();
       fetchReviews();
     } catch (error: any) {
-      toast.error(error.response?.data?.message || "تعذّر إرسال التقييم");
+      toast.error(error.response?.data?.message || t('product.reviewSubmitFailed'));
     } finally {
       setReviewSubmitting(false);
     }
@@ -364,10 +367,10 @@ export default function ProductDetailClient({ productId }: { productId: string }
         className="text-center"
       >
         <p className="text-2xl" style={{ color: "#666" }}>
-          المنتج غير موجود
+          {t('product.productNotFound')}
         </p>
         <Link href="/" className="btn-primary mt-6 inline-block">
-          العودة للرئيسية
+          {t('product.backToHome')}
         </Link>
       </div>
     );
@@ -379,13 +382,13 @@ export default function ProductDetailClient({ productId }: { productId: string }
   const discountPct = calculateDiscount(originalPrice, currentPrice);
   const images = product.images?.length > 0 ? product.images : ["/pl1.jpg"];
   const features = Array.isArray(product.prod_features) && product.prod_features.length > 0
-    ? product.prod_features.map((f: any) => typeof f === 'object' ? t(f.name || f) : f)
+    ? product.prod_features.map((f: any) => typeof f === 'object' ? tApi(f.name || f, lang) : f)
     : Array.isArray(product.features)
-      ? product.features.filter(Boolean).map((f: any) => typeof f === 'object' ? t(f) : f)
+      ? product.features.filter(Boolean).map((f: any) => typeof f === 'object' ? tApi(f, lang) : f)
       : [];
   const handleAddBoughtTogether = async () => {
     if (!authState.isAuthenticated) {
-      toast.info("سجّل الدخول أولاً لإضافة المنتجات للسلة");
+      toast.info(t('product.loginFirstToAddToCart'));
       return;
     }
     try {
@@ -400,9 +403,9 @@ export default function ProductDetailClient({ productId }: { productId: string }
           await addToCart(Number(prodId), 1);
         }
       }
-      toast.success("تم إضافة المنتجات المختارة للسلة");
+      toast.success(t('product.selectedProductsAdded'));
     } catch (error: any) {
-      toast.error("حدث خطأ أثناء إضافة المنتجات");
+      toast.error(t('product.errorAddingProducts'));
     } finally {
       setAddingToCart(false);
     }
@@ -452,19 +455,19 @@ export default function ProductDetailClient({ productId }: { productId: string }
       {/* Breadcrumb */}
       <nav className="flex items-center gap-2 text-sm mb-6 overflow-x-auto scrollbar-hide whitespace-nowrap" style={{ color: "#666" }}>
         <Link href="/" className="hover:text-black transition-colors shrink-0">
-          الرئيسية
+          {t('header.home')}
         </Link>
         <span className="shrink-0">/</span>
         {product.category && (
           <>
             <Link href="/products" className="hover:text-black transition-colors shrink-0">
-              {t(product.category)}
+              {tApi(product.category, lang)}
             </Link>
             <span className="shrink-0">/</span>
           </>
         )}
         <span style={{ color: "#212121" }} className="truncate max-w-[160px] sm:max-w-[280px] shrink-0">
-          {t(product.name)}
+          {tApi(product.name, lang)}
         </span>
       </nav>
 
@@ -472,26 +475,26 @@ export default function ProductDetailClient({ productId }: { productId: string }
       <div className="lg:hidden mb-4">
         {product?.brand?.id ? (
           <Link
-            href={`/brand/${product.brand.id}?name=${encodeURIComponent(t(product.brand.name ?? product.brand))}`}
+            href={`/brand/${product.brand.id}?name=${encodeURIComponent(tApi(product.brand.name ?? product.brand, lang))}`}
             className="text-sm font-semibold text-primary hover:underline inline-block"
           >
-            {t(product.brand.name ?? product.brand)}
+            {tApi(product.brand.name ?? product.brand, lang)}
           </Link>
         ) : product?.brand ? (
           <span className="text-sm font-semibold text-primary block">
-            {t(typeof product.brand === "object" ? product.brand.name : product.brand)}
+            {tApi(typeof product.brand === "object" ? product.brand.name : product.brand, lang)}
           </span>
         ) : null}
 
         <h1 className="text-xl font-bold leading-tight mt-1" style={{ color: "#212121" }}>
-          {t(product.name)}
+          {tApi(product.name, lang)}
         </h1>
 
         <div className="flex items-center gap-2 mt-2">
           <StarRating value={avgRating} />
           <span style={{ fontSize: 14, color: "#666" }}>
             {avgRating > 0 ? `${avgRating.toFixed(1)} ` : ""}
-            ({(reviewCount ?? 0).toLocaleString("en-US")} تقييم)
+            ({(reviewCount ?? 0).toLocaleString("en-US")} {t('product.reviewsCount')})
           </span>
         </div>
       </div>
@@ -510,11 +513,11 @@ export default function ProductDetailClient({ productId }: { productId: string }
                     index === activeImageIndex ? "border-black" : "border-gray-200 hover:border-gray-400"
                   }`}
                   style={{ backgroundColor: "#F5F5F5" }}
-                  aria-label={`صورة ${index + 1}`}
+                  aria-label={t('product.imageAlt', { index: index + 1 })}
                 >
                   <Image
                     src={typeof img === "string" ? img : "/pl1.jpg"}
-                    alt={`${t(product.name)} ${index + 1}`}
+                    alt={`${tApi(product.name, lang)} ${index + 1}`}
                     fill
                     className="object-contain"
                     sizes="64px"
@@ -543,7 +546,7 @@ export default function ProductDetailClient({ productId }: { productId: string }
               />
               <Image
                 src={typeof images[activeImageIndex] === "string" ? images[activeImageIndex] : "/pl1.jpg"}
-                alt={`${t(product.name)} ${activeImageIndex + 1}`}
+                alt={`${tApi(product.name, lang)} ${activeImageIndex + 1}`}
                 fill
                 className="object-contain scale-105"
                 sizes="(max-width: 1024px) 100vw, 50vw"
@@ -560,7 +563,7 @@ export default function ProductDetailClient({ productId }: { productId: string }
                   }}
                 />
               )}
-              <span className="absolute bottom-2 left-2 sm:bottom-3 sm:left-3 bg-black/50 text-white rounded-full p-1.5 sm:p-2 pointer-events-none z-10">
+              <span className="absolute bottom-2 end-2 sm:bottom-3 sm:end-3 bg-black/50 text-white rounded-full p-1.5 sm:p-2 pointer-events-none z-10">
                 <ZoomIn className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               </span>
             </div>
@@ -575,8 +578,8 @@ export default function ProductDetailClient({ productId }: { productId: string }
           >
             <button
               onClick={(e) => { e.stopPropagation(); closeLightbox(); }}
-              className="absolute top-4 left-4 sm:top-6 sm:left-6 z-10 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
-              aria-label="إغلاق"
+              className="absolute top-4 end-4 sm:top-6 sm:end-6 z-10 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
+              aria-label={t('common.close')}
             >
               <X className="w-6 h-6" />
             </button>
@@ -590,10 +593,10 @@ export default function ProductDetailClient({ productId }: { productId: string }
                     setLightboxScale(1);
                     setLightboxOffset({ x: 0, y: 0 });
                   }}
-                  className="absolute top-1/2 -translate-y-1/2 right-2 sm:right-6 z-10 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
-                  aria-label="الصورة السابقة"
+                  className="absolute top-1/2 -translate-y-1/2 start-2 sm:start-6 z-10 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
+                  aria-label={t('product.previousImage')}
                 >
-                  <ChevronRight className="w-6 h-6" />
+                  {dir === 'rtl' ? <ChevronRight className="w-6 h-6" /> : <ChevronLeft className="w-6 h-6" />}
                 </button>
                 <button
                   onClick={(e) => {
@@ -602,10 +605,10 @@ export default function ProductDetailClient({ productId }: { productId: string }
                     setLightboxScale(1);
                     setLightboxOffset({ x: 0, y: 0 });
                   }}
-                  className="absolute top-1/2 -translate-y-1/2 left-2 sm:left-6 z-10 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
-                  aria-label="الصورة التالية"
+                  className="absolute top-1/2 -translate-y-1/2 end-2 sm:end-6 z-10 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
+                  aria-label={t('product.nextImage')}
                 >
-                  <ChevronLeft className="w-6 h-6" />
+                  {dir === 'rtl' ? <ChevronLeft className="w-6 h-6" /> : <ChevronRight className="w-6 h-6" />}
                 </button>
               </>
             )}
@@ -628,7 +631,7 @@ export default function ProductDetailClient({ productId }: { productId: string }
               >
                 <Image
                   src={typeof images[activeImageIndex] === "string" ? images[activeImageIndex] : "/pl1.jpg"}
-                  alt={`${t(product.name)} ${activeImageIndex + 1}`}
+                  alt={`${tApi(product.name, lang)} ${activeImageIndex + 1}`}
                   fill
                   className="object-contain pointer-events-none"
                   sizes="100vw"
@@ -637,7 +640,7 @@ export default function ProductDetailClient({ productId }: { productId: string }
             </div>
 
             <p className="absolute bottom-4 sm:bottom-6 inset-x-0 text-center text-white/60 text-xs">
-              دبل تاب / دبل كليك للتكبير
+              {t('product.doubleTapToZoom')}
             </p>
           </div>
         )}
@@ -647,20 +650,20 @@ export default function ProductDetailClient({ productId }: { productId: string }
           {/* Brand — desktop only, shown above the image on mobile */}
           {product?.brand?.id ? (
             <Link
-              href={`/brand/${product.brand.id}?name=${encodeURIComponent(t(product.brand.name ?? product.brand))}`}
+              href={`/brand/${product.brand.id}?name=${encodeURIComponent(tApi(product.brand.name ?? product.brand, lang))}`}
               className="hidden lg:inline-block text-sm font-semibold text-primary hover:underline mb-1 self-start"
             >
-              {t(product.brand.name ?? product.brand)}
+              {tApi(product.brand.name ?? product.brand, lang)}
             </Link>
           ) : product?.brand ? (
             <span className="hidden lg:block text-sm font-semibold text-primary mb-1">
-              {t(typeof product.brand === "object" ? product.brand.name : product.brand)}
+              {tApi(typeof product.brand === "object" ? product.brand.name : product.brand, lang)}
             </span>
           ) : null}
 
           {/* Title — desktop only, shown above the image on mobile */}
           <h1 className="hidden lg:block text-xl md:text-2xl font-bold leading-tight" style={{ color: "#212121" }}>
-            {t(product.name)}
+            {tApi(product.name, lang)}
           </h1>
 
           {/* Rating — desktop only, shown above the image on mobile */}
@@ -668,20 +671,20 @@ export default function ProductDetailClient({ productId }: { productId: string }
             <StarRating value={avgRating} />
             <span style={{ fontSize: 14, color: "#666" }}>
               {avgRating > 0 ? `${avgRating.toFixed(1)} · ` : ""}
-              {(reviewCount ?? 0).toLocaleString("en-US")} تقييم
+              {(reviewCount ?? 0).toLocaleString("en-US")} {t('product.reviewsCount')}
             </span>
           </div>
 
           {/* Price */}
           <div className={`text-3xl font-bold mt-4 ${discountPct > 0 ? "text-red-600" : "text-black"}`}>
-            {(currentPrice ?? 0).toLocaleString("en-US")} EGP
+            {(currentPrice ?? 0).toLocaleString("en-US")} {t('common.egp')}
           </div>
 
           {/* Original Price + Discount */}
           {originalPrice > currentPrice && (
             <div className="flex items-center gap-2 mt-1">
               <span className="text-lg text-gray-400 line-through">
-                {(originalPrice ?? 0).toLocaleString("en-US")} EGP
+                {(originalPrice ?? 0).toLocaleString("en-US")} {t('common.egp')}
               </span>
               <span className="px-2 py-0.5 rounded-full text-sm font-bold bg-red-100 text-red-700">
                 -{discountPct}%
@@ -694,12 +697,12 @@ export default function ProductDetailClient({ productId }: { productId: string }
             {inStock ? (
               <div className="flex items-center gap-1.5 text-sm font-medium text-[#16a34a]">
                 <span className="w-2 h-2 rounded-full bg-[#16a34a]" />
-                متوفر
+                {t('product.inStock')}
               </div>
             ) : (
               <div className="flex items-center gap-1.5 text-sm font-medium text-red-500">
                 <span className="w-2 h-2 rounded-full bg-red-500" />
-                غير متوفر
+                {t('product.outOfStock')}
               </div>
             )}
           </div>
@@ -707,13 +710,13 @@ export default function ProductDetailClient({ productId }: { productId: string }
           {/* Vendor */}
           {product?.vendor?.store_name && (
             <p className="text-sm mt-3" style={{ color: "#666" }}>
-              المتجر:{" "}
+              {t('product.store')}:{" "}
               <Link
                 href={`/vendor/${product.vendor.id}`}
                 className="font-medium hover:text-primary transition-colors"
                 style={{ color: "#212121" }}
               >
-                {t(product.vendor.store_name)}
+                {tApi(product.vendor.store_name, lang)}
               </Link>
             </p>
           )}
@@ -722,7 +725,7 @@ export default function ProductDetailClient({ productId }: { productId: string }
           {product.groups && product.groups.length > 0 && (
             <div className="mt-5">
               <p className="text-sm font-medium mb-2" style={{ color: "#212121" }}>
-                اختر اللون:
+                {t('product.chooseColor')}
               </p>
               <div className="flex flex-wrap gap-2 mb-3">
                 {product.groups.map((group: VariantGroup, idx: number) => (
@@ -755,7 +758,7 @@ export default function ProductDetailClient({ productId }: { productId: string }
                       onClick={() => setSelectedItem(item)}
                     >
                       {Object.entries(item.attrs).map(([k, v]) => (
-                        <span key={k}>{t(v)}</span>
+                        <span key={k}>{tApi(v, lang)}</span>
                       ))}
                     </button>
                   ))}
@@ -789,18 +792,18 @@ export default function ProductDetailClient({ productId }: { productId: string }
                 </div>
                 {stockKnown && maxStock <= 10 && (
                   <div className="text-sm">
-                    <span className="text-gray-500">الكمية المتاحة: </span>
+                    <span className="text-gray-500">{t('product.availableQty')}: </span>
                     <span className={`font-semibold ${maxStock <= 3 ? 'text-red-600' : 'text-amber-500'}`}>
-                      {maxStock} قطعة
+                      {maxStock} {t('product.pieces')}
                     </span>
                     {maxStock <= 3 && (
-                      <span className="text-red-600 text-xs block font-medium">آخر قطع!</span>
+                      <span className="text-red-600 text-xs block font-medium">{t('product.lastPieces')}</span>
                     )}
                   </div>
                 )}
                 {maxOrderQty !== null && (
                   <p className="text-xs text-gray-400 mt-1">
-                    الحد الأقصى للطلب: <span className="font-semibold text-gray-600">{maxOrderQty} قطعة</span>
+                    {t('product.maxOrderQty')}: <span className="font-semibold text-gray-600">{maxOrderQty} {t('product.pieces')}</span>
                   </p>
                 )}
               </div>
@@ -808,7 +811,7 @@ export default function ProductDetailClient({ productId }: { productId: string }
           )}
           {!inStock && (
             <div className="mt-4 px-4 py-3 bg-gray-100 rounded-xl text-center">
-              <p className="text-base font-semibold text-gray-500">غير متوفر في المخزون</p>
+              <p className="text-base font-semibold text-gray-500">{t('product.outOfStockInInventory')}</p>
             </div>
           )}
 
@@ -816,20 +819,20 @@ export default function ProductDetailClient({ productId }: { productId: string }
           {/* Buy Now */}
           <button
             onClick={async () => {
-              if (!authState.isAuthenticated) { toast.info("سجّل الدخول أولاً"); return; }
+              if (!authState.isAuthenticated) { toast.info(t('product.loginFirst')); return; }
               try {
                 setAddingToCart(true);
                 await addToCart(product!.id, quantity, selectedItem?.id || null);
                 router.push('/checkout');
               } catch (error: any) {
-                toast.error(error.response?.data?.message || "خطأ في الإضافة");
+                toast.error(error.response?.data?.message || t('product.errorAdding'));
                 setAddingToCart(false);
               }
             }}
             disabled={addingToCart || !inStock}
             className="w-full h-12 bg-black text-white text-base font-semibold rounded-xl hover:bg-gray-900 transition-colors mt-5 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {addingToCart ? "جاري الإضافة..." : "اشتري الآن"}
+            {addingToCart ? t('product.adding') : t('product.buyNow')}
           </button>
 
           {/* Add to Cart */}
@@ -839,7 +842,7 @@ export default function ProductDetailClient({ productId }: { productId: string }
             className="w-full h-12 bg-white text-black text-base font-semibold rounded-xl border-2 border-black hover:bg-gray-50 transition-colors mt-3 flex items-center justify-center gap-2 disabled:opacity-50"
           >
             <ShoppingCart className="w-5 h-5" />
-            أضف للسلة
+            {t('product.addToCart')}
           </button>
 
           {/* Add to Wishlist */}
@@ -851,7 +854,7 @@ export default function ProductDetailClient({ productId }: { productId: string }
               }`}
           >
             <Heart className="w-4 h-4" fill={wishlisted ? "currentColor" : "none"} />
-            {wishlisted ? "في المفضلة" : "أضف للمفضلة"}
+            {wishlisted ? t('product.inWishlist') : t('product.addToWishlist')}
           </button>
 
           {/* ── Feature Values ── */}
@@ -888,7 +891,7 @@ export default function ProductDetailClient({ productId }: { productId: string }
       {/* ── Video: full width, below image + buy box ── */}
           {product.video && (
             <div className="mt-8">
-              <h3 className="text-base font-bold mb-3">فيديو المنتج</h3>
+              <h3 className="text-base font-bold mb-3">{t('product.productVideo')}</h3>
               <div className="relative w-full rounded-2xl overflow-hidden bg-black aspect-video">
                 <video
                   src={product.video}
@@ -901,18 +904,18 @@ export default function ProductDetailClient({ productId }: { productId: string }
           )}
 
           {/* ── Accordions: 2 columns on wide screens ── */}
-          <div className="mt-6 border-t border-gray-100 grid grid-cols-1 lg:grid-cols-2 lg:gap-x-8 lg:divide-x lg:divide-x-reverse lg:divide-gray-100">
+          <div className="mt-6 border-t border-gray-100 grid grid-cols-1 lg:grid-cols-2 lg:gap-x-8 lg:divide-x rtl:lg:divide-x-reverse lg:divide-gray-100">
             {/* Column A: Specs + Description */}
             <div>
               {Array.isArray(product.attributes) && product.attributes.length > 0 && (
-                <Accordion title="المواصفات">
+                <Accordion title={t('product.specifications')}>
                   <div className="divide-y divide-gray-200 border border-gray-200 rounded-xl overflow-hidden bg-white">
                     {product.attributes.map((attr: { name: string; value: string }, idx: number) => (
                       <div
                         key={idx}
                         className={`flex items-center text-sm ${idx % 2 === 0 ? "bg-white" : "bg-gray-50"}`}
                       >
-                        <span className="w-1/2 px-4 py-2.5 font-medium text-gray-700 border-l border-gray-200">
+                        <span className="w-1/2 px-4 py-2.5 font-medium text-gray-700 border-e border-gray-200">
                           {attr.name}
                         </span>
                         <span className="w-1/2 px-4 py-2.5 text-gray-600">
@@ -928,11 +931,11 @@ export default function ProductDetailClient({ productId }: { productId: string }
                 <Accordion
                   title={
                     <div className="flex items-center justify-between w-full">
-                      <span>الوصف</span>
+                      <span>{t('product.description')}</span>
                       {hasMultiLang(product.long_description) && (
                         <button
                           onClick={(e) => { e.stopPropagation(); setDescLang(l => l === 'ar' ? 'en' : 'ar'); }}
-                          className="flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full border border-gray-200 hover:border-gray-400 text-gray-500 hover:text-black transition-colors mr-4"
+                          className="flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full border border-gray-200 hover:border-gray-400 text-gray-500 hover:text-black transition-colors me-4"
                         >
                           <Languages className="w-3.5 h-3.5" />
                           {descLang === 'ar' ? 'EN' : 'عربي'}
@@ -943,7 +946,7 @@ export default function ProductDetailClient({ productId }: { productId: string }
                   defaultOpen
                 >
                   <div
-                    className="leading-relaxed prose prose-sm max-w-none text-gray-700 [&_p]:mb-3 [&_br]:block [&_ul]:list-disc [&_ul]:pr-5 [&_ol]:list-decimal [&_ol]:pr-5"
+                    className="leading-relaxed prose prose-sm max-w-none text-gray-700 [&_p]:mb-3 [&_br]:block [&_ul]:list-disc [&_ul]:ps-5 [&_ol]:list-decimal [&_ol]:ps-5"
                     dir={descLang === 'en' ? 'ltr' : 'rtl'}
                     style={{ textAlign: descLang === 'en' ? 'left' : 'right' }}
                     dangerouslySetInnerHTML={{ __html: tLang(product.long_description, descLang) }}
@@ -953,8 +956,8 @@ export default function ProductDetailClient({ productId }: { productId: string }
             </div>
 
             {/* Column B: Reviews + FAQ */}
-            <div className="lg:pr-8">
-            <Accordion title={`التقييمات ${reviewCount > 0 ? `(${reviewCount})` : ""}`} defaultOpen={reviewCount > 0}>
+            <div className="lg:ps-8">
+            <Accordion title={`${t('product.reviews')} ${reviewCount > 0 ? `(${reviewCount})` : ""}`} defaultOpen={reviewCount > 0}>
               {/* Rating Summary */}
               {reviewCount > 0 && (
                 <div className="flex flex-col sm:flex-row gap-6 p-5 bg-gray-50 rounded-2xl mb-6">
@@ -966,7 +969,7 @@ export default function ProductDetailClient({ productId }: { productId: string }
                         <Star key={n} className={`w-4 h-4 ${n <= Math.round(avgRating) ? 'fill-yellow-400 text-yellow-400' : 'text-gray-200 fill-gray-200'}`} />
                       ))}
                     </div>
-                    <span className="text-xs text-gray-400">{reviewCount} تقييم</span>
+                    <span className="text-xs text-gray-400">{reviewCount} {t('product.reviewsCount')}</span>
                   </div>
                   {/* Bars */}
                   <div className="flex-1 space-y-1.5">
@@ -975,12 +978,12 @@ export default function ProductDetailClient({ productId }: { productId: string }
                       const pct = reviewCount > 0 ? Math.round((count / reviewCount) * 100) : 0;
                       return (
                         <div key={n} className="flex items-center gap-2">
-                          <span className="text-xs text-gray-500 w-4 text-left">{n}</span>
+                          <span className="text-xs text-gray-500 w-4 text-end">{n}</span>
                           <Star className="w-3 h-3 fill-yellow-400 text-yellow-400 flex-shrink-0" />
                           <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
                             <div className="h-full bg-yellow-400 rounded-full transition-all" style={{ width: `${pct}%` }} />
                           </div>
-                          <span className="text-xs text-gray-400 w-8 text-left">{count}</span>
+                          <span className="text-xs text-gray-400 w-8 text-end">{count}</span>
                         </div>
                       );
                     })}
@@ -992,7 +995,7 @@ export default function ProductDetailClient({ productId }: { productId: string }
               {reviewsList.length === 0 ? (
                 <div className="text-center py-8 text-gray-400">
                   <Star className="w-10 h-10 mx-auto mb-2 text-gray-200" />
-                  <p className="text-sm">لا توجد تقييمات بعد — كن أول من يقيّم!</p>
+                  <p className="text-sm">{t('product.noReviewsYet')}</p>
                 </div>
               ) : (
                 <div className="space-y-4 mb-6">
@@ -1001,10 +1004,10 @@ export default function ProductDetailClient({ productId }: { productId: string }
                       <div className="flex items-start justify-between gap-3 mb-2">
                         <div className="flex items-center gap-3">
                           <div className="w-9 h-9 rounded-full bg-gray-900 text-white flex items-center justify-center text-sm font-bold flex-shrink-0">
-                            {(r.user_name || r.user || r.name || "م").charAt(0).toUpperCase()}
+                            {(r.user_name || r.user || r.name || t('product.anonymousInitial')).charAt(0).toUpperCase()}
                           </div>
                           <div>
-                            <p className="text-sm font-semibold text-gray-800">{r.user_name || r.user || r.name || "مستخدم"}</p>
+                            <p className="text-sm font-semibold text-gray-800">{r.user_name || r.user || r.name || t('product.anonymousUser')}</p>
                             <div className="flex gap-0.5 mt-0.5">
                               {[1, 2, 3, 4, 5].map(n => (
                                 <Star key={n} className={`w-3 h-3 ${n <= Math.round(r.rating) ? 'fill-yellow-400 text-yellow-400' : 'text-gray-200 fill-gray-200'}`} />
@@ -1014,15 +1017,15 @@ export default function ProductDetailClient({ productId }: { productId: string }
                         </div>
                         {r.created_at && (
                           <span className="text-xs text-gray-400 flex-shrink-0">
-                            {new Date(r.created_at).toLocaleDateString('ar-EG', { year: 'numeric', month: 'short', day: 'numeric' })}
+                            {new Date(r.created_at).toLocaleDateString(lang === 'en' ? 'en-US' : 'ar-EG', { year: 'numeric', month: 'short', day: 'numeric' })}
                           </span>
                         )}
                       </div>
-                      {(r.comment || r.review) && <p className="text-sm text-gray-600 leading-relaxed pr-12">{r.comment || r.review}</p>}
+                      {(r.comment || r.review) && <p className="text-sm text-gray-600 leading-relaxed ps-12">{r.comment || r.review}</p>}
                       {(r.image_url || r.image) && (
-                        <div className="mt-3 pr-12">
+                        <div className="mt-3 ps-12">
                           <div className="w-24 h-24 relative rounded-xl overflow-hidden border border-gray-100">
-                            <Image src={r.image_url || r.image} alt="صورة التقييم" fill className="object-cover" />
+                            <Image src={r.image_url || r.image} alt={t('product.reviewImageAlt')} fill className="object-cover" />
                           </div>
                         </div>
                       )}
@@ -1033,12 +1036,12 @@ export default function ProductDetailClient({ productId }: { productId: string }
 
               {/* Review Form */}
               <div className="border-t border-gray-100 pt-5 mt-2">
-                <h4 className="text-sm font-bold text-gray-800 mb-4">أضف تقييمك</h4>
+                <h4 className="text-sm font-bold text-gray-800 mb-4">{t('product.addYourReview')}</h4>
                 {authState.isAuthenticated ? (
                   <form onSubmit={handleReviewSubmit} className="space-y-4">
                     {/* Stars */}
                     <div>
-                      <label className="text-xs text-gray-500 mb-1.5 block">تقييمك</label>
+                      <label className="text-xs text-gray-500 mb-1.5 block">{t('product.yourRating')}</label>
                       <div className="flex gap-1">
                         {[1, 2, 3, 4, 5].map((n) => (
                           <button
@@ -1057,17 +1060,16 @@ export default function ProductDetailClient({ productId }: { productId: string }
                     <textarea
                       value={reviewText}
                       onChange={(e) => setReviewText(e.target.value)}
-                      placeholder="شاركنا رأيك في المنتج (اختياري)"
+                      placeholder={t('product.reviewPlaceholder')}
                       className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm resize-none focus:outline-none focus:border-gray-400 transition-colors"
                       rows={3}
-                      dir="rtl"
                     />
                     {/* Image Upload */}
                     <div>
-                      <label className="text-xs text-gray-500 mb-1.5 block">إرفاق صورة (اختياري)</label>
+                      <label className="text-xs text-gray-500 mb-1.5 block">{t('product.attachImageOptional')}</label>
                       <label className="flex items-center gap-3 cursor-pointer w-fit px-4 py-2.5 border-2 border-dashed border-gray-200 rounded-xl hover:border-gray-400 transition-colors">
                         <PlusIcon className="w-4 h-4 text-gray-400" />
-                        <span className="text-sm text-gray-500">{reviewImage ? reviewImage.name : "اختر صورة"}</span>
+                        <span className="text-sm text-gray-500">{reviewImage ? reviewImage.name : t('product.chooseImage')}</span>
                         <input type="file" accept="image/*" className="hidden" onChange={(e) => setReviewImage(e.target.files?.[0] || null)} />
                       </label>
                     </div>
@@ -1076,15 +1078,15 @@ export default function ProductDetailClient({ productId }: { productId: string }
                       disabled={reviewSubmitting}
                       className="h-11 px-8 bg-gray-900 text-white text-sm font-semibold rounded-xl hover:bg-black transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      {reviewSubmitting ? "جاري الإرسال..." : "إرسال التقييم"}
+                      {reviewSubmitting ? t('product.submitting') : t('product.submitReview')}
                     </button>
                   </form>
                 ) : (
                   <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-xl">
                     <Star className="w-5 h-5 text-yellow-400 fill-yellow-400 flex-shrink-0" />
                     <p className="text-sm text-gray-600">
-                      <Link href="/login" className="font-semibold text-gray-900 hover:underline">سجّل الدخول</Link>{" "}
-                      لإضافة تقييمك على هذا المنتج
+                      <Link href="/login" className="font-semibold text-gray-900 hover:underline">{t('header.login')}</Link>{" "}
+                      {t('product.loginToReviewSuffix')}
                     </p>
                   </div>
                 )}
@@ -1093,12 +1095,12 @@ export default function ProductDetailClient({ productId }: { productId: string }
 
             {/* FAQ */}
             {faqs.length > 0 && (
-              <Accordion title="الأسئلة الشائعة">
+              <Accordion title={t('product.faq')}>
                 <div className="space-y-3">
                   {faqs.map((faq: any, idx: number) => (
                     <div key={faq.id ?? idx}>
-                      <p className="font-semibold text-gray-800 mb-1" dangerouslySetInnerHTML={{ __html: t(faq.question) }} />
-                      <div className="text-gray-600 prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: t(faq.answer) }} />
+                      <p className="font-semibold text-gray-800 mb-1" dangerouslySetInnerHTML={{ __html: tApi(faq.question, lang) }} />
+                      <div className="text-gray-600 prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: tApi(faq.answer, lang) }} />
                     </div>
                   ))}
                 </div>
@@ -1110,7 +1112,7 @@ export default function ProductDetailClient({ productId }: { productId: string }
       {/* Frequently Bought Together Section - Larger Cards */}
       {complementaryProducts.length > 0 && (
         <div className="mt-8 p-6 border border-gray-200 rounded-2xl bg-white shadow-sm">
-          <h3 className="text-base font-bold mb-6 text-gray-900">يباع معها أيضاً</h3>
+          <h3 className="text-base font-bold mb-6 text-gray-900">{t('product.alsoSoldWith')}</h3>
 
           <div className="flex items-start gap-4 overflow-x-auto pb-4 scrollbar-hide">
             {/* Main Product */}
@@ -1120,14 +1122,14 @@ export default function ProductDetailClient({ productId }: { productId: string }
                   type="checkbox"
                   checked={selectedBoughtTogether.includes(String(product.id))}
                   onChange={() => toggleBoughtTogether(String(product.id))}
-                  className="absolute top-2 right-2 z-10 w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer shadow-sm"
+                  className="absolute top-2 end-2 z-10 w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer shadow-sm"
                 />
                 <div className="relative w-full h-full p-2">
-                  <Image src={images[0]} alt={t(product.name)} fill className="object-contain" sizes="128px" />
+                  <Image src={images[0]} alt={tApi(product.name, lang)} fill className="object-contain" sizes="128px" />
                 </div>
               </div>
               <div className="text-center w-full">
-                <p className="text-[11px] font-bold text-gray-900 leading-tight line-clamp-2 mb-1 h-7">{t(product.name)}</p>
+                <p className="text-[11px] font-bold text-gray-900 leading-tight line-clamp-2 mb-1 h-7">{tApi(product.name, lang)}</p>
                 <p className={`text-xs font-black ${discountPct > 0 ? "text-red-600" : "text-gray-900"}`}>{formatCurrency(currentPrice)}</p>
               </div>
             </div>
@@ -1143,14 +1145,14 @@ export default function ProductDetailClient({ productId }: { productId: string }
                       type="checkbox"
                       checked={selectedBoughtTogether.includes(String(prod.id))}
                       onChange={() => toggleBoughtTogether(String(prod.id))}
-                      className="absolute top-2 right-2 z-10 w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer shadow-sm"
+                      className="absolute top-2 end-2 z-10 w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer shadow-sm"
                     />
                     <div className="relative w-full h-full p-2">
-                      <Image src={prod.image} alt={t(prod.name)} fill className="object-contain" sizes="128px" />
+                      <Image src={prod.image} alt={tApi(prod.name, lang)} fill className="object-contain" sizes="128px" />
                     </div>
                   </div>
                   <div className="text-center w-full">
-                    <p className="text-[11px] font-bold text-gray-900 leading-tight line-clamp-2 mb-1 h-7">{t(prod.name)}</p>
+                    <p className="text-[11px] font-bold text-gray-900 leading-tight line-clamp-2 mb-1 h-7">{tApi(prod.name, lang)}</p>
                     <p className={`text-xs font-black ${(prod.discount ?? 0) > 0 ? "text-red-600" : "text-gray-900"}`}>{formatCurrency(prod.price)}</p>
                   </div>
                 </div>
@@ -1164,34 +1166,34 @@ export default function ProductDetailClient({ productId }: { productId: string }
               disabled={selectedBoughtTogether.length === 0 || addingToCart}
               className="w-full bg-white text-black border border-black hover:bg-gray-50 h-12 rounded-xl font-bold text-base transition-all focus:ring-0 focus-visible:ring-0 shadow-sm"
             >
-              اشتري {selectedBoughtTogether.length} معاً بسعر {formatCurrency(calculateTotalBoughtTogether())}
+              {t('product.buyTogether', { count: selectedBoughtTogether.length, price: formatCurrency(calculateTotalBoughtTogether()) })}
             </button>
           </div>
         </div>
       )}
 
-      {/* ═══ Complementary Products — "اشتري معاها في سلة وحدة ووفر" ═══ */}
+      {/* ═══ Complementary Products ═══ */}
       {complementaryProducts.length > 0 && (
         <section className="mt-10">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">اشتري معاها في سلة وحدة ووفر</h2>
+          <h2 className="text-xl font-bold text-gray-900 mb-4">{t('product.buyTogetherSaveTitle')}</h2>
           <div className="flex gap-4 overflow-x-auto pb-2 md:grid md:grid-cols-5 md:overflow-visible scrollbar-hide">
             {complementaryProducts.map((prod) => (
               <Link
                 key={prod.id}
-                href={`/product/${prod.id}/${generateSlug(t(prod.name))}`}
+                href={`/product/${prod.id}/${generateSlug(tApi(prod.name, lang))}`}
                 className="shrink-0 w-44 md:w-auto bg-transparent rounded-xl p-3 transition-shadow"
               >
                 <div className="relative aspect-square rounded-lg overflow-hidden bg-white mb-2 p-2">
                   <Image
                     src={prod.image || "/pl1.jpg"}
-                    alt={t(prod.name)}
+                    alt={tApi(prod.name, lang)}
                     fill
                     className="object-contain"
                     sizes="176px"
                   />
                 </div>
                 <p className="text-sm font-medium line-clamp-2 mb-1" style={{ color: "#212121" }}>
-                  {t(prod.name)}
+                  {tApi(prod.name, lang)}
                 </p>
                 <div className="flex items-center gap-0.5 mb-1">
                   {[...Array(5)].map((_, i) => (
@@ -1200,7 +1202,7 @@ export default function ProductDetailClient({ productId }: { productId: string }
                       className={`h-3 w-3 ${i < Math.floor(prod.rating || 0) ? "text-yellow-400 fill-yellow-400" : "text-gray-200"}`}
                     />
                   ))}
-                  <span className="text-xs text-gray-400 mr-1">({prod.reviewsCount || 0})</span>
+                  <span className="text-xs text-gray-400 ms-1">({prod.reviewsCount || 0})</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className={`text-sm font-bold ${(prod.discount ?? 0) > 0 ? "text-red-600" : "text-black"}`}>
@@ -1219,10 +1221,10 @@ export default function ProductDetailClient({ productId }: { productId: string }
         </section>
       )}
 
-      {/* ═══ Similar Products — "شاهد أيضاً — هذا قد يعجبك" ═══ */}
+      {/* ═══ Similar Products ═══ */}
       {relatedProducts.length > 0 && (
         <section className="mt-10">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">شاهد أيضاً — هذا قد يعجبك</h2>
+          <h2 className="text-xl font-bold text-gray-900 mb-4">{t('product.similarProducts')}</h2>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
             {relatedProducts.map((prod) => (
               <ProductCard

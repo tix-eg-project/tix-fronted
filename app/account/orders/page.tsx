@@ -2,31 +2,34 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
+import { useLanguage } from "@/context/LanguageContext";
 import api from "@/lib/api";
 import { formatCurrency } from "@/utils/helpers";
-import { Package, ChevronLeft, Loader2, ShoppingBag } from "lucide-react";
+import { Package, ChevronLeft, ChevronRight, Loader2, ShoppingBag } from "lucide-react";
 
-const STATUS_MAP: Record<string, { label: string; color: string }> = {
-  pending:    { label: "قيد المراجعة",  color: "bg-gray-100 text-gray-700" },
-  confirmed:  { label: "مؤكد",          color: "bg-gray-100 text-gray-700" },
-  processing: { label: "جاري التجهيز",  color: "bg-gray-100 text-gray-700" },
-  shipped:    { label: "تم الشحن",      color: "bg-gray-100 text-gray-700" },
-  delivered:  { label: "تم التوصيل",   color: "bg-green-100 text-green-700" },
-  cancelled:  { label: "ملغي",          color: "bg-red-100 text-red-700" },
-  returned:   { label: "مُرتجع",        color: "bg-gray-100 text-gray-500" },
+const STATUS_COLORS: Record<string, string> = {
+  pending: "bg-gray-100 text-gray-700",
+  confirmed: "bg-gray-100 text-gray-700",
+  processing: "bg-gray-100 text-gray-700",
+  shipped: "bg-gray-100 text-gray-700",
+  delivered: "bg-green-100 text-green-700",
+  cancelled: "bg-red-100 text-red-700",
+  returned: "bg-gray-100 text-gray-500",
 };
 
-function StatusBadge({ status }: { status: string }) {
-  const s = STATUS_MAP[status] || { label: status, color: "bg-surface-2 text-text-muted" };
+function StatusBadge({ status, t }: { status: string; t: (key: string) => string }) {
+  const color = STATUS_COLORS[status] || "bg-surface-2 text-text-muted";
+  const label = STATUS_COLORS[status] ? t(`account.status_${status}`) : status;
   return (
-    <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${s.color}`}>
-      {s.label}
+    <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${color}`}>
+      {label}
     </span>
   );
 }
 
 export default function OrdersPage() {
   const { state: authState } = useAuth();
+  const { t, lang, dir } = useLanguage();
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -46,7 +49,7 @@ export default function OrdersPage() {
       })
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, [authState.isAuthenticated]);
+  }, [authState.isAuthenticated, lang]);
 
   if (authState.isLoading || loading) {
     return (
@@ -60,10 +63,10 @@ export default function OrdersPage() {
     return (
       <div className="card p-10 flex flex-col items-center text-center text-text-muted gap-3">
         <ShoppingBag className="w-12 h-12 text-text-faint" />
-        <p className="font-medium">لا توجد طلبات بعد</p>
-        <p className="text-sm">ابدأ التسوق وستظهر طلباتك هنا</p>
+        <p className="font-medium">{t('account.noOrdersYet')}</p>
+        <p className="text-sm">{t('account.startShoppingHint')}</p>
         <Link href="/products" className="btn-primary !py-2 !px-5 text-sm mt-2">
-          تسوق الآن
+          {t('account.shopNow')}
         </Link>
       </div>
     );
@@ -71,13 +74,13 @@ export default function OrdersPage() {
 
   return (
     <div className="space-y-4">
-      <h2 className="text-lg font-bold">طلباتي</h2>
+      <h2 className="text-lg font-bold">{t('account.myOrders')}</h2>
       <div className="space-y-3">
         {orders.map((order: any) => {
           const items = order.items || order.products || [];
           const firstImage = items[0]?.image || items[0]?.product?.image;
           const date = order.created_at
-            ? new Date(order.created_at).toLocaleDateString("ar-EG", { year: "numeric", month: "short", day: "numeric" })
+            ? new Date(order.created_at).toLocaleDateString(lang === 'en' ? 'en-US' : 'ar-EG', { year: "numeric", month: "short", day: "numeric" })
             : "";
 
           return (
@@ -98,13 +101,13 @@ export default function OrdersPage() {
               {/* Info */}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap mb-1">
-                  <span className="font-semibold text-sm">طلب #{order.id}</span>
-                  <StatusBadge status={order.status} />
+                  <span className="font-semibold text-sm">{t('account.orderHash')}{order.id}</span>
+                  <StatusBadge status={order.status} t={t} />
                 </div>
                 <div className="flex flex-wrap items-center gap-2 text-xs text-text-muted">
                   {date && <span>{date}</span>}
                   {items.length > 0 && (
-                    <span>{items.length} {items.length === 1 ? "منتج" : "منتجات"}</span>
+                    <span>{items.length} {t('account.items')}</span>
                   )}
                 </div>
               </div>
@@ -114,7 +117,9 @@ export default function OrdersPage() {
                 <span className="font-bold text-black text-sm whitespace-nowrap">
                   {formatCurrency(order.total || 0)}
                 </span>
-                <ChevronLeft className="w-4 h-4 text-text-faint group-hover:text-black transition-colors" />
+                {dir === 'rtl'
+                  ? <ChevronLeft className="w-4 h-4 text-text-faint group-hover:text-black transition-colors" />
+                  : <ChevronRight className="w-4 h-4 text-text-faint group-hover:text-black transition-colors" />}
               </div>
             </Link>
           );

@@ -6,11 +6,13 @@ import Image from "next/image";
 import { Search } from "lucide-react";
 import api from "@/lib/api";
 import ProductCard from "@/components/ProductCard";
-import { t } from "@/utils/helpers";
+import { t as tApi } from "@/utils/helpers";
+import { useLanguage } from "@/context/LanguageContext";
 
 const PER_PAGE = 40;
 
 export default function SubcategoryPage() {
+  const { t, lang } = useLanguage();
   const params = useParams();
   const searchParams = useSearchParams();
   const subcategoryId = params.id as string;
@@ -46,7 +48,7 @@ export default function SubcategoryPage() {
       }
     } catch {}
     finally { setLoading(false); }
-  }, [subcategoryId]);
+  }, [subcategoryId, lang]);
 
   useEffect(() => {
     setPage(1);
@@ -68,15 +70,15 @@ export default function SubcategoryPage() {
         }
       })
       .catch(() => {});
-  }, [subcategoryId]);
+  }, [subcategoryId, lang]);
 
-  const displayName = subcategoryName || "الفئة الفرعية";
+  const displayName = subcategoryName || t('subcategory.defaultSubcategoryName');
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
       {/* Breadcrumb */}
       <nav className="flex items-center gap-2 text-sm mb-6 text-text-muted flex-wrap">
-        <Link href="/" className="hover:text-text transition-colors">الرئيسية</Link>
+        <Link href="/" className="hover:text-text transition-colors">{t('header.home')}</Link>
         <span>/</span>
         {categoryName && categoryId && (
           <>
@@ -93,31 +95,31 @@ export default function SubcategoryPage() {
       <div className="card p-6 mb-8">
         <h1 className="text-2xl font-bold">{displayName}</h1>
         {!loading && (
-          <p className="text-text-muted text-sm mt-1">{pagination?.total ?? products.length} منتج</p>
+          <p className="text-text-muted text-sm mt-1">{pagination?.total ?? products.length} {t('subcategory.productUnit')}</p>
         )}
       </div>
 
       {/* Sub-subcategories */}
       {subsubcategories.length > 0 && (
         <div className="mb-8">
-          <h2 className="text-lg font-bold mb-3">تصفح حسب الفرع</h2>
+          <h2 className="text-lg font-bold mb-3">{t('subcategory.browseBySubbranch')}</h2>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4">
             {subsubcategories.map((sub) => (
               <Link
                 key={sub.id}
-                href={`/subsubcategory/${sub.id}?name=${encodeURIComponent(t(sub.name))}&subcategory=${subcategoryId}&subcategoryName=${encodeURIComponent(displayName)}&category=${categoryId}&categoryName=${encodeURIComponent(categoryName)}`}
+                href={`/subsubcategory/${sub.id}?name=${encodeURIComponent(tApi(sub.name, lang))}&subcategory=${subcategoryId}&subcategoryName=${encodeURIComponent(displayName)}&category=${categoryId}&categoryName=${encodeURIComponent(categoryName)}`}
                 className="card p-3 flex flex-col items-center gap-2 text-center hover:shadow-md transition-shadow"
               >
                 <div className="relative w-28 h-28 sm:w-36 sm:h-36 lg:w-40 lg:h-40 rounded-t-2xl overflow-hidden bg-gray-50">
                   <Image
                     src={sub.image || "/pl1.jpg"}
-                    alt={t(sub.name)}
+                    alt={tApi(sub.name, lang)}
                     fill
                     className="object-cover"
                     sizes="(min-width: 1024px) 160px, (min-width: 640px) 144px, 112px"
                   />
                 </div>
-                <span className="text-sm font-medium line-clamp-2">{t(sub.name)}</span>
+                <span className="text-sm font-medium line-clamp-2">{tApi(sub.name, lang)}</span>
               </Link>
             ))}
           </div>
@@ -144,7 +146,7 @@ export default function SubcategoryPage() {
                 disabled={page === 1}
                 className="px-4 py-2 rounded-xl border border-border text-sm font-medium disabled:opacity-40 hover:border-primary hover:text-primary transition-colors"
               >
-                السابق
+                {t('common.previous')}
               </button>
 
               {Array.from({ length: pagination.last_page }, (_, i) => i + 1)
@@ -177,7 +179,7 @@ export default function SubcategoryPage() {
                 disabled={page === pagination.last_page}
                 className="px-4 py-2 rounded-xl border border-border text-sm font-medium disabled:opacity-40 hover:border-primary hover:text-primary transition-colors"
               >
-                التالي
+                {t('common.next')}
               </button>
             </div>
           )}
@@ -185,7 +187,7 @@ export default function SubcategoryPage() {
       ) : (
         <div className="text-center py-20 text-text-muted">
           <Search className="w-12 h-12 mx-auto mb-3 opacity-30" />
-          <p className="text-lg">لا توجد منتجات في هذه الفئة حالياً</p>
+          <p className="text-lg">{t('subcategory.noProductsInSubcategory')}</p>
         </div>
       )}
     </div>

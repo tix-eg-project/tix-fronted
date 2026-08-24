@@ -4,6 +4,7 @@ import ProductCard from "./ProductCard";
 import { Zap, ChevronRight, ChevronLeft } from "lucide-react";
 import api from "@/lib/api";
 import type { ProductCardProps } from "@/utils/Types/products";
+import { useLanguage } from "@/context/LanguageContext";
 
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Navigation, Autoplay } from "swiper/modules";
@@ -58,6 +59,7 @@ function useViewportSlides() {
 }
 
 export default function FlashDeals() {
+  const { t, lang, dir } = useLanguage();
   const [products, setProducts] = useState<ProductCardProps[]>([]);
   const [endSeconds, setEndSeconds] = useState<number | null>(null);
   const countdown = useCountdown(endSeconds);
@@ -94,7 +96,7 @@ export default function FlashDeals() {
       setEndSeconds(null);
     }
     fetchFlash();
-  }, []);
+  }, [lang]);
 
   const pad = (n: number) => n.toString().padStart(2, "0");
 
@@ -110,13 +112,13 @@ export default function FlashDeals() {
           <div className="flex items-center gap-2 sm:gap-3">
             <div>
               <h2 className="text-base sm:text-lg md:text-xl font-bold text-white leading-tight flex items-center gap-1.5">
-                <span>فلاش تيكس</span>
+                <span>{t("home.flashDealsTitle")}</span>
                 <Zap
                   className="w-4 h-4 sm:w-5 sm:h-5 text-white fill-white"
                   style={{ filter: "drop-shadow(0 0 6px rgba(255,255,255,0.95)) drop-shadow(0 0 12px rgba(255,255,255,0.6))" }}
                 />
               </h2>
-              <p className="text-[10px] sm:text-xs text-white/80 mt-0.5 hidden sm:block">خصومات تصل إلى 70% لفترة محدودة</p>
+              <p className="text-[10px] sm:text-xs text-white/80 mt-0.5 hidden sm:block">{t("home.flashDealsSubtitle")}</p>
             </div>
           </div>
 
@@ -148,8 +150,8 @@ export default function FlashDeals() {
         ) : (
         <div className="relative">
           <Swiper
-            key="ar"
-            dir="rtl"
+            key={lang}
+            dir={dir}
             modules={[Navigation, Autoplay]}
             spaceBetween={10}
             slidesPerView={2}
@@ -177,11 +179,11 @@ export default function FlashDeals() {
             ))}
           </Swiper>
 
-          <button className="flash-prev absolute -right-1 sm:right-0 md:-right-3 top-1/2 -translate-y-1/2 z-30 bg-white/90 text-black p-1.5 sm:p-2 rounded-full shadow-lg hover:bg-white hidden sm:flex items-center justify-center">
-            <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+          <button className="flash-prev absolute -start-1 sm:start-0 md:-start-3 top-1/2 -translate-y-1/2 z-30 bg-white/90 text-black p-1.5 sm:p-2 rounded-full shadow-lg hover:bg-white hidden sm:flex items-center justify-center">
+            {dir === "rtl" ? <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> : <ChevronLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4" />}
           </button>
-          <button className="flash-next absolute -left-1 sm:left-0 md:-left-3 top-1/2 -translate-y-1/2 z-30 bg-white/90 text-black p-1.5 sm:p-2 rounded-full shadow-lg hover:bg-white hidden sm:flex items-center justify-center">
-            <ChevronLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+          <button className="flash-next absolute -end-1 sm:end-0 md:-end-3 top-1/2 -translate-y-1/2 z-30 bg-white/90 text-black p-1.5 sm:p-2 rounded-full shadow-lg hover:bg-white hidden sm:flex items-center justify-center">
+            {dir === "rtl" ? <ChevronLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> : <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />}
           </button>
         </div>
         )}

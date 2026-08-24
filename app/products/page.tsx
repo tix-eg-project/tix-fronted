@@ -17,9 +17,10 @@ import {
 import api from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { t, formatCurrency, generateSlug } from "@/utils/helpers";
+import { t as tApi, formatCurrency, generateSlug } from "@/utils/helpers";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
+import { useLanguage } from "@/context/LanguageContext";
 import { toast } from "react-toastify";
 import ProductCard from "@/components/ProductCard";
 import type { ProductCardProps } from "@/utils/Types/products";
@@ -59,19 +60,20 @@ function ProductsContent() {
 
   const { addToCart } = useCart();
   const { state: authState } = useAuth();
+  const { t, lang } = useLanguage();
 
   const handleAddToCart = async (e: React.MouseEvent, productId: string) => {
     e.preventDefault();
     e.stopPropagation();
     if (!authState.isAuthenticated) {
-      toast.info("سجّل الدخول أولاً لإضافة المنتجات للسلة");
+      toast.info(t("products.loginFirstToAddToCart"));
       return;
     }
     try {
       await addToCart(productId, 1);
-      toast.success("تمت الإضافة للسلة");
+      toast.success(t("products.addedToCart"));
     } catch {
-      toast.error("حدث خطأ");
+      toast.error(t("common.error"));
     }
   };
 
@@ -100,12 +102,12 @@ function ProductsContent() {
     setSelectedSubcategory(subcategoryParam || "");
   }, [categoryParam, subcategoryParam]);
 
-  // Fetch categories (with subcategories) once
+  // Fetch categories (with subcategories) once, and again if the language changes
   useEffect(() => {
     api.get("/categories").then((res) => {
       if (res.data.status) setCategories(Array.isArray(res.data.data) ? res.data.data : []);
     }).catch(() => {});
-  }, []);
+  }, [lang]);
 
   // Fetch subcategories when category changes
   useEffect(() => {
@@ -127,9 +129,9 @@ function ProductsContent() {
         }
       })
       .catch(() => {});
-  }, [selectedCategory, categories]);
+  }, [selectedCategory, categories, lang]);
 
-  // Fetch brands once — brands are standalone and not filterable by category
+  // Fetch brands — brands are standalone and not filterable by category
   useEffect(() => {
     api.get("/brands").then((res) => {
       if (res.data.status) {
@@ -137,7 +139,7 @@ function ProductsContent() {
         setBrands(Array.isArray(raw) ? raw : raw?.data || []);
       }
     }).catch(() => {});
-  }, []);
+  }, [lang]);
 
   // Debounce price
   useEffect(() => {
@@ -191,7 +193,7 @@ function ProductsContent() {
       }
     } catch {}
     finally { setLoading(false); }
-  }, [selectedCategory, selectedSubcategory, selectedBrand, sortBy, searchParam, priceRange, selectedRatings]);
+  }, [selectedCategory, selectedSubcategory, selectedBrand, sortBy, searchParam, priceRange, selectedRatings, lang]);
 
   useEffect(() => {
     setPage(1);
@@ -222,18 +224,18 @@ function ProductsContent() {
   ].filter(Boolean).length;
 
   return (
-    <div className="flex flex-col min-h-screen bg-white" dir="rtl">
+    <div className="flex flex-col min-h-screen bg-white">
       <main className="flex-1 pt-16 md:pt-0">
         {/* Page Header */}
         <div className="bg-white border-b border-gray-200">
           <div className="container mx-auto px-4 pt-8 pb-0">
             <div className="flex items-center gap-2 text-sm text-gray-500 mb-2">
-              <Link href="/" className="hover:text-red-600">الرئيسية</Link>
+              <Link href="/" className="hover:text-red-600">{t("header.home")}</Link>
               <span>/</span>
-              <span className="text-gray-900 font-medium">المنتجات</span>
+              <span className="text-gray-900 font-medium">{t("header.products")}</span>
             </div>
             <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-5">
-              {searchParam ? `نتائج البحث عن: "${searchParam}"` : "تسوق جميع المنتجات"}
+              {searchParam ? t("products.searchResultsFor", { query: searchParam }) : t("products.shopAllProducts")}
             </h1>
 
             {/* Subcategory tabs */}
@@ -248,18 +250,18 @@ function ProductsContent() {
                   }`}
                 >
                   <div className="w-24 h-24 sm:w-32 sm:h-32 lg:w-36 lg:h-36 rounded-t-2xl bg-gray-100 flex items-center justify-center text-xs font-bold">
-                    الكل
+                    {t("products.all")}
                   </div>
-                  <span className="text-xs font-semibold whitespace-nowrap">الكل</span>
+                  <span className="text-xs font-semibold whitespace-nowrap">{t("products.all")}</span>
                 </Link>
 
                 {subcategories.map((sub: any) => {
                   const catObj = categories.find((c: any) => String(c.id) === selectedCategory);
-                  const catName = catObj ? t(catObj.name) : "";
+                  const catName = catObj ? tApi(catObj.name, lang) : "";
                   return (
                   <Link
                     key={sub.id}
-                    href={`/subcategory/${sub.id}?name=${encodeURIComponent(t(sub.name))}&category=${selectedCategory}&categoryName=${encodeURIComponent(catName)}`}
+                    href={`/subcategory/${sub.id}?name=${encodeURIComponent(tApi(sub.name, lang))}&category=${selectedCategory}&categoryName=${encodeURIComponent(catName)}`}
                     className={`shrink-0 flex flex-col items-center gap-1.5 px-4 py-2.5 border-b-2 transition-all border-transparent text-gray-500 hover:text-gray-900 hover:border-gray-200`}
                   >
                     <div className={`w-24 h-24 sm:w-32 sm:h-32 lg:w-36 lg:h-36 rounded-t-2xl overflow-hidden border-2 transition-all bg-white ${
@@ -268,16 +270,16 @@ function ProductsContent() {
                       {sub.image ? (
                         <img
                           src={sub.image}
-                          alt={t(sub.name)}
+                          alt={tApi(sub.name, lang)}
                           style={{ width: "100%", height: "100%", objectFit: "cover" }}
                         />
                       ) : (
                         <div className="w-full h-full bg-gray-100 flex items-center justify-center text-xs font-bold text-gray-500">
-                          {t(sub.name).charAt(0)}
+                          {tApi(sub.name, lang).charAt(0)}
                         </div>
                       )}
                     </div>
-                    <span className="text-xs font-semibold whitespace-nowrap">{t(sub.name)}</span>
+                    <span className="text-xs font-semibold whitespace-nowrap">{tApi(sub.name, lang)}</span>
                   </Link>
                   );
                 })}
@@ -293,7 +295,7 @@ function ProductsContent() {
             <aside className={`lg:w-72 flex-shrink-0 ${filtersOpen ? "fixed inset-0 z-[1100] bg-white p-4 pt-24 sm:p-6 sm:pt-28 overflow-y-auto lg:static lg:bg-transparent lg:p-0" : "hidden lg:block"}`}>
               <div className="lg:sticky lg:top-24 space-y-4">
                 <div className="flex items-center justify-between">
-                  <h3 className="font-bold text-lg">تصفية النتائج</h3>
+                  <h3 className="font-bold text-lg">{t("products.filterResults")}</h3>
                   <button onClick={() => setFiltersOpen(false)} className="lg:hidden p-2">
                     <X className="w-5 h-5" />
                   </button>
@@ -301,24 +303,24 @@ function ProductsContent() {
 
                 {/* Brands */}
                 {brands.length > 0 && (
-                  <FilterSection title="البراند">
+                  <FilterSection title={t("products.brand")}>
                     <div className="space-y-1 max-h-52 overflow-y-auto">
                       <button
                         onClick={() => setSelectedBrand("")}
-                        className={`w-full text-right px-3 py-2 text-sm rounded-lg transition-all ${!selectedBrand ? "bg-gray-100 text-black font-bold" : "text-gray-600 hover:bg-gray-50"}`}
+                        className={`w-full text-start px-3 py-2 text-sm rounded-lg transition-all ${!selectedBrand ? "bg-gray-100 text-black font-bold" : "text-gray-600 hover:bg-gray-50"}`}
                       >
-                        الكل
+                        {t("products.all")}
                       </button>
                       {brands.map((brand: any) => (
                         <button
                           key={brand.id}
                           onClick={() => setSelectedBrand(String(brand.id))}
-                          className={`w-full text-right px-3 py-2 text-sm rounded-lg transition-all flex items-center gap-2 ${selectedBrand === String(brand.id) ? "bg-gray-100 text-black font-bold" : "text-gray-600 hover:bg-gray-50"}`}
+                          className={`w-full text-start px-3 py-2 text-sm rounded-lg transition-all flex items-center gap-2 ${selectedBrand === String(brand.id) ? "bg-gray-100 text-black font-bold" : "text-gray-600 hover:bg-gray-50"}`}
                         >
                           {brand.logo && (
-                            <img src={brand.logo} alt={t(brand.name)} className="w-5 h-5 object-contain rounded" />
+                            <img src={brand.logo} alt={tApi(brand.name, lang)} className="w-5 h-5 object-contain rounded" />
                           )}
-                          <span>{t(brand.name)}</span>
+                          <span>{tApi(brand.name, lang)}</span>
                         </button>
                       ))}
                     </div>
@@ -326,10 +328,10 @@ function ProductsContent() {
                 )}
 
                 {/* Price Range */}
-                <FilterSection title="نطاق السعر">
+                <FilterSection title={t("products.priceRange")}>
                   <div className="flex items-center gap-2">
                     <div className="flex-1">
-                      <label className="text-[10px] text-gray-400 block mb-1">من</label>
+                      <label className="text-[10px] text-gray-400 block mb-1">{t("products.from")}</label>
                       <Input
                         type="number"
                         value={minPrice}
@@ -338,7 +340,7 @@ function ProductsContent() {
                       />
                     </div>
                     <div className="flex-1">
-                      <label className="text-[10px] text-gray-400 block mb-1">إلى</label>
+                      <label className="text-[10px] text-gray-400 block mb-1">{t("products.to")}</label>
                       <Input
                         type="number"
                         value={maxPrice}
@@ -350,7 +352,7 @@ function ProductsContent() {
                 </FilterSection>
 
                 {/* Ratings */}
-                <FilterSection title="التقييم">
+                <FilterSection title={t("products.rating")}>
                   <div className="space-y-3">
                     {[5, 4, 3, 2, 1].map((rating) => (
                       <label key={rating} className="flex items-center gap-3 cursor-pointer group">
@@ -367,7 +369,7 @@ function ProductsContent() {
                             <Star key={i} className={`w-3.5 h-3.5 ${i < rating ? "fill-yellow-400 text-yellow-400" : "text-gray-200"}`} />
                           ))}
                         </div>
-                        <span className="text-xs text-gray-500 group-hover:text-gray-900 transition-colors">فما فوق</span>
+                        <span className="text-xs text-gray-500 group-hover:text-gray-900 transition-colors">{t("products.andUp")}</span>
                       </label>
                     ))}
                   </div>
@@ -379,8 +381,8 @@ function ProductsContent() {
                   variant="outline"
                   className="w-full border-gray-200 text-gray-600 hover:bg-gray-50 h-11 rounded-xl"
                 >
-                  <RotateCcw className="w-4 h-4 ml-2" />
-                  إعادة تعيين الفلاتر
+                  <RotateCcw className="w-4 h-4 me-2" />
+                  {t("products.resetFilters")}
                 </Button>
               </div>
             </aside>
@@ -390,16 +392,16 @@ function ProductsContent() {
               {/* Sort & View Bar */}
               <div className="bg-white rounded-xl border border-gray-200 p-3 sm:p-4 mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shadow-sm">
                 <div className="flex items-center gap-3">
-                  <span className="text-sm text-gray-500 hidden sm:inline">الترتيب:</span>
+                  <span className="text-sm text-gray-500 hidden sm:inline">{t("products.sortBy")}</span>
                   <select
                     value={sortBy}
                     onChange={(e) => setSortBy(e.target.value)}
                     className="text-sm font-semibold border-none bg-transparent focus:ring-0 cursor-pointer outline-none"
                   >
-                    <option value="newest">الأحدث أولاً</option>
-                    <option value="price_low">السعر: من الأقل</option>
-                    <option value="price_high">السعر: من الأعلى</option>
-                    <option value="rating">الأعلى تقييماً</option>
+                    <option value="newest">{t("products.sortNewest")}</option>
+                    <option value="price_low">{t("products.sortPriceLow")}</option>
+                    <option value="price_high">{t("products.sortPriceHigh")}</option>
+                    <option value="rating">{t("products.sortRating")}</option>
                   </select>
                 </div>
 
@@ -413,7 +415,7 @@ function ProductsContent() {
                   <button onClick={() => setFiltersOpen(true)} className="lg:hidden p-2 rounded-lg text-gray-400 hover:bg-gray-100 relative">
                     <Filter className="w-5 h-5" />
                     {activeFiltersCount > 0 && (
-                      <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-600 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
+                      <span className="absolute -top-1 -end-1 w-4 h-4 bg-red-600 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
                         {activeFiltersCount}
                       </span>
                     )}
@@ -427,7 +429,7 @@ function ProductsContent() {
                 return brand ? (
                   <div className="flex flex-wrap gap-2 mb-4">
                     <span className="flex items-center gap-1 bg-gray-100 text-gray-700 text-xs px-3 py-1.5 rounded-full">
-                      {t(brand.name)}
+                      {tApi(brand.name, lang)}
                       <button onClick={() => setSelectedBrand("")}><X className="w-3 h-3" /></button>
                     </span>
                   </div>
@@ -460,20 +462,20 @@ function ProductsContent() {
                     {products.map((product) => (
                       <Link
                         key={product.id}
-                        href={`/product/${product.id}/${generateSlug(t(product.name))}`}
+                        href={`/product/${product.id}/${generateSlug(tApi(product.name, lang))}`}
                         className="group bg-transparent rounded-xl overflow-hidden transition-all duration-300 relative flex flex-col h-full sm:flex-row sm:items-center gap-4 sm:gap-6"
                       >
                         <div className="relative overflow-hidden bg-white flex-shrink-0 flex items-center justify-center w-48 h-48 sm:w-60 sm:h-60 p-3">
-                          <Image src={product.image} alt={product.name} fill className="object-contain transition-transform duration-500" />
+                          <Image src={product.image} alt={tApi(product.name, lang)} fill className="object-contain transition-transform duration-500" />
                           {(product.discount ?? 0) > 0 && (
-                            <div className="absolute top-3 right-3 bg-red-600 text-white text-[10px] font-bold px-2 py-1 rounded-md shadow-lg z-10">
+                            <div className="absolute top-3 start-3 bg-red-600 text-white text-[10px] font-bold px-2 py-1 rounded-md shadow-lg z-10">
                               -{product.discount}%
                             </div>
                           )}
                         </div>
                         <div className="p-3 sm:p-4 flex-1 flex flex-col group-hover:bg-black/[0.02] transition-colors duration-300">
                           <div className="flex-1">
-                            <h3 className="font-bold text-sm text-gray-800 line-clamp-2 mb-2 h-10 overflow-hidden">{t(product.name)}</h3>
+                            <h3 className="font-bold text-sm text-gray-800 line-clamp-2 mb-2 h-10 overflow-hidden">{tApi(product.name, lang)}</h3>
                             <div className="flex items-center gap-1 mb-3">
                               <div className="flex items-center">
                                 {[...Array(5)].map((_, i) => (
@@ -495,7 +497,7 @@ function ProductsContent() {
                               className="w-full mt-3 bg-gray-900 text-white hover:bg-black rounded-lg h-9 text-xs transition-colors flex items-center justify-center gap-1.5"
                             >
                               <ShoppingCart className="w-3.5 h-3.5" />
-                              أضف للسلة
+                              {t("products.addToCart")}
                             </Button>
                           </div>
                         </div>
@@ -511,7 +513,7 @@ function ProductsContent() {
                       disabled={page === 1}
                       className="px-4 py-2 rounded-xl border border-gray-200 text-sm font-medium disabled:opacity-40 hover:border-red-600 hover:text-red-600 transition-colors"
                     >
-                      السابق
+                      {t("common.previous")}
                     </button>
 
                     {Array.from({ length: pagination.last_page }, (_, i) => i + 1)
@@ -544,7 +546,7 @@ function ProductsContent() {
                       disabled={page === pagination.last_page}
                       className="px-4 py-2 rounded-xl border border-gray-200 text-sm font-medium disabled:opacity-40 hover:border-red-600 hover:text-red-600 transition-colors"
                     >
-                      التالي
+                      {t("common.next")}
                     </button>
                   </div>
                 )}
@@ -554,10 +556,10 @@ function ProductsContent() {
                   <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-6">
                     <Search className="w-10 h-10 text-gray-300" />
                   </div>
-                  <h3 className="text-xl font-bold text-gray-900 mb-2">عذراً، لم نجد أي منتجات</h3>
-                  <p className="text-gray-500 mb-8">حاول تغيير الفلاتر أو البحث عن شيء آخر</p>
+                  <h3 className="text-xl font-bold text-gray-900 mb-2">{t("products.noProductsFound")}</h3>
+                  <p className="text-gray-500 mb-8">{t("products.tryChangingFilters")}</p>
                   <Button onClick={resetFilters} className="bg-red-600 text-white hover:bg-red-700">
-                    إعادة تعيين كافة الفلاتر
+                    {t("products.resetAllFilters")}
                   </Button>
                 </div>
               )}

@@ -8,15 +8,21 @@ const api = axios.create({
   headers: {
     Accept: "application/json",
     "Accept-Language": "ar",
+    lang: "ar",
   },
 });
 
-// Request interceptor to add auth token
+// Request interceptor to add auth token + current UI language
 api.interceptors.request.use((config) => {
   if (typeof window !== "undefined") {
     const token = localStorage.getItem("token") || getCookie("auth_token");
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+    }
+    const lang = localStorage.getItem("tix_lang") || getCookie("lang");
+    if (lang) {
+      config.headers["Accept-Language"] = lang;
+      config.headers["lang"] = lang;
     }
   }
   return config;

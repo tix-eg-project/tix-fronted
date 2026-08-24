@@ -8,26 +8,27 @@ import { z } from 'zod'
 import { Mail, Lock, Eye, EyeOff, User, Phone, UserPlus } from 'lucide-react'
 import { toast } from 'react-toastify'
 import { useAuth } from '@/context/AuthContext'
+import { useLanguage } from '@/context/LanguageContext'
 import GoogleAuthButton from '@/components/GoogleAuthButton'
 import GoogleOneTap from '@/components/GoogleOneTap'
 
-const registerSchema = z.object({
-  name: z.string().min(3, 'الاسم يجب أن يكون 3 أحرف على الأقل'),
-  email: z.string().email('بريد إلكتروني غير صحيح'),
-  phone: z.string().min(10, 'رقم الهاتف غير صحيح').regex(/^[0-9]+$/, 'أرقام فقط'),
-  password: z.string().min(6, 'كلمة المرور يجب أن تكون 6 أحرف على الأقل'),
-  confirmPassword: z.string(),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: 'كلمتا المرور غير متطابقتين',
-  path: ['confirmPassword'],
-})
-
-type RegisterForm = z.infer<typeof registerSchema>
-
 export default function RegisterPage() {
+  const { t, dir } = useLanguage()
   const [showPassword, setShowPassword] = useState(false)
   const { register: authRegister } = useAuth()
   const router = useRouter()
+
+  const registerSchema = z.object({
+    name: z.string().min(3, t('auth.nameMinLength')),
+    email: z.string().email(t('auth.invalidEmail')),
+    phone: z.string().min(10, t('auth.invalidPhone')).regex(/^[0-9]+$/, t('auth.numbersOnly')),
+    password: z.string().min(6, t('auth.passwordMinLength')),
+    confirmPassword: z.string(),
+  }).refine((data) => data.password === data.confirmPassword, {
+    message: t('auth.passwordsMismatch'),
+    path: ['confirmPassword'],
+  })
+  type RegisterForm = z.infer<typeof registerSchema>
 
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<RegisterForm>({
     resolver: zodResolver(registerSchema),
@@ -36,17 +37,17 @@ export default function RegisterPage() {
   const onSubmit = async (data: RegisterForm) => {
     try {
       await authRegister(data.name, data.email, data.phone, data.password)
-      toast.success('تم إنشاء الحساب بنجاح')
+      toast.success(t('auth.registerSuccess'))
       window.location.href = '/'
     } catch (error: any) {
-      toast.error(error.message || 'فشل إنشاء الحساب')
+      toast.error(error.message || t('auth.registerFailed'))
     }
   }
 
   const fields = [
-    { name: 'name' as const, label: 'الاسم الكامل', icon: User, type: 'text', placeholder: 'محمد أحمد', dir: 'rtl' },
-    { name: 'email' as const, label: 'البريد الإلكتروني', icon: Mail, type: 'email', placeholder: 'email@example.com', dir: 'ltr' },
-    { name: 'phone' as const, label: 'رقم الهاتف', icon: Phone, type: 'tel', placeholder: '01xxxxxxxxx', dir: 'ltr' },
+    { name: 'name' as const, label: t('auth.fullName'), icon: User, type: 'text', placeholder: t('auth.fullNamePlaceholder'), dir },
+    { name: 'email' as const, label: t('auth.email'), icon: Mail, type: 'email', placeholder: 'email@example.com', dir: 'ltr' as const },
+    { name: 'phone' as const, label: t('auth.phone'), icon: Phone, type: 'tel', placeholder: '01xxxxxxxxx', dir: 'ltr' as const },
   ]
 
   return (
@@ -54,7 +55,7 @@ export default function RegisterPage() {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-primary mb-2">TIX</h1>
-          <p className="text-text-muted">أنشئ حسابك الجديد</p>
+          <p className="text-text-muted">{t('auth.registerSubtitle')}</p>
         </div>
 
         <div className="card p-6 md:p-8">
@@ -68,10 +69,10 @@ export default function RegisterPage() {
                     type={field.type}
                     {...register(field.name)}
                     placeholder={field.placeholder}
-                    className="input-field pr-4 pl-10"
+                    className="input-field ps-4 pe-10"
                     dir={field.dir}
                   />
-                  <field.icon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-text-faint" />
+                  <field.icon className="absolute end-3 top-1/2 -translate-y-1/2 w-5 h-5 text-text-faint" />
                 </div>
                 {errors[field.name] && (
                   <p className="text-error text-xs mt-1">{errors[field.name]?.message}</p>
@@ -81,20 +82,20 @@ export default function RegisterPage() {
 
             {/* Password */}
             <div>
-              <label className="text-sm font-medium mb-1.5 block">كلمة المرور</label>
+              <label className="text-sm font-medium mb-1.5 block">{t('auth.password')}</label>
               <div className="relative">
                 <input
                   type={showPassword ? 'text' : 'password'}
                   {...register('password')}
                   placeholder="••••••••"
-                  className="input-field pr-10 pl-10"
+                  className="input-field ps-10 pe-10"
                   dir="ltr"
                 />
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-text-faint" />
+                <Lock className="absolute end-3 top-1/2 -translate-y-1/2 w-5 h-5 text-text-faint" />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-text-faint"
+                  className="absolute start-3 top-1/2 -translate-y-1/2 text-text-faint"
                 >
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
@@ -104,16 +105,16 @@ export default function RegisterPage() {
 
             {/* Confirm Password */}
             <div>
-              <label className="text-sm font-medium mb-1.5 block">تأكيد كلمة المرور</label>
+              <label className="text-sm font-medium mb-1.5 block">{t('auth.confirmPassword')}</label>
               <div className="relative">
                 <input
                   type={showPassword ? 'text' : 'password'}
                   {...register('confirmPassword')}
                   placeholder="••••••••"
-                  className="input-field pr-4 pl-10"
+                  className="input-field ps-4 pe-10"
                   dir="ltr"
                 />
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-text-faint" />
+                <Lock className="absolute end-3 top-1/2 -translate-y-1/2 w-5 h-5 text-text-faint" />
               </div>
               {errors.confirmPassword && <p className="text-error text-xs mt-1">{errors.confirmPassword.message}</p>}
             </div>
@@ -128,7 +129,7 @@ export default function RegisterPage() {
               ) : (
                 <>
                   <UserPlus className="w-5 h-5" />
-                  إنشاء الحساب
+                  {t('auth.createAccountButton')}
                 </>
               )}
             </button>
@@ -136,9 +137,9 @@ export default function RegisterPage() {
 
           <div className="text-center mt-6 space-y-4">
             <p className="text-sm text-text-muted">
-              لديك حساب بالفعل؟{' '}
+              {t('auth.haveAccount')}{' '}
               <Link href="/login" className="text-primary hover:underline font-medium">
-                تسجيل الدخول
+                {t('auth.loginButton')}
               </Link>
             </p>
             <div className="relative">
@@ -146,7 +147,7 @@ export default function RegisterPage() {
                 <div className="w-full border-t border-divider" />
               </div>
               <div className="relative flex justify-center">
-                <span className="bg-surface px-4 text-sm text-text-muted">أو</span>
+                <span className="bg-surface px-4 text-sm text-text-muted">{t('auth.or')}</span>
               </div>
             </div>
             <GoogleAuthButton onSuccess={() => { window.location.href = '/' }} />
@@ -155,7 +156,7 @@ export default function RegisterPage() {
               className="w-full text-center flex items-center justify-center gap-2 !py-3 rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors font-medium text-sm"
             >
               <UserPlus className="w-5 h-5" />
-              انضم كتاجر
+              {t('auth.joinAsVendor')}
             </Link>
           </div>
         </div>

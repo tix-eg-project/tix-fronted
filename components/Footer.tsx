@@ -1,8 +1,11 @@
 'use client'
 import Link from 'next/link'
 import { Facebook, Twitter, Instagram, Youtube, Phone, Mail, MapPin } from "lucide-react"
+import { useLanguage } from '@/context/LanguageContext'
 
 export default function Footer() {
+  const { t } = useLanguage()
+
   return (
     <footer className="bg-black text-white py-12">
       <div className="container mx-auto px-4">
@@ -10,67 +13,67 @@ export default function Footer() {
           <div>
             <h3 className="font-bold text-xl mb-4 text-white">TIX</h3>
             <p className="text-sm text-gray-400 mb-4 leading-relaxed">
-              منصة TIX هي وجهتك المثالية للتسوق الإلكتروني في مصر. نقدم لك أفضل المنتجات بأفضل الأسعار مع خدمة توصيل سريعة وموثوقة.
+              {t('footer.tagline')}
             </p>
             <div className="flex items-center gap-2 text-sm text-gray-400 mb-2">
               <Mail className="h-4 w-4" />
-              <span>support.tix.eg.com@gmail.com</span>
+              <span dir="ltr">support.tix.eg.com@gmail.com</span>
             </div>
             <div className="flex items-center gap-2 text-sm text-gray-400">
               <Phone className="h-4 w-4" />
-              <span>01070691673</span>
+              <span dir="ltr">01070691673</span>
             </div>
           </div>
 
           <div>
-            <h4 className="font-semibold mb-4">روابط سريعة</h4>
+            <h4 className="font-semibold mb-4">{t('footer.quickLinks')}</h4>
             <ul className="space-y-2 text-sm text-gray-400">
               <li>
                 <Link href="/" className="hover:text-white transition-colors">
-                  الرئيسية
+                  {t('footer.home')}
                 </Link>
               </li>
               <li>
                 <Link href="/products" className="hover:text-white transition-colors">
-                  المنتجات
+                  {t('footer.products')}
                 </Link>
               </li>
               <li>
                 <Link href="/offers" className="hover:text-white transition-colors">
-                  العروض
+                  {t('footer.offers')}
                 </Link>
               </li>
             </ul>
           </div>
 
           <div>
-            <h4 className="font-semibold mb-4">حسابي</h4>
+            <h4 className="font-semibold mb-4">{t('footer.account')}</h4>
             <ul className="space-y-2 text-sm text-gray-400">
               <li>
                 <Link href="/login" className="hover:text-white transition-colors">
-                  تسجيل الدخول / حسابي
+                  {t('footer.loginOrAccount')}
                 </Link>
               </li>
               <li>
                 <Link href="/account/orders" className="hover:text-white transition-colors">
-                  طلباتي
+                  {t('footer.myOrders')}
                 </Link>
               </li>
               <li>
                 <Link href="/privacy" className="hover:text-white transition-colors">
-                  سياسة الخصوصية
+                  {t('footer.privacyPolicy')}
                 </Link>
               </li>
               <li>
                 <Link href="/terms" className="hover:text-white transition-colors">
-                  الشروط والأحكام
+                  {t('footer.termsAndConditions')}
                 </Link>
               </li>
             </ul>
           </div>
 
           <div>
-            <h4 className="font-semibold mb-4">تابعنا</h4>
+            <h4 className="font-semibold mb-4">{t('footer.followUs')}</h4>
             <div className="flex gap-4">
               <a href="#" className="hover:text-[#22c55e] transition-colors">
                 <Facebook className="h-5 w-5" />
@@ -85,12 +88,12 @@ export default function Footer() {
                 <Youtube className="h-5 w-5" />
               </a>
             </div>
-         
+
           </div>
         </div>
 
         <div className="border-t border-white/10 mt-12 pt-8 text-center text-sm text-gray-400">
-          <p>© {new Date().getFullYear()} جميع الحقوق محفوظة Tix</p>
+          <p>© {new Date().getFullYear()} TIX — {t('footer.allRightsReserved')}</p>
         </div>
       </div>
     </footer>

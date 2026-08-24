@@ -17,7 +17,8 @@ import { toast } from "react-toastify";
 import api from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { useCart } from "@/context/CartContext";
-import { formatCurrency } from "@/utils/helpers";
+import { useLanguage } from "@/context/LanguageContext";
+import { formatCurrency, t as tApi } from "@/utils/helpers";
 import type { ShippingCity, PaymentMethod, CartSummary } from "@/utils/Types/common";
 
 interface SavedAddress {
@@ -35,6 +36,7 @@ export default function CheckoutPage() {
   const router = useRouter();
   const { state: authState } = useAuth();
   const { refreshCart } = useCart();
+  const { t, lang } = useLanguage();
   const [paymentMethod, setPaymentMethod] = useState<string | number>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({ address: "", phone: "", order_note: "" });
@@ -106,7 +108,7 @@ export default function CheckoutPage() {
           }
         }
       } catch {
-        toast.error("خطأ في تحميل البيانات");
+        toast.error(t("checkout.loadError"));
       }
     };
     fetchData();
@@ -164,7 +166,7 @@ export default function CheckoutPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isSubmitting) return;
-    if (!selectedCity) { toast.error("اختر المدينة"); return; }
+    if (!selectedCity) { toast.error(t("checkout.selectCity")); return; }
 
     setIsSubmitting(true);
     try {
@@ -185,14 +187,14 @@ export default function CheckoutPage() {
         if (redirect_url && redirect_url.trim()) {
           window.location.href = redirect_url;
         } else {
-          toast.success("تم الطلب بنجاح!");
+          toast.success(t("checkout.orderSuccess"));
           setTimeout(() => router.push("/account/orders"), 1500);
         }
       } else {
-        toast.error(checkoutRes.data.message || "خطأ في إتمام الطلب");
+        toast.error(checkoutRes.data.message || t("checkout.orderError"));
       }
     } catch (error: any) {
-      toast.error(error.response?.data?.message || "حدث خطأ في إتمام الطلب");
+      toast.error(error.response?.data?.message || t("checkout.orderErrorGeneric"));
     } finally {
       setIsSubmitting(false);
     }
@@ -210,14 +212,14 @@ export default function CheckoutPage() {
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-6 md:py-10">
-      <h1 className="text-xl md:text-2xl font-bold mb-6">إتمام الشراء</h1>
+      <h1 className="text-xl md:text-2xl font-bold mb-6">{t("checkout.title")}</h1>
 
       {/* Steps */}
       <div className="flex items-center justify-center gap-2 md:gap-4 mb-8">
         {[
-          { icon: ShoppingBag, label: "السلة", done: true },
-          { icon: MapPin, label: "الشحن", done: true },
-          { icon: CreditCard, label: "الدفع", done: false },
+          { icon: ShoppingBag, label: t("checkout.stepCart"), done: true },
+          { icon: MapPin, label: t("checkout.stepShipping"), done: true },
+          { icon: CreditCard, label: t("checkout.stepPayment"), done: false },
         ].map((step, i) => (
           <div key={i} className="flex items-center gap-2">
             <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium ${
@@ -239,13 +241,13 @@ export default function CheckoutPage() {
             <div className="card p-5">
               <h3 className="font-bold flex items-center gap-2 mb-4">
                 <MapPin className="w-5 h-5 text-black" />
-                معلومات الشحن
+                {t("checkout.shippingInfo")}
               </h3>
 
               {/* Saved addresses */}
               {savedAddresses.length > 0 && (
                 <div className="mb-5">
-                  <p className="text-xs font-medium text-text-muted mb-2">العناوين المحفوظة</p>
+                  <p className="text-xs font-medium text-text-muted mb-2">{t("checkout.savedAddresses")}</p>
                   <div className="space-y-2">
                     {savedAddresses.map((addr) => {
                       const isSelected = selectedAddressId === addr.id;
@@ -254,7 +256,7 @@ export default function CheckoutPage() {
                           key={addr.id}
                           type="button"
                           onClick={() => handleSelectAddress(addr)}
-                          className={`w-full text-right p-3.5 rounded-xl border-2 transition-all flex items-start gap-3 ${
+                          className={`w-full text-start p-3.5 rounded-xl border-2 transition-all flex items-start gap-3 ${
                             isSelected
                               ? "border-black bg-black/5"
                               : "border-border hover:border-text-faint"
@@ -271,7 +273,7 @@ export default function CheckoutPage() {
                               {addr.is_default && (
                                 <span className="inline-flex items-center gap-0.5 text-[10px] bg-black/10 text-black px-1.5 py-0.5 rounded-full">
                                   <Star className="w-2.5 h-2.5 fill-black" />
-                                  افتراضي
+                                  {t("checkout.default")}
                                 </span>
                               )}
                             </div>
@@ -279,7 +281,7 @@ export default function CheckoutPage() {
                               {addr.address}
                               {addr.city_name && ` — ${addr.city_name}`}
                             </p>
-                            <p className="text-xs text-text-faint mt-0.5">{addr.name} · {addr.phone}</p>
+                            <p className="text-xs text-text-faint mt-0.5">{tApi(addr.name, lang)} · {addr.phone}</p>
                           </div>
                           {isSelected && <CheckCircle className="w-4 h-4 text-black shrink-0 mt-1" />}
                         </button>
@@ -298,19 +300,19 @@ export default function CheckoutPage() {
                     }`}
                   >
                     <Plus className="w-4 h-4" />
-                    إضافة عنوان جديد
+                    {t("checkout.addNewAddress")}
                   </button>
 
                 </div>
               )}
 
               <div>
-                <label className="text-sm font-medium mb-1.5 block">ملاحظات (اختياري)</label>
+                <label className="text-sm font-medium mb-1.5 block">{t("checkout.notesOptional")}</label>
                 <textarea
                   name="order_note"
                   value={formData.order_note}
                   onChange={handleInputChange}
-                  placeholder="أي ملاحظات خاصة بالطلب..."
+                  placeholder={t("checkout.notesPlaceholder")}
                   className="input-field !py-2"
                   rows={3}
                 />
@@ -321,7 +323,7 @@ export default function CheckoutPage() {
             <div className="card p-5">
               <h3 className="font-bold flex items-center gap-2 mb-4">
                 <CreditCard className="w-5 h-5 text-black" />
-                طريقة الدفع
+                {t("checkout.paymentMethod")}
               </h3>
               <div className="space-y-2.5">
                 {paymentMethods.map((method) => (
@@ -342,9 +344,9 @@ export default function CheckoutPage() {
                       className="w-4 h-4 text-black accent-black"
                     />
                     <div>
-                      <p className="text-sm font-medium">{method.name}</p>
+                      <p className="text-sm font-medium">{tApi(method.name, lang)}</p>
                       {method.description && (
-                        <p className="text-xs text-text-muted mt-0.5">{method.description}</p>
+                        <p className="text-xs text-text-muted mt-0.5">{tApi(method.description, lang)}</p>
                       )}
                     </div>
                   </label>
@@ -357,7 +359,7 @@ export default function CheckoutPage() {
               className="btn-primary w-full !py-4 text-base"
               disabled={isSubmitting || !canSubmit}
             >
-              {isSubmitting ? "جاري المعالجة..." : "تأكيد الطلب"}
+              {isSubmitting ? t("checkout.processing") : t("checkout.confirmOrder")}
             </button>
           </form>
         </div>
@@ -367,33 +369,33 @@ export default function CheckoutPage() {
           <div className="card p-5 sticky top-24">
             <h3 className="font-bold flex items-center gap-2 mb-4">
               <ShoppingBag className="w-5 h-5 text-black" />
-              ملخص الطلب
+              {t("checkout.orderSummary")}
             </h3>
 
             {summary && (
               <div className="space-y-3 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-text-muted">المجموع الفرعي</span>
+                  <span className="text-text-muted">{t("checkout.subtotal")}</span>
                   <span>{formatCurrency(summary.subtotal)}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-text-muted">الشحن</span>
+                  <span className="text-text-muted">{t("checkout.shipping")}</span>
                   <span>{summary.shipping_zone ? formatCurrency(summary.shipping_zone.price) : "—"}</span>
                 </div>
                 {summary.shipping_zone?.name && (
                   <div className="flex justify-between">
-                    <span className="text-text-muted">المنطقة</span>
-                    <span>{summary.shipping_zone.name}</span>
+                    <span className="text-text-muted">{t("checkout.zone")}</span>
+                    <span>{tApi(summary.shipping_zone.name, lang)}</span>
                   </div>
                 )}
                 {summary.discount > 0 && (
                   <div className="flex justify-between">
-                    <span className="text-text-muted">الخصم</span>
+                    <span className="text-text-muted">{t("checkout.discount")}</span>
                     <span className="text-success">-{formatCurrency(summary.discount)}</span>
                   </div>
                 )}
                 <div className="flex justify-between font-bold text-base pt-3 border-t border-divider">
-                  <span>الإجمالي</span>
+                  <span>{t("checkout.total")}</span>
                   <span className="text-black">{formatCurrency(summary.total)}</span>
                 </div>
               </div>
@@ -401,7 +403,7 @@ export default function CheckoutPage() {
 
             <div className="flex items-center gap-2 text-text-muted text-xs mt-4 p-3 bg-surface-2 rounded-xl">
               <Truck className="w-4 h-4 text-black flex-shrink-0" />
-              <span>التوصيل خلال 2-3 أيام عمل</span>
+              <span>{t("checkout.deliveryEstimate")}</span>
             </div>
           </div>
         </div>

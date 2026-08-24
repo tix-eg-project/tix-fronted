@@ -3,22 +3,24 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { User, Package, Heart, LogOut, RotateCcw, MapPin } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
-
-const sidebarLinks = [
-  { href: '/account', label: 'بياناتي', icon: User },
-  { href: '/account/orders', label: 'طلباتي', icon: Package },
-  { href: '/account/addresses', label: 'عناويني', icon: MapPin },
-  { href: '/account/wishlist', label: 'المفضلة', icon: Heart },
-  { href: '/account/returns', label: 'المرتجعات', icon: RotateCcw },
-]
+import { useLanguage } from '@/context/LanguageContext'
 
 export default function AccountLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const { logout } = useAuth()
+  const { t } = useLanguage()
+
+  const sidebarLinks = [
+    { href: '/account', label: t('account.myData'), icon: User },
+    { href: '/account/orders', label: t('account.myOrders'), icon: Package },
+    { href: '/account/addresses', label: t('account.myAddresses'), icon: MapPin },
+    { href: '/account/wishlist', label: t('account.wishlist'), icon: Heart },
+    { href: '/account/returns', label: t('account.returns'), icon: RotateCcw },
+  ]
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-6 md:py-10" dir="rtl">
-      <h1 className="text-xl md:text-2xl font-bold mb-4 md:mb-6">حسابي</h1>
+    <div className="max-w-6xl mx-auto px-4 py-6 md:py-10">
+      <h1 className="text-xl md:text-2xl font-bold mb-4 md:mb-6">{t('account.title')}</h1>
 
       {/* Mobile: horizontal scrollable tabs */}
       <div className="md:hidden mb-4 -mx-4 px-4 overflow-x-auto scrollbar-hide">
@@ -45,7 +47,7 @@ export default function AccountLayout({ children }: { children: React.ReactNode 
             className="flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap border border-red-200 text-red-600 bg-white hover:bg-red-50 transition-all"
           >
             <LogOut className="w-3.5 h-3.5" />
-            خروج
+            {t('account.logout')}
           </button>
         </div>
       </div>
@@ -73,7 +75,7 @@ export default function AccountLayout({ children }: { children: React.ReactNode 
               className="flex items-center gap-3 w-full px-4 py-2.5 rounded-lg text-sm font-medium text-error hover:bg-red-50 transition-all"
             >
               <LogOut className="w-4 h-4" />
-              تسجيل الخروج
+              {t('account.logoutFull')}
             </button>
           </nav>
         </aside>

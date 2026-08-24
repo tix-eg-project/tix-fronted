@@ -1,6 +1,7 @@
 'use client'
 import { useWishlist } from '@/context/WishlistContext'
 import { useAuth } from '@/context/AuthContext'
+import { useLanguage } from '@/context/LanguageContext'
 import ProductCard from '@/components/ProductCard'
 import { Heart } from 'lucide-react'
 import Link from 'next/link'
@@ -9,6 +10,7 @@ import { useEffect } from 'react'
 export default function WishlistPage() {
   const { items, isLoading, refreshWishlist } = useWishlist()
   const { state: authState } = useAuth()
+  const { t } = useLanguage()
 
   useEffect(() => {
     if (!authState.isLoading && !authState.isAuthenticated) {
@@ -32,9 +34,9 @@ export default function WishlistPage() {
     return (
       <div className="card p-10 text-center">
         <Heart className="w-14 h-14 mx-auto text-red-600 mb-3" />
-        <h3 className="text-lg font-bold mb-2">لا توجد عناصر في المفضلة</h3>
-        <p className="text-text-muted text-sm mb-4">أضف منتجات للمفضلة لتجدها هنا</p>
-        <Link href="/" className="btn-primary inline-block">تصفح المنتجات</Link>
+        <h3 className="text-lg font-bold mb-2">{t('account.noWishlistItems')}</h3>
+        <p className="text-text-muted text-sm mb-4">{t('account.noWishlistItemsDesc')}</p>
+        <Link href="/" className="btn-primary inline-block">{t('account.browseProducts')}</Link>
       </div>
     )
   }
@@ -43,7 +45,7 @@ export default function WishlistPage() {
     <div className="space-y-6">
       <div className="flex items-center gap-2 mb-2">
         <Heart className="w-6 h-6 text-red-600 fill-red-600" />
-        <h1 className="text-xl font-bold text-black">قائمة المفضلة</h1>
+        <h1 className="text-xl font-bold text-black">{t('account.wishlistTitle')}</h1>
       </div>
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
         {items.map((item) => (

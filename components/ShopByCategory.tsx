@@ -4,8 +4,10 @@ import Image from "next/image";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { CategoryNavItem } from "@/utils/Types/navigation";
+import { useLanguage } from "@/context/LanguageContext";
 
 export default function ShopByCategory({ categories }: { categories: CategoryNavItem[] }) {
+  const { t, dir } = useLanguage();
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canScrollPrev, setCanScrollPrev] = useState(false);
   const [canScrollNext, setCanScrollNext] = useState(false);
@@ -51,28 +53,31 @@ export default function ShopByCategory({ categories }: { categories: CategoryNav
 
   if (categories.length === 0) return null;
 
+  const PrevIcon = dir === "rtl" ? ChevronRight : ChevronLeft;
+  const NextIcon = dir === "rtl" ? ChevronLeft : ChevronRight;
+
   return (
     <section className="container mx-auto px-4 py-6">
-      <h2 className="text-lg sm:text-xl font-bold mb-4">تسوق حسب القسم</h2>
+      <h2 className="text-lg sm:text-xl font-bold mb-4">{t("home.shopByCategory")}</h2>
       <div className="relative">
         {canScrollPrev && (
           <button
             type="button"
             onClick={() => scroll("prev")}
-            aria-label="تمرير لليمين"
-            className="hidden lg:flex absolute -right-6 top-1/2 -translate-y-1/2 z-10 text-gray-400 hover:text-black transition-colors items-center justify-center"
+            aria-label={t("home.scrollPrev")}
+            className="hidden lg:flex absolute -start-6 top-1/2 -translate-y-1/2 z-10 text-gray-400 hover:text-black transition-colors items-center justify-center"
           >
-            <ChevronRight className="w-4 h-4" />
+            <PrevIcon className="w-4 h-4" />
           </button>
         )}
         {canScrollNext && (
           <button
             type="button"
             onClick={() => scroll("next")}
-            aria-label="تمرير لليسار"
-            className="hidden lg:flex absolute -left-6 top-1/2 -translate-y-1/2 z-10 text-gray-400 hover:text-black transition-colors items-center justify-center"
+            aria-label={t("home.scrollNext")}
+            className="hidden lg:flex absolute -end-6 top-1/2 -translate-y-1/2 z-10 text-gray-400 hover:text-black transition-colors items-center justify-center"
           >
-            <ChevronLeft className="w-4 h-4" />
+            <NextIcon className="w-4 h-4" />
           </button>
         )}
 

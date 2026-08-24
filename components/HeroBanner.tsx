@@ -1,7 +1,8 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Image from "next/image";
 import api from "@/lib/api";
+import { useLanguage } from "@/context/LanguageContext";
 
 interface Banner {
   id: string | number;
@@ -11,15 +12,26 @@ interface Banner {
   image?: string;
 }
 
-const defaultBanners: Banner[] = [
-  { id: 1, title: "وفر وقتك", subtitle: "واطلب مستلزماتك اونلاين" },
-  { id: 2, title: "أفضل الأسعار", subtitle: "خصومات تصل حتى 50% على منتجات مختارة" },
-  { id: 3, title: "توصيل سريع", subtitle: "لجميع أنحاء مصر في أسرع وقت" },
-];
-
 export default function HeroBanner() {
+  const { t, lang } = useLanguage();
+
+  const defaultBanners: Banner[] = useMemo(
+    () => [
+      { id: 1, title: t("home.heroBanner1Title"), subtitle: t("home.heroBanner1Subtitle") },
+      { id: 2, title: t("home.heroBanner2Title"), subtitle: t("home.heroBanner2Subtitle") },
+      { id: 3, title: t("home.heroBanner3Title"), subtitle: t("home.heroBanner3Subtitle") },
+    ],
+    [t],
+  );
+
   const [banners, setBanners] = useState<Banner[]>(defaultBanners);
+  const [usingDefault, setUsingDefault] = useState(true);
   const [currentSlide, setCurrentSlide] = useState(0);
+
+  useEffect(() => {
+    if (usingDefault) setBanners(defaultBanners);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [defaultBanners, usingDefault]);
 
   useEffect(() => {
     async function fetchBanners() {
@@ -37,6 +49,7 @@ export default function HeroBanner() {
             }));
           if (validBanners.length > 0) {
             setBanners(validBanners);
+            setUsingDefault(false);
           }
         }
       } catch {
@@ -44,7 +57,7 @@ export default function HeroBanner() {
       }
     }
     fetchBanners();
-  }, []);
+  }, [lang]);
 
   useEffect(() => {
     if (banners.length <= 1) return;
@@ -114,12 +127,12 @@ export default function HeroBanner() {
       ))}
 
       {banners.length > 1 && (
-        <div className="absolute bottom-3 sm:bottom-5 md:bottom-6 left-1/2 -translate-x-1/2 flex gap-1.5 sm:gap-2 z-20">
+        <div className="absolute bottom-3 sm:bottom-5 md:bottom-6 start-1/2 -translate-x-1/2 flex gap-1.5 sm:gap-2 z-20">
           {banners.map((_, index) => (
             <button
               key={index}
               onClick={() => setCurrentSlide(index)}
-              aria-label={`الانتقال للشريحة ${index + 1}`}
+              aria-label={t("home.goToSlide", { index: index + 1 })}
               className="rounded-full transition-all duration-300"
               style={{
                 height: 4,
