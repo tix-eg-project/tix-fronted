@@ -189,8 +189,11 @@ export default function ProductDetailClient({ productId }: { productId: string }
   const router = useRouter();
   const [descLang, setDescLang] = useState<'ar' | 'en'>(lang);
 
-  // Reset quantity when variant changes
-  useEffect(() => { setQuantity(1); }, [selectedItem]);
+  // Reset quantity and jump the gallery to the variant's own image when the variant changes
+  useEffect(() => {
+    setQuantity(1);
+    setActiveImageIndex(0);
+  }, [selectedItem]);
 
   const fetchProduct = async () => {
     try {
@@ -380,7 +383,10 @@ export default function ProductDetailClient({ productId }: { productId: string }
   const currentPrice = selectedItem?.price_after || product.price_after || product.price;
   const originalPrice = selectedItem?.price_before || product.price_before || 0;
   const discountPct = calculateDiscount(originalPrice, currentPrice);
-  const images = product.images?.length > 0 ? product.images : ["/pl1.jpg"];
+  const baseImages = product.images?.length > 0 ? product.images : ["/pl1.jpg"];
+  const images = selectedItem?.image
+    ? [selectedItem.image, ...baseImages.filter((img: string) => img !== selectedItem.image)]
+    : baseImages;
   const features = Array.isArray(product.prod_features) && product.prod_features.length > 0
     ? product.prod_features.map((f: any) => typeof f === 'object' ? tApi(f.name || f, lang) : f)
     : Array.isArray(product.features)

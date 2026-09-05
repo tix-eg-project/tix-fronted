@@ -56,6 +56,7 @@ export interface VariantItem {
   price_after: number;
   discount: number;
   quantity?: number;
+  image?: string | null;
 }
 
 export interface VariantSelection {
