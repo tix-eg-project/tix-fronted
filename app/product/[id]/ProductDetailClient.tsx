@@ -12,7 +12,6 @@ import {
   ChevronRight,
   CheckCircle,
   Plus as PlusIcon,
-  Languages,
   X,
   ZoomIn,
 } from "lucide-react";
@@ -187,7 +186,6 @@ export default function ProductDetailClient({ productId }: { productId: string }
   const { toggleWishlist, isInWishlist } = useWishlist();
   const { t, lang, dir } = useLanguage();
   const router = useRouter();
-  const [descLang, setDescLang] = useState<'ar' | 'en'>(lang);
 
   // Reset quantity and jump the gallery to the variant's own image when the variant changes
   useEffect(() => {
@@ -934,28 +932,10 @@ export default function ProductDetailClient({ productId }: { productId: string }
               )}
 
               {product.long_description && (
-                <Accordion
-                  title={
-                    <div className="flex items-center justify-between w-full">
-                      <span>{t('product.description')}</span>
-                      {hasMultiLang(product.long_description) && (
-                        <button
-                          onClick={(e) => { e.stopPropagation(); setDescLang(l => l === 'ar' ? 'en' : 'ar'); }}
-                          className="flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full border border-gray-200 hover:border-gray-400 text-gray-500 hover:text-black transition-colors me-4"
-                        >
-                          <Languages className="w-3.5 h-3.5" />
-                          {descLang === 'ar' ? 'EN' : 'عربي'}
-                        </button>
-                      )}
-                    </div>
-                  }
-                  defaultOpen
-                >
+                <Accordion title={t('product.description')} defaultOpen>
                   <div
                     className="leading-relaxed prose prose-sm max-w-none text-gray-700 [&_p]:mb-3 [&_br]:block [&_ul]:list-disc [&_ul]:ps-5 [&_ol]:list-decimal [&_ol]:ps-5"
-                    dir={descLang === 'en' ? 'ltr' : 'rtl'}
-                    style={{ textAlign: descLang === 'en' ? 'left' : 'right' }}
-                    dangerouslySetInnerHTML={{ __html: tLang(product.long_description, descLang) }}
+                    dangerouslySetInnerHTML={{ __html: tLang(product.long_description, lang) }}
                   />
                 </Accordion>
               )}
