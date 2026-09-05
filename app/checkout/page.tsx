@@ -166,7 +166,7 @@ export default function CheckoutPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isSubmitting) return;
-    if (!selectedCity) { toast.error(t("checkout.selectCity")); return; }
+    if (!selectedCity && selectedAddressId === null) { toast.error(t("checkout.selectCity")); return; }
 
     setIsSubmitting(true);
     try {
@@ -200,7 +200,7 @@ export default function CheckoutPage() {
     }
   };
 
-  const canSubmit = selectedCity && paymentMethod;
+  const canSubmit = (selectedCity || selectedAddressId !== null) && paymentMethod;
 
   if (authState.isLoading) {
     return (
