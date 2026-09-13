@@ -81,16 +81,26 @@ export interface VariantOption {
   values: VariantOptionValue[];
 }
 
+/** One variant-type/value pair this item is priced on. */
+export interface VariantItemOption {
+  type_id: number;
+  value_id: number;
+}
+
 /**
  * A purchasable combination, replacing the old "primary variant + groups"
  * model. `options` is the exact set of dimensions this combination is priced
  * on - it may cover every variant type, just one, or none - so a size sold
  * with no colour and a size+colour combo are both represented the same way,
  * instead of one of them being silently dropped.
+ *
+ * A plain list of pairs, not an object keyed by type id: the API cannot use
+ * that shape (Laravel's resource filtering reindexes and drops the keys of
+ * any nested array whose keys are all numeric) - see lib/variantMatch.ts,
+ * which converts this into a lookup map for matching.
  */
 export interface VariantItemFull extends VariantItem {
-  /** variant type id (as a string key) -> selected value id */
-  options: Record<string, number>;
+  options: VariantItemOption[];
 }
 
 export interface VariantSelection {

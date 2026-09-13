@@ -3,6 +3,19 @@ import type { VariantItemFull } from "@/utils/Types/common";
 /** variant type id (string) -> selected value id */
 export type SelectionMap = Record<string, number>;
 
+/**
+ * The API sends `options` as a list of {type_id, value_id} pairs, not an
+ * object keyed by type id (see VariantItemFull) - this is the only place
+ * that needs to know that; everything else here compares SelectionMaps.
+ */
+export function optionsToMap(options: VariantItemFull["options"]): SelectionMap {
+  const map: SelectionMap = {};
+  for (const { type_id, value_id } of options) {
+    map[String(type_id)] = value_id;
+  }
+  return map;
+}
+
 function sameSet(a: SelectionMap, b: SelectionMap): boolean {
   const ak = Object.keys(a);
   const bk = Object.keys(b);
@@ -30,17 +43,17 @@ export function matchVariantItem(
   justClickedTypeId?: string
 ): VariantItemFull | null {
   for (const it of items) {
-    if (sameSet(it.options, selected)) return it;
+    if (sameSet(optionsToMap(it.options), selected)) return it;
   }
 
   if (justClickedTypeId !== undefined && selected[justClickedTypeId] !== undefined) {
     const soloValue = selected[justClickedTypeId];
 
     for (const it of items) {
-      if (sameSet(it.options, { [justClickedTypeId]: soloValue })) return it;
+      if (sameSet(optionsToMap(it.options), { [justClickedTypeId]: soloValue })) return it;
     }
     for (const it of items) {
-      if (it.options[justClickedTypeId] === soloValue) return it;
+      if (optionsToMap(it.options)[justClickedTypeId] === soloValue) return it;
     }
   }
 
@@ -72,5 +85,5 @@ export function selectionAfterClick(
     return { selection: attempted, item: null };
   }
 
-  return { selection: { ...item.options }, item };
+  return { selection: optionsToMap(item.options), item };
 }

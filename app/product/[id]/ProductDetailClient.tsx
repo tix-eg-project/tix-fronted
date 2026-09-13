@@ -24,7 +24,7 @@ import { useLanguage } from "@/context/LanguageContext";
 import { formatCurrency, calculateDiscount, t as tApi, generateSlug } from "@/utils/helpers";
 import ProductCard from "@/components/ProductCard";
 import type { Product, VariantGroup, VariantItem, VariantOption, VariantItemFull } from "@/utils/Types/common";
-import { selectionAfterClick, type SelectionMap } from "@/lib/variantMatch";
+import { selectionAfterClick, optionsToMap, type SelectionMap } from "@/lib/variantMatch";
 import { useRouter } from "next/navigation";
 
 function tLang(value: any, lang: 'ar' | 'en'): string {
@@ -234,7 +234,7 @@ export default function ProductDetailClient({ productId }: { productId: string }
           // is - full, or a single dimension - so price/stock/image are
           // never blank on first load.
           const first = p.variant_items[0];
-          setSelectedOptions({ ...first.options });
+          setSelectedOptions(optionsToMap(first.options));
           setSelectedItem(first);
         } else if (p.groups?.length > 0) {
           setSelectedGroup(p.groups[0]);
