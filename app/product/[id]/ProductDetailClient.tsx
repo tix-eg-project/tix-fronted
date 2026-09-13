@@ -24,7 +24,6 @@ import { useLanguage } from "@/context/LanguageContext";
 import { formatCurrency, calculateDiscount, t as tApi, generateSlug } from "@/utils/helpers";
 import ProductCard from "@/components/ProductCard";
 import type { Product, VariantGroup, VariantItem, VariantOption, VariantItemFull } from "@/utils/Types/common";
-import { selectionAfterClick, optionsToMap, type SelectionMap } from "@/lib/variantMatch";
 import { useRouter } from "next/navigation";
 
 function tLang(value: any, lang: 'ar' | 'en'): string {
@@ -98,9 +97,6 @@ export default function ProductDetailClient({ productId }: { productId: string }
   // product's data has no variant_options/variant_items to work with yet.
   const [selectedGroup, setSelectedGroup] = useState<VariantGroup | null>(null);
   const [selectedItem, setSelectedItem] = useState<VariantItem | VariantItemFull | null>(null);
-  // Current pick per variant type: variant type id (string) -> value id.
-  // Drives variant_options/variant_items - see selectionAfterClick.
-  const [selectedOptions, setSelectedOptions] = useState<SelectionMap>({});
   const [quantity, setQuantity] = useState(1);
   const [addingToCart, setAddingToCart] = useState(false);
   const [reviewRating, setReviewRating] = useState(5);
@@ -200,25 +196,21 @@ export default function ProductDetailClient({ productId }: { productId: string }
   }, [selectedItem]);
 
   /**
-   * Handles a click on any variant value (a size, a colour swatch, ...).
-   *
-   * Combines it with whatever else is currently selected and looks for the
-   * item priced on exactly that combination; when there is none, falls back
-   * to the item priced on this value alone. Either way the selection state
-   * snaps to match `selectedItem` exactly, so a dimension that does not fit
-   * visibly deselects instead of staying highlighted next to something
-   * unpurchasable. See lib/variantMatch.ts.
+   * A hex colour to show behind an item's card when the merchant did not
+   * upload a photo for that specific combination - taken from whichever of
+   * the item's own option values carries one (looked up in variant_options),
+   * so an unphotographed "Red" combo still gets a red box instead of a
+   * generic grey one.
    */
-  const handleVariantClick = (typeId: string, valueId: number) => {
-    if (!product?.variant_items?.length) return;
-    const { selection, item } = selectionAfterClick(
-      product.variant_items,
-      selectedOptions,
-      typeId,
-      valueId
-    );
-    setSelectedOptions(selection);
-    setSelectedItem(item);
+  const findSwatchColor = (item: VariantItemFull): string | undefined => {
+    if (!product?.variant_options?.length) return undefined;
+    for (const { value_id } of item.options) {
+      for (const option of product.variant_options as VariantOption[]) {
+        const value = option.values.find((v) => v.id === value_id);
+        if (value?.meta?.code) return value.meta.code;
+      }
+    }
+    return undefined;
   };
 
   const fetchProduct = async () => {
@@ -233,9 +225,7 @@ export default function ProductDetailClient({ productId }: { productId: string }
           // Preselect the first purchasable combination, whatever shape it
           // is - full, or a single dimension - so price/stock/image are
           // never blank on first load.
-          const first = p.variant_items[0];
-          setSelectedOptions(optionsToMap(first.options));
-          setSelectedItem(first);
+          setSelectedItem(p.variant_items[0]);
         } else if (p.groups?.length > 0) {
           setSelectedGroup(p.groups[0]);
           setSelectedItem(p.groups[0].items?.[0] || null);
@@ -761,54 +751,60 @@ export default function ProductDetailClient({ productId }: { productId: string }
           )}
 
           {/* ── Variant Selection ── */}
-          {/* One row per variant type actually used by a purchasable combo
-              (Size, Color, ...) - each selectable independently, so "Size
-              only", "Color only" and "Size + Color" are all reachable. See
-              lib/variantMatch.ts for how a click resolves to a priced item. */}
-          {product.variant_options && product.variant_options.length > 0 ? (
-            <div className="mt-5 space-y-4">
-              {product.variant_options.map((option: VariantOption) => {
-                const asSwatch = option.values.some((v) => v.meta?.code);
-                return (
-                  <div key={option.id}>
-                    <p className="text-sm font-medium mb-2" style={{ color: "#212121" }}>
-                      {tApi(option.name, lang)}
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      {option.values.map((value) => {
-                        const isSelected = selectedOptions[String(option.id)] === value.id;
-                        if (asSwatch) {
-                          return (
-                            <button
-                              key={value.id}
-                              className={`w-10 h-10 rounded-full border-2 transition-all hover:scale-110 ${isSelected
-                                ? "border-black ring-2 ring-offset-2 ring-black"
-                                : "border-transparent"
-                                }`}
-                              style={{ backgroundColor: value.meta?.code || "#ddd" }}
-                              onClick={() => handleVariantClick(String(option.id), value.id)}
-                              aria-label={tApi(value.name, lang)}
-                              title={tApi(value.name, lang)}
-                            />
-                          );
-                        }
-                        return (
-                          <button
-                            key={value.id}
-                            className={`px-4 py-2 text-sm font-medium border-2 rounded-lg transition-colors ${isSelected
-                              ? "border-black bg-black text-white"
-                              : "border-gray-200 hover:border-gray-400"
-                              }`}
-                            onClick={() => handleVariantClick(String(option.id), value.id)}
-                          >
-                            {tApi(value.name, lang)}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                );
-              })}
+          {/* Each purchasable combination is its own card, showing everything
+              that makes it distinct - its own photo when the merchant gave it
+              one, and every dimension merged into one label (e.g. "L / Orange")
+              rather than split into independent Size/Color rows. Picking a
+              card selects that exact item directly: no matching or fallback
+              logic needed, since the card already IS the item. */}
+          {product.variant_items && product.variant_items.length > 0 ? (
+            <div className="mt-5">
+              <p className="text-sm font-medium mb-2" style={{ color: "#212121" }}>
+                {t('product.chooseOption')}
+              </p>
+              <div className="flex flex-wrap gap-3">
+                {product.variant_items.map((item: VariantItemFull) => {
+                  const isSelected = selectedItem?.id === item.id;
+                  const label = Object.values(item.attrs).map((v) => tApi(v, lang)).join(' / ');
+                  // When the merchant did not upload a photo for this specific
+                  // combination, fall back to one of its own colour values (if
+                  // it has one) rather than a plain grey box.
+                  const swatchColor = !item.image ? findSwatchColor(item) : undefined;
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => setSelectedItem(item)}
+                      className={`flex flex-col items-center gap-1 p-1.5 rounded-xl border-2 transition-all ${isSelected
+                        ? "border-black ring-2 ring-offset-2 ring-black"
+                        : "border-gray-200 hover:border-gray-400"
+                        }`}
+                      title={label}
+                    >
+                      {item.image ? (
+                        <img
+                          src={item.image}
+                          alt={label}
+                          className="w-16 h-16 rounded-lg object-cover"
+                        />
+                      ) : (
+                        <div
+                          className="w-16 h-16 rounded-lg bg-gray-100"
+                          style={swatchColor ? { backgroundColor: swatchColor } : undefined}
+                        />
+                      )}
+                      {/* Always a separate line, never overlaid on the photo or
+                          swatch above - an arbitrary colour makes overlaid text
+                          unreadable as often as not. */}
+                      <span className="text-xs font-medium max-w-[80px] truncate">{label || '—'}</span>
+                      {item.price_after !== product.price_after && (
+                        <span className="text-[11px] text-gray-500">
+                          {formatCurrency(item.price_after)}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           ) : (
             // Legacy fallback: only reached for a response with no
