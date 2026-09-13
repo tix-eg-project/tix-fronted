@@ -9,6 +9,8 @@ const nextConfig = {
       { protocol: 'https', hostname: 'api.tix-eg.com' },
       { protocol: 'https', hostname: 'res.cloudinary.com' },
       { protocol: 'https', hostname: 'storage.googleapis.com' },
+      { protocol: 'https', hostname: 'cdn.tix-eg.com' },
+      { protocol: 'https', hostname: 'pub-32909f1941b742cb894c3dc926baf64d.r2.dev' },
     ],
     formats: ['image/avif', 'image/webp'],
   },

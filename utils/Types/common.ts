@@ -14,12 +14,16 @@ export interface Product {
   features?: string[];
   faqs?: ProductFaq[];
   reviews?: ProductReviews;
+  /** @deprecated use variant_options / variant_items */
   groups?: VariantGroup[];
   vendor?: {
     id: number;
     store_name: string | null;
   };
+  /** @deprecated use variant_options / variant_items */
   primary_variant?: string;
+  variant_options?: VariantOption[];
+  variant_items?: VariantItemFull[];
 }
 
 export interface ProductFaq {
@@ -57,6 +61,36 @@ export interface VariantItem {
   discount: number;
   quantity?: number;
   image?: string | null;
+}
+
+/**
+ * One selectable value under a variant type (e.g. "Red" under "Color").
+ * `meta.code` being present is what tells the storefront to render this
+ * type's values as colour swatches instead of text pills.
+ */
+export interface VariantOptionValue {
+  id: number;
+  name: string;
+  meta: { code?: string } | null;
+}
+
+/** One variant type actually used by a purchasable item (Size, Color, ...). */
+export interface VariantOption {
+  id: number;
+  name: string;
+  values: VariantOptionValue[];
+}
+
+/**
+ * A purchasable combination, replacing the old "primary variant + groups"
+ * model. `options` is the exact set of dimensions this combination is priced
+ * on - it may cover every variant type, just one, or none - so a size sold
+ * with no colour and a size+colour combo are both represented the same way,
+ * instead of one of them being silently dropped.
+ */
+export interface VariantItemFull extends VariantItem {
+  /** variant type id (as a string key) -> selected value id */
+  options: Record<string, number>;
 }
 
 export interface VariantSelection {

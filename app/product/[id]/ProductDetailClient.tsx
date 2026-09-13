@@ -23,7 +23,8 @@ import { useWishlist } from "@/context/WishlistContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { formatCurrency, calculateDiscount, t as tApi, generateSlug } from "@/utils/helpers";
 import ProductCard from "@/components/ProductCard";
-import type { Product, VariantGroup, VariantItem } from "@/utils/Types/common";
+import type { Product, VariantGroup, VariantItem, VariantOption, VariantItemFull } from "@/utils/Types/common";
+import { selectionAfterClick, type SelectionMap } from "@/lib/variantMatch";
 import { useRouter } from "next/navigation";
 
 function tLang(value: any, lang: 'ar' | 'en'): string {
@@ -93,8 +94,13 @@ function Accordion({
 export default function ProductDetailClient({ productId }: { productId: string }) {
   const [loading, setLoading] = useState(true);
   const [product, setProduct] = useState<any>(null);
+  // Legacy fallback path only (see the render section below): used when a
+  // product's data has no variant_options/variant_items to work with yet.
   const [selectedGroup, setSelectedGroup] = useState<VariantGroup | null>(null);
-  const [selectedItem, setSelectedItem] = useState<VariantItem | null>(null);
+  const [selectedItem, setSelectedItem] = useState<VariantItem | VariantItemFull | null>(null);
+  // Current pick per variant type: variant type id (string) -> value id.
+  // Drives variant_options/variant_items - see selectionAfterClick.
+  const [selectedOptions, setSelectedOptions] = useState<SelectionMap>({});
   const [quantity, setQuantity] = useState(1);
   const [addingToCart, setAddingToCart] = useState(false);
   const [reviewRating, setReviewRating] = useState(5);
@@ -193,6 +199,28 @@ export default function ProductDetailClient({ productId }: { productId: string }
     setActiveImageIndex(0);
   }, [selectedItem]);
 
+  /**
+   * Handles a click on any variant value (a size, a colour swatch, ...).
+   *
+   * Combines it with whatever else is currently selected and looks for the
+   * item priced on exactly that combination; when there is none, falls back
+   * to the item priced on this value alone. Either way the selection state
+   * snaps to match `selectedItem` exactly, so a dimension that does not fit
+   * visibly deselects instead of staying highlighted next to something
+   * unpurchasable. See lib/variantMatch.ts.
+   */
+  const handleVariantClick = (typeId: string, valueId: number) => {
+    if (!product?.variant_items?.length) return;
+    const { selection, item } = selectionAfterClick(
+      product.variant_items,
+      selectedOptions,
+      typeId,
+      valueId
+    );
+    setSelectedOptions(selection);
+    setSelectedItem(item);
+  };
+
   const fetchProduct = async () => {
     try {
       setLoading(true);
@@ -201,7 +229,14 @@ export default function ProductDetailClient({ productId }: { productId: string }
         const p = response.data.data;
         setProduct(p);
         setActiveImageIndex(0);
-        if (p.groups?.length > 0) {
+        if (p.variant_items?.length > 0) {
+          // Preselect the first purchasable combination, whatever shape it
+          // is - full, or a single dimension - so price/stock/image are
+          // never blank on first load.
+          const first = p.variant_items[0];
+          setSelectedOptions({ ...first.options });
+          setSelectedItem(first);
+        } else if (p.groups?.length > 0) {
           setSelectedGroup(p.groups[0]);
           setSelectedItem(p.groups[0].items?.[0] || null);
         }
@@ -725,50 +760,103 @@ export default function ProductDetailClient({ productId }: { productId: string }
             </p>
           )}
 
-          {/* ── Color Selection ── */}
-          {product.groups && product.groups.length > 0 && (
-            <div className="mt-5">
-              <p className="text-sm font-medium mb-2" style={{ color: "#212121" }}>
-                {t('product.chooseColor')}
-              </p>
-              <div className="flex flex-wrap gap-2 mb-3">
-                {product.groups.map((group: VariantGroup, idx: number) => (
-                  <button
-                    key={idx}
-                    className={`w-10 h-10 rounded-full border-2 transition-all hover:scale-110 ${selectedGroup?.value === group.value
-                      ? "border-black ring-2 ring-offset-2 ring-black"
-                      : "border-transparent"
-                      }`}
-                    style={{ backgroundColor: group.meta?.code || "#ddd" }}
-                    onClick={() => {
-                      setSelectedGroup(group);
-                      setSelectedItem(group.items?.[0] || null);
-                    }}
-                    aria-label={group.value}
-                  />
-                ))}
-              </div>
-
-              {/* Size Selection */}
-              {selectedGroup && selectedGroup.items.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  {selectedGroup.items.map((item: VariantItem) => (
+          {/* ── Variant Selection ── */}
+          {/* One row per variant type actually used by a purchasable combo
+              (Size, Color, ...) - each selectable independently, so "Size
+              only", "Color only" and "Size + Color" are all reachable. See
+              lib/variantMatch.ts for how a click resolves to a priced item. */}
+          {product.variant_options && product.variant_options.length > 0 ? (
+            <div className="mt-5 space-y-4">
+              {product.variant_options.map((option: VariantOption) => {
+                const asSwatch = option.values.some((v) => v.meta?.code);
+                return (
+                  <div key={option.id}>
+                    <p className="text-sm font-medium mb-2" style={{ color: "#212121" }}>
+                      {tApi(option.name, lang)}
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {option.values.map((value) => {
+                        const isSelected = selectedOptions[String(option.id)] === value.id;
+                        if (asSwatch) {
+                          return (
+                            <button
+                              key={value.id}
+                              className={`w-10 h-10 rounded-full border-2 transition-all hover:scale-110 ${isSelected
+                                ? "border-black ring-2 ring-offset-2 ring-black"
+                                : "border-transparent"
+                                }`}
+                              style={{ backgroundColor: value.meta?.code || "#ddd" }}
+                              onClick={() => handleVariantClick(String(option.id), value.id)}
+                              aria-label={tApi(value.name, lang)}
+                              title={tApi(value.name, lang)}
+                            />
+                          );
+                        }
+                        return (
+                          <button
+                            key={value.id}
+                            className={`px-4 py-2 text-sm font-medium border-2 rounded-lg transition-colors ${isSelected
+                              ? "border-black bg-black text-white"
+                              : "border-gray-200 hover:border-gray-400"
+                              }`}
+                            onClick={() => handleVariantClick(String(option.id), value.id)}
+                          >
+                            {tApi(value.name, lang)}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            // Legacy fallback: only reached for a response with no
+            // variant_options/variant_items (an old cached payload during a
+            // deploy, for instance). Kept as-is; not the path new data takes.
+            product.groups && product.groups.length > 0 && (
+              <div className="mt-5">
+                <p className="text-sm font-medium mb-2" style={{ color: "#212121" }}>
+                  {t('product.chooseColor')}
+                </p>
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {product.groups.map((group: VariantGroup, idx: number) => (
                     <button
-                      key={item.id}
-                      className={`px-4 py-2 text-sm font-medium border-2 rounded-lg transition-colors ${selectedItem?.id === item.id
-                        ? "border-black bg-black text-white"
-                        : "border-gray-200 hover:border-gray-400"
+                      key={idx}
+                      className={`w-10 h-10 rounded-full border-2 transition-all hover:scale-110 ${selectedGroup?.value === group.value
+                        ? "border-black ring-2 ring-offset-2 ring-black"
+                        : "border-transparent"
                         }`}
-                      onClick={() => setSelectedItem(item)}
-                    >
-                      {Object.entries(item.attrs).map(([k, v]) => (
-                        <span key={k}>{tApi(v, lang)}</span>
-                      ))}
-                    </button>
+                      style={{ backgroundColor: group.meta?.code || "#ddd" }}
+                      onClick={() => {
+                        setSelectedGroup(group);
+                        setSelectedItem(group.items?.[0] || null);
+                      }}
+                      aria-label={group.value}
+                    />
                   ))}
                 </div>
-              )}
-            </div>
+
+                {selectedGroup && selectedGroup.items.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {selectedGroup.items.map((item: VariantItem) => (
+                      <button
+                        key={item.id}
+                        className={`px-4 py-2 text-sm font-medium border-2 rounded-lg transition-colors ${selectedItem?.id === item.id
+                          ? "border-black bg-black text-white"
+                          : "border-gray-200 hover:border-gray-400"
+                          }`}
+                        onClick={() => setSelectedItem(item)}
+                      >
+                        {Object.entries(item.attrs).map(([k, v]) => (
+                          <span key={k}>{tApi(v, lang)}</span>
+                        ))}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )
           )}
 
           {/* ── Quantity ── */}
