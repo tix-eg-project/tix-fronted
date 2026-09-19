@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { useRouter, usePathname } from 'next/navigation'
@@ -168,14 +168,37 @@ export default function Header() {
                   onClick={() => setUserMenuOpen(!userMenuOpen)}
                   className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors"
                 >
-                  <User className="h-5 w-5" />
-                  <span className="text-sm font-semibold hidden sm:inline">{authState.user?.name}</span>
+                  {authState.user?.image_url || authState.user?.image ? (
+                    <img
+                      src={authState.user.image_url ?? authState.user.image ?? undefined}
+                      alt={authState.user.name}
+                      className="h-8 w-8 rounded-full object-cover border border-gray-200 flex-shrink-0"
+                    />
+                  ) : (
+                    <User className="h-5 w-5" />
+                  )}
+                  <span className="text-sm font-semibold hidden sm:inline">
+                    {authState.user?.username || authState.user?.name}
+                  </span>
                   <ChevronDown className="h-4 w-4 hidden md:block" />
                 </button>
                 {userMenuOpen && (
                   <div className="absolute top-full start-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-lg z-50 min-w-48 overflow-hidden">
                     <div className="px-4 py-3 border-b border-gray-100">
-                      <p className="text-sm font-semibold text-gray-900 truncate">{authState.user?.name}</p>
+                      <div className="flex items-center gap-2 mb-1">
+                        {authState.user?.image_url || authState.user?.image ? (
+                          <img
+                            src={authState.user.image_url ?? authState.user.image ?? undefined}
+                            alt={authState.user.name}
+                            className="h-8 w-8 rounded-full object-cover border border-gray-200 flex-shrink-0"
+                          />
+                        ) : null}
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold text-gray-900 truncate">
+                            {authState.user?.username || authState.user?.name}
+                          </p>
+                        </div>
+                      </div>
                       <p className="text-xs text-gray-500 truncate" dir="ltr">{authState.user?.email}</p>
                     </div>
                     <Link href="/account" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2 px-4 py-2 text-sm hover:bg-gray-100">
@@ -251,3 +274,6 @@ export default function Header() {
     </header>
   )
 }
+
+
+

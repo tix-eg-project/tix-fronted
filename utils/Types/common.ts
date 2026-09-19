@@ -1,4 +1,4 @@
-export interface Product {
+﻿export interface Product {
   id: number | string;
   name: string;
   short_description?: string;
@@ -125,8 +125,11 @@ export interface CartSummary {
 export interface User {
   id: number | string;
   name: string;
+  username?: string;
   email: string;
   phone?: string;
+  image?: string | null;
+  image_url?: string | null;
   avatar?: string;
 }
 
@@ -220,3 +223,4 @@ export interface PaymentMethod {
   type?: string;
   description?: string;
 }
+

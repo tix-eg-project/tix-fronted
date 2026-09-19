@@ -121,6 +121,7 @@ export default function ProductDetailClient({ productId }: { productId: string }
 
   // Fullscreen lightbox — works on touch (mobile/tablet) and desktop alike
   const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [sizeGuideOpen, setSizeGuideOpen] = useState(false);
   const [lightboxScale, setLightboxScale] = useState(1);
   const [lightboxOffset, setLightboxOffset] = useState({ x: 0, y: 0 });
   const lightboxDragRef = useRef<{ startX: number; startY: number; startOffsetX: number; startOffsetY: number } | null>(null);
@@ -406,6 +407,20 @@ export default function ProductDetailClient({ productId }: { productId: string }
   const currentPrice = selectedItem?.price_after || product.price_after || product.price;
   const originalPrice = selectedItem?.price_before || product.price_before || 0;
   const discountPct = calculateDiscount(originalPrice, currentPrice);
+  const isSizeVariant = Boolean(
+    product?.variant_options?.some((opt: any) => {
+      const n = (typeof opt.name === 'string' ? opt.name : opt.name?.ar || opt.name?.en || '').toLowerCase();
+      return n.includes('مقاس') || n.includes('size');
+    }) ||
+    product?.variant_items?.some((it: any) =>
+      Object.keys(it.attrs || {}).some((k) => k.toLowerCase().includes('مقاس') || k.toLowerCase().includes('size'))
+    ) ||
+    (product?.variant_items?.length > 0 && product?.variant_items?.every((it: any) => {
+      const val = Object.values(it.attrs || {})[0];
+      const s = typeof val === 'string' ? val : (val as any)?.ar || (val as any)?.en || '';
+      return /^(xs|s|m|l|xl|[2-5]xl|[2-5]x|[0-9]{2})$/i.test(String(s).trim());
+    }))
+  );
   const baseImages = product.images?.length > 0 ? product.images : ["/pl1.jpg"];
   const images = selectedItem?.image
     ? [selectedItem.image, ...baseImages.filter((img: string) => img !== selectedItem.image)]
@@ -600,7 +615,71 @@ export default function ProductDetailClient({ productId }: { productId: string }
         </div>
 
         {/* ═══ Lightbox: fullscreen viewer with double-tap/double-click zoom + drag-to-pan — works on mobile, tablet, and desktop ═══ */}
-        {lightboxOpen && (
+        
+      {/* Size Guide Modal */}
+      {sizeGuideOpen && (
+        <div
+          className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4"
+          onClick={() => setSizeGuideOpen(false)}
+        >
+          <div
+            className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl relative"
+            onClick={(e) => e.stopPropagation()}
+            dir={lang === 'ar' ? 'rtl' : 'ltr'}
+          >
+            <div className="flex items-center justify-between pb-4 border-b border-gray-100 mb-4">
+              <h3 className="text-lg font-bold text-gray-900">
+                {lang === 'ar' ? 'دليل المقاسات (سم)' : 'Size Guide (cm)'}
+              </h3>
+              <button
+                type="button"
+                onClick={() => setSizeGuideOpen(false)}
+                className="p-1 rounded-full text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-center text-sm border-collapse">
+                <thead>
+                  <tr className="bg-gray-50 border-b border-gray-200 text-gray-600 font-semibold">
+                    <th className="py-2.5 px-3">{lang === 'ar' ? 'المقاس' : 'Size'}</th>
+                    <th className="py-2.5 px-3">{lang === 'ar' ? 'الصدر' : 'Chest'}</th>
+                    <th className="py-2.5 px-3">{lang === 'ar' ? 'الخصر' : 'Waist'}</th>
+                    <th className="py-2.5 px-3">{lang === 'ar' ? 'الطول' : 'Length'}</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100 text-gray-700">
+                  {[
+                    { size: 'XS', chest: '86 - 91', waist: '71 - 76', length: '68' },
+                    { size: 'S',  chest: '91 - 96', waist: '76 - 81', length: '70' },
+                    { size: 'M',  chest: '96 - 101', waist: '81 - 86', length: '72' },
+                    { size: 'L',  chest: '101 - 106', waist: '86 - 91', length: '74' },
+                    { size: 'XL', chest: '106 - 111', waist: '91 - 96', length: '76' },
+                    { size: '2XL',chest: '111 - 116', waist: '96 - 101', length: '78' },
+                  ].map((row) => (
+                    <tr key={row.size} className="hover:bg-gray-50/70 transition-colors">
+                      <td className="py-2.5 px-3 font-bold text-gray-900">{row.size}</td>
+                      <td className="py-2.5 px-3">{row.chest}</td>
+                      <td className="py-2.5 px-3">{row.waist}</td>
+                      <td className="py-2.5 px-3">{row.length}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <p className="text-xs text-gray-400 mt-4 text-center">
+              {lang === 'ar'
+                ? '* القياسات تقريبية لمساعدتك في اختيار المقاس الأنسب.'
+                : '* Measurements are approximate to help you choose the best fit.'}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {lightboxOpen && (
           <div
             className="fixed inset-0 z-[1200] bg-black/95 flex items-center justify-center touch-none"
             onClick={closeLightbox}
@@ -759,46 +838,111 @@ export default function ProductDetailClient({ productId }: { productId: string }
               logic needed, since the card already IS the item. */}
           {product.variant_items && product.variant_items.length > 0 ? (
             <div className="mt-5">
-              <p className="text-sm font-medium mb-2" style={{ color: "#212121" }}>
-                {t('product.chooseOption')}
-              </p>
-              <div className="flex flex-wrap gap-3">
+              <div className="flex items-center justify-between mb-2.5">
+                <p className="text-sm font-semibold text-gray-900">
+                  {product.variant_options?.[0]?.name
+                    ? tApi(product.variant_options[0].name, lang)
+                    : isSizeVariant
+                    ? (lang === 'ar' ? 'المقاس' : 'Size')
+                    : t('product.chooseOption')}
+                </p>
+                {isSizeVariant && (
+                  <button
+                    type="button"
+                    onClick={() => setSizeGuideOpen(true)}
+                    className="text-xs text-primary hover:underline font-medium cursor-pointer"
+                  >
+                    {lang === 'ar' ? 'دليل المقاسات' : 'Size Guide'}
+                  </button>
+                )}
+              </div>
+              <div className="flex flex-wrap items-center gap-2.5">
                 {product.variant_items.map((item: VariantItemFull) => {
                   const isSelected = selectedItem?.id === item.id;
+                  const isOutOfStock = typeof item.quantity === 'number' && item.quantity <= 0;
                   const label = Object.values(item.attrs).map((v) => tApi(v, lang)).join(' / ');
-                  // When the merchant did not upload a photo for this specific
-                  // combination, fall back to one of its own colour values (if
-                  // it has one) rather than a plain grey box.
                   const swatchColor = !item.image ? findSwatchColor(item) : undefined;
+                  const hasImage = Boolean(item.image);
+                  const hasColor = Boolean(swatchColor);
+                  const hasDifferentPrice = Boolean(item.price_after && item.price_after !== product.price_after);
+
+                  // CASE 1: Variant has its own photo
+                  if (hasImage) {
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => setSelectedItem(item)}
+                        className={`flex flex-col items-center gap-1 p-1.5 rounded-xl border-2 transition-all ${
+                          isSelected
+                            ? "border-primary ring-2 ring-primary/20 bg-primary/5"
+                            : "border-gray-200 hover:border-gray-400 bg-white"
+                        } ${isOutOfStock ? "opacity-40 cursor-not-allowed" : ""}`}
+                        title={label}
+                      >
+                        <img
+                          src={item.image!}
+                          alt={label}
+                          className="w-14 h-14 rounded-lg object-cover"
+                        />
+                        <span className="text-xs font-medium max-w-[80px] truncate">{label || '—'}</span>
+                        {hasDifferentPrice && (
+                          <span className="text-[11px] text-gray-500 font-mono">
+                            {formatCurrency(item.price_after)}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  }
+
+                  // CASE 2: Variant has a color swatch (no photo)
+                  if (hasColor) {
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => setSelectedItem(item)}
+                        className={`flex items-center gap-2 px-3 py-2 rounded-xl border transition-all ${
+                          isSelected
+                            ? "border-primary ring-2 ring-primary/20 bg-primary/5 font-semibold text-primary"
+                            : "border-gray-200 hover:border-gray-400 bg-white text-gray-800"
+                        } ${isOutOfStock ? "opacity-40 border-dashed cursor-not-allowed" : ""}`}
+                        title={label}
+                      >
+                        <span
+                          className="w-4 h-4 rounded-full border border-black/10 shrink-0"
+                          style={{ backgroundColor: swatchColor }}
+                        />
+                        <span className="text-xs font-medium">{label}</span>
+                        {hasDifferentPrice && (
+                          <span className="text-[11px] text-gray-500 font-mono">
+                            {formatCurrency(item.price_after)}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  }
+
+                  // CASE 3: Text-only variant (Sizes like XS, S, M, L, XL, 2XL) - Matching user screenshot exactly
                   return (
                     <button
                       key={item.id}
+                      type="button"
+                      disabled={isOutOfStock}
                       onClick={() => setSelectedItem(item)}
-                      className={`flex flex-col items-center gap-1 p-1.5 rounded-xl border-2 transition-all ${isSelected
-                        ? "border-black ring-2 ring-offset-2 ring-black"
-                        : "border-gray-200 hover:border-gray-400"
-                        }`}
+                      className={`min-w-[48px] h-10 px-3.5 py-1.5 rounded-xl text-sm font-medium transition-all flex items-center justify-center gap-1.5 ${
+                        isOutOfStock
+                          ? "border border-dashed border-gray-200 text-gray-300 bg-gray-50/40 cursor-not-allowed"
+                          : isSelected
+                          ? "border-2 border-primary text-primary bg-primary/5 ring-2 ring-primary/20 font-bold"
+                          : "border border-gray-200 text-gray-800 bg-white hover:border-gray-400 hover:text-black"
+                      }`}
                       title={label}
                     >
-                      {item.image ? (
-                        <img
-                          src={item.image}
-                          alt={label}
-                          className="w-16 h-16 rounded-lg object-cover"
-                        />
-                      ) : (
-                        <div
-                          className="w-16 h-16 rounded-lg bg-gray-100"
-                          style={swatchColor ? { backgroundColor: swatchColor } : undefined}
-                        />
-                      )}
-                      {/* Always a separate line, never overlaid on the photo or
-                          swatch above - an arbitrary colour makes overlaid text
-                          unreadable as often as not. */}
-                      <span className="text-xs font-medium max-w-[80px] truncate">{label || '—'}</span>
-                      {item.price_after !== product.price_after && (
-                        <span className="text-[11px] text-gray-500">
-                          {formatCurrency(item.price_after)}
+                      <span>{label || '—'}</span>
+                      {hasDifferentPrice && (
+                        <span className="text-[11px] text-gray-400 font-normal">
+                          ({formatCurrency(item.price_after)})
                         </span>
                       )}
                     </button>
