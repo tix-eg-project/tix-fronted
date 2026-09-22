@@ -422,9 +422,15 @@ export default function ProductDetailClient({ productId }: { productId: string }
     }))
   );
   const baseImages = product.images?.length > 0 ? product.images : ["/pl1.jpg"];
-  const images = selectedItem?.image
-    ? [selectedItem.image, ...baseImages.filter((img: string) => img !== selectedItem.image)]
-    : baseImages;
+  // A combination's own photos, if it has any, replace the gallery entirely -
+  // a customer picking "Red" should see red, not red mixed in with every
+  // other colour's product shots. Falls back to the product's own images
+  // only when this combination has none of its own.
+  const images = selectedItem?.images && selectedItem.images.length > 0
+    ? selectedItem.images
+    : selectedItem?.image
+      ? [selectedItem.image]
+      : baseImages;
   const features = Array.isArray(product.prod_features) && product.prod_features.length > 0
     ? product.prod_features.map((f: any) => typeof f === 'object' ? tApi(f.name || f, lang) : f)
     : Array.isArray(product.features)

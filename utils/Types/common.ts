@@ -60,7 +60,10 @@ export interface VariantItem {
   price_after: number;
   discount: number;
   quantity?: number;
+  /** @deprecated use `images` - kept in sync as images[0] */
   image?: string | null;
+  /** Every photo on this combination; empty when it has none. */
+  images?: string[];
 }
 
 /**
