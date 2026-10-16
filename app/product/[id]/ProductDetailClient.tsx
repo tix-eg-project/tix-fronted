@@ -22,6 +22,7 @@ import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 import { useWishlist } from "@/context/WishlistContext";
 import { useLanguage } from "@/context/LanguageContext";
+import { useLoyaltySummary } from "@/utils/useLoyaltySummary";
 import { formatCurrency, calculateDiscount, t as tApi, generateSlug } from "@/utils/helpers";
 import ProductCard from "@/components/ProductCard";
 import type { Product, VariantGroup, VariantItem } from "@/utils/Types/common";
@@ -186,6 +187,7 @@ export default function ProductDetailClient({ productId }: { productId: string }
   const { state: authState } = useAuth();
   const { toggleWishlist, isInWishlist } = useWishlist();
   const { t, lang, dir } = useLanguage();
+  const { summary: loyaltySummary } = useLoyaltySummary();
   const router = useRouter();
   const [descLang, setDescLang] = useState<'ar' | 'en'>(lang);
 
@@ -380,6 +382,14 @@ export default function ProductDetailClient({ productId }: { productId: string }
   const currentPrice = selectedItem?.price_after || product.price_after || product.price;
   const originalPrice = selectedItem?.price_before || product.price_before || 0;
   const discountPct = calculateDiscount(originalPrice, currentPrice);
+
+  // Loyalty points product: the detail endpoint doesn't send affordable/points_short
+  // (those are only computed by /loyalty/products), so we derive them here from the
+  // balance we already have via useLoyaltySummary — not invented, just compared.
+  const isPointsProduct = product.points_price != null;
+  const pointsShort =
+    isPointsProduct && loyaltySummary ? Math.max(0, product.points_price! - loyaltySummary.balance) : 0;
+  const insufficientPoints = isPointsProduct && loyaltySummary != null && pointsShort > 0;
   const images = product.images?.length > 0 ? product.images : ["/pl1.jpg"];
   const features = Array.isArray(product.prod_features) && product.prod_features.length > 0
     ? product.prod_features.map((f: any) => typeof f === 'object' ? tApi(f.name || f, lang) : f)
@@ -676,20 +686,35 @@ export default function ProductDetailClient({ productId }: { productId: string }
           </div>
 
           {/* Price */}
-          <div className={`text-3xl font-bold mt-4 ${discountPct > 0 ? "text-red-600" : "text-black"}`}>
-            {(currentPrice ?? 0).toLocaleString("en-US")} {t('common.egp')}
-          </div>
+          {isPointsProduct ? (
+            <>
+              <div className="text-3xl font-bold mt-4 text-black">
+                {product.points_price!.toLocaleString("en-US")} {t('loyalty.pointsUnit')}
+              </div>
+              {insufficientPoints && (
+                <p className="text-sm font-medium text-red-600 mt-1.5">
+                  {t('loyalty.pointsShort', { points: pointsShort })}
+                </p>
+              )}
+            </>
+          ) : (
+            <>
+              <div className={`text-3xl font-bold mt-4 ${discountPct > 0 ? "text-red-600" : "text-black"}`}>
+                {(currentPrice ?? 0).toLocaleString("en-US")} {t('common.egp')}
+              </div>
 
-          {/* Original Price + Discount */}
-          {originalPrice > currentPrice && (
-            <div className="flex items-center gap-2 mt-1">
-              <span className="text-lg text-gray-400 line-through">
-                {(originalPrice ?? 0).toLocaleString("en-US")} {t('common.egp')}
-              </span>
-              <span className="px-2 py-0.5 rounded-full text-sm font-bold bg-red-100 text-red-700">
-                -{discountPct}%
-              </span>
-            </div>
+              {/* Original Price + Discount */}
+              {originalPrice > currentPrice && (
+                <div className="flex items-center gap-2 mt-1">
+                  <span className="text-lg text-gray-400 line-through">
+                    {(originalPrice ?? 0).toLocaleString("en-US")} {t('common.egp')}
+                  </span>
+                  <span className="px-2 py-0.5 rounded-full text-sm font-bold bg-red-100 text-red-700">
+                    -{discountPct}%
+                  </span>
+                </div>
+              )}
+            </>
           )}
 
           {/* Stock Status + Returnable */}
@@ -829,7 +854,7 @@ export default function ProductDetailClient({ productId }: { productId: string }
                 setAddingToCart(false);
               }
             }}
-            disabled={addingToCart || !inStock}
+            disabled={addingToCart || !inStock || insufficientPoints}
             className="w-full h-12 bg-black text-white text-base font-semibold rounded-xl hover:bg-gray-900 transition-colors mt-5 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {addingToCart ? t('product.adding') : t('product.buyNow')}
@@ -838,7 +863,7 @@ export default function ProductDetailClient({ productId }: { productId: string }
           {/* Add to Cart */}
           <button
             onClick={handleAddToCart}
-            disabled={addingToCart || !inStock}
+            disabled={addingToCart || !inStock || insufficientPoints}
             className="w-full h-12 bg-white text-black text-base font-semibold rounded-xl border-2 border-black hover:bg-gray-50 transition-colors mt-3 flex items-center justify-center gap-2 disabled:opacity-50"
           >
             <ShoppingCart className="w-5 h-5" />

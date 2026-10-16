@@ -259,24 +259,29 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                   </p>
                   <div className="flex items-center gap-2 mt-1 flex-wrap">
                     <span className="text-xs text-text-muted">{t('account.quantity')}: {item.quantity}</span>
-                    {item.is_returnable === true && (
+                    {item.points_price != null ? (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full bg-black/5 text-black border border-black/10">
+                        {t('loyalty.pointsProductLabel')}
+                      </span>
+                    ) : item.is_returnable === true ? (
                       <span className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-100">
                         <RotateCcw className="w-2.5 h-2.5" />
                         {t('account.returnable')}
                       </span>
-                    )}
-                    {item.is_returnable === false && (
+                    ) : item.is_returnable === false ? (
                       <span className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full bg-gray-50 text-gray-400 border border-gray-100">
                         {t('account.notReturnable')}
                       </span>
-                    )}
+                    ) : null}
                   </div>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
                   <span className="text-sm font-bold text-black">
-                    {formatCurrency(item.price_after || item.price || 0)}
+                    {item.points_price != null
+                      ? `${item.points_price} ${t("loyalty.pointsUnit")}`
+                      : formatCurrency(item.price_after || item.price || 0)}
                   </span>
-                  {item.is_returnable && (
+                  {item.points_price == null && item.is_returnable && (
                     <button
                       onClick={() => setReturnItem(item)}
                       className="flex items-center gap-1 text-xs text-emerald-600 hover:text-white hover:bg-emerald-600 border border-emerald-200 hover:border-emerald-600 rounded-lg px-2.5 py-1.5 transition-all"

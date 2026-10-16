@@ -12,14 +12,18 @@ import {
   Briefcase,
   Star,
   Pencil,
+  Gift,
+  AlertCircle,
 } from "lucide-react";
 import { toast } from "react-toastify";
 import api from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { useCart } from "@/context/CartContext";
 import { useLanguage } from "@/context/LanguageContext";
+import { useLoyaltySummary } from "@/utils/useLoyaltySummary";
 import { formatCurrency, t as tApi } from "@/utils/helpers";
 import type { ShippingCity, PaymentMethod, CartSummary } from "@/utils/Types/common";
+import type { LoyaltyCheckoutPreview } from "@/utils/Types/loyalty";
 
 interface SavedAddress {
   id: number;
@@ -37,6 +41,8 @@ export default function CheckoutPage() {
   const { state: authState } = useAuth();
   const { refreshCart } = useCart();
   const { t, lang } = useLanguage();
+  const { summary: loyaltySummary } = useLoyaltySummary();
+  const [loyaltyPreview, setLoyaltyPreview] = useState<LoyaltyCheckoutPreview | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<string | number>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({ address: "", phone: "", order_note: "" });
@@ -114,6 +120,20 @@ export default function CheckoutPage() {
     fetchData();
   }, [authState.isAuthenticated]);
 
+  // Loyalty checkout preview — fully automatic (the system reads points
+  // straight from cart contents now), re-checked whenever the cart total
+  // shifts (e.g. summary refresh via updateSummaryCity).
+  useEffect(() => {
+    if (!authState.isAuthenticated || !loyaltySummary?.is_active) return;
+    api
+      .get("/loyalty/checkout-preview")
+      .then((res) => {
+        if (res.data.status) setLoyaltyPreview(res.data.data);
+      })
+      .catch(() => {
+        // Silent — loyalty preview is supplementary, checkout still works without it
+      });
+  }, [authState.isAuthenticated, loyaltySummary?.is_active, summary?.total]);
 
   function applyAddress(addr: SavedAddress, citiesList?: ShippingCity[]) {
     setSelectedAddressId(addr.id);
@@ -182,19 +202,27 @@ export default function CheckoutPage() {
       const checkoutRes = await api.post("/checkout", fd);
 
       if (checkoutRes.data.status) {
-        const { redirect_url } = checkoutRes.data.data || {};
+        const { redirect_url, total, loyalty_points_used } = checkoutRes.data.data || {};
         await refreshCart();
         if (redirect_url && redirect_url.trim()) {
           window.location.href = redirect_url;
         } else {
-          toast.success(t("checkout.orderSuccess"));
+          toast.success(
+            total != null
+              ? `${t("checkout.orderSuccess")} — ${t("checkout.total")}: ${formatCurrency(total)}`
+              : t("checkout.orderSuccess"),
+          );
+          if (loyalty_points_used > 0) {
+            toast.success(`${t("loyalty.orderPointsUsedLabel")}: ${loyalty_points_used}`);
+          }
           setTimeout(() => router.push("/account/orders"), 1500);
         }
       } else {
         toast.error(checkoutRes.data.message || t("checkout.orderError"));
       }
     } catch (error: any) {
-      toast.error(error.response?.data?.message || t("checkout.orderErrorGeneric"));
+      const loyaltyError = error.response?.data?.errors?.loyalty_points?.[0];
+      toast.error(loyaltyError || error.response?.data?.message || t("checkout.orderErrorGeneric"));
     } finally {
       setIsSubmitting(false);
     }
@@ -398,6 +426,47 @@ export default function CheckoutPage() {
                   <span>{t("checkout.total")}</span>
                   <span className="text-black">{formatCurrency(summary.total)}</span>
                 </div>
+              </div>
+            )}
+
+            {/* Loyalty points — fully automatic from cart contents, nothing to choose here */}
+            {loyaltySummary?.is_active && loyaltyPreview && (loyaltyPreview.points_required > 0 || loyaltyPreview.will_earn > 0) && (
+              <div className="mt-4 p-3.5 bg-surface-2 rounded-xl space-y-2">
+                <h4 className="text-sm font-bold flex items-center gap-1.5">
+                  <Gift className="w-4 h-4 text-black" />
+                  {t("loyalty.checkoutSummaryTitle")}
+                </h4>
+
+                {loyaltyPreview.points_required > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-text-muted">{t("loyalty.pointsRequiredLabel")}</span>
+                    <span className="font-bold">
+                      {loyaltyPreview.points_required} {t("loyalty.pointsUnit")}
+                    </span>
+                  </div>
+                )}
+
+                {loyaltyPreview.points_required > 0 && loyaltyPreview.enough_points && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-text-muted">{t("loyalty.pointsAfterLabel")}</span>
+                    <span>
+                      {loyaltyPreview.points_after} {t("loyalty.pointsUnit")}
+                    </span>
+                  </div>
+                )}
+
+                {loyaltyPreview.points_required > 0 && !loyaltyPreview.enough_points && (
+                  <p className="text-xs text-error flex items-center gap-1.5">
+                    <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                    {loyaltyPreview.reason || t("loyalty.insufficientBalance")}
+                  </p>
+                )}
+
+                {loyaltyPreview.will_earn > 0 && (
+                  <p className="text-xs text-text-muted pt-1 border-t border-divider">
+                    {t("loyalty.willEarn", { points: loyaltyPreview.will_earn })}
+                  </p>
+                )}
               </div>
             )}
 

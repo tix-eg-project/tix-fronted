@@ -1,14 +1,16 @@
 'use client'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { User, Package, Heart, LogOut, RotateCcw, MapPin } from 'lucide-react'
+import { User, Package, Heart, LogOut, RotateCcw, MapPin, Award } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 import { useLanguage } from '@/context/LanguageContext'
+import { useLoyaltySummary } from '@/utils/useLoyaltySummary'
 
 export default function AccountLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const { logout } = useAuth()
   const { t } = useLanguage()
+  const { summary: loyaltySummary } = useLoyaltySummary()
 
   const sidebarLinks = [
     { href: '/account', label: t('account.myData'), icon: User },
@@ -16,6 +18,11 @@ export default function AccountLayout({ children }: { children: React.ReactNode 
     { href: '/account/addresses', label: t('account.myAddresses'), icon: MapPin },
     { href: '/account/wishlist', label: t('account.wishlist'), icon: Heart },
     { href: '/account/returns', label: t('account.returns'), icon: RotateCcw },
+    // Hidden only once we've confirmed the loyalty program is off — shown by
+    // default/while loading so it doesn't flicker in after the page settles.
+    ...(loyaltySummary?.is_active === false
+      ? []
+      : [{ href: '/account/points', label: t('loyalty.navLabel'), icon: Award }]),
   ]
 
   return (

@@ -20,6 +20,8 @@ export interface Product {
     store_name: string | null;
   };
   primary_variant?: string;
+  /** Set for loyalty-points products — price_before/price_after are forced 0 when this is present. */
+  points_price?: number | null;
 }
 
 export interface ProductFaq {

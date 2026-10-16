@@ -2,23 +2,27 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { ShoppingBag, Trash2, Plus, Minus, ArrowLeft, Tag, Package, X } from "lucide-react";
+import { ShoppingBag, Trash2, Plus, Minus, ArrowLeft, Tag, Package, X, Gift } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "react-toastify";
 import api from "@/lib/api";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
+import { useLoyaltySummary } from "@/utils/useLoyaltySummary";
 import { formatCurrency, generateSlug, t as tApi } from "@/utils/helpers";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { CartSummary } from "@/utils/Types/common";
+import type { LoyaltyCheckoutPreview } from "@/utils/Types/loyalty";
 
 export default function CartPage() {
   const { state, removeFromCart, updateQuantity, refreshCart } = useCart();
   const { state: authState } = useAuth();
   const { t, lang } = useLanguage();
+  const { summary: loyaltySummary } = useLoyaltySummary();
   const [summary, setSummary] = useState<CartSummary | null>(null);
+  const [loyaltyPreview, setLoyaltyPreview] = useState<LoyaltyCheckoutPreview | null>(null);
   const [couponCode, setCouponCode] = useState("");
   const [couponError, setCouponError] = useState("");
   const [isApplying, setIsApplying] = useState(false);
@@ -42,23 +46,35 @@ export default function CartPage() {
     }
   };
 
+  const fetchLoyaltyPreview = async () => {
+    try {
+      const res = await api.get("/loyalty/checkout-preview");
+      if (res.data.status) setLoyaltyPreview(res.data.data);
+    } catch {
+      setLoyaltyPreview(null);
+    }
+  };
+
   useEffect(() => {
     if (authState.isAuthenticated) {
       refreshCart();
       fetchSummary();
+      fetchLoyaltyPreview();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [authState.isAuthenticated, lang]);
+  }, [authState.isAuthenticated, lang, state.items.length]);
 
   const handleRemove = async (id: number | string) => {
     await removeFromCart(id);
     toast.success(t("cart.removedFromCart"));
     fetchSummary();
+    fetchLoyaltyPreview();
   };
 
   const handleUpdateQty = async (id: number | string, newQty: number) => {
     await updateQuantity(id, newQty);
     fetchSummary();
+    fetchLoyaltyPreview();
   };
 
   const handleApplyCode = async () => {
@@ -191,13 +207,21 @@ export default function CartPage() {
                           </div>
                         )}
                         <div className="flex items-center gap-2 mt-1">
-                          <p className={`text-sm font-bold ${item.originalPrice && item.originalPrice > item.price ? "text-red-600" : "text-gray-900"}`}>
-                            {formatCurrency(item.price)}
-                          </p>
-                          {item.originalPrice && item.originalPrice > item.price && (
-                            <p className="text-xs text-gray-400 line-through">
-                              {formatCurrency(item.originalPrice)}
+                          {item.pointsPrice != null ? (
+                            <p className="text-sm font-bold text-gray-900">
+                              {item.pointsPrice} {t("loyalty.pointsUnit")}
                             </p>
+                          ) : (
+                            <>
+                              <p className={`text-sm font-bold ${item.originalPrice && item.originalPrice > item.price ? "text-red-600" : "text-gray-900"}`}>
+                                {formatCurrency(item.price)}
+                              </p>
+                              {item.originalPrice && item.originalPrice > item.price && (
+                                <p className="text-xs text-gray-400 line-through">
+                                  {formatCurrency(item.originalPrice)}
+                                </p>
+                              )}
+                            </>
                           )}
                         </div>
                       </div>
@@ -300,6 +324,13 @@ export default function CartPage() {
                         <span>{t("cart.total")}</span>
                         <span className="text-gray-900">{formatCurrency(summary.total)}</span>
                       </div>
+
+                      {loyaltySummary?.is_active && loyaltyPreview && loyaltyPreview.will_earn > 0 && (
+                        <div className="flex items-center gap-2 text-xs text-black bg-amber-50 border border-amber-100 rounded-lg p-3">
+                          <Gift className="w-4 h-4 shrink-0 text-amber-600" />
+                          <span>{t("loyalty.willEarn", { points: loyaltyPreview.will_earn })}</span>
+                        </div>
+                      )}
                     </div>
                   )}
 

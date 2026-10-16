@@ -12,6 +12,8 @@ export interface CartItem {
   variant_item_id?: number | null;
   variant_item?: VariantItem | null;
   selections?: VariantSelection[];
+  /** Set for loyalty-points products — price is legitimately 0, show points_price instead. */
+  pointsPrice?: number | null;
 }
 
 export interface CartState {

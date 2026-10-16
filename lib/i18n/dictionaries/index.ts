@@ -16,6 +16,7 @@ import vendorRegister from "./vendorRegister";
 import about from "./about";
 import contact from "./contact";
 import legal from "./legal";
+import loyalty from "./loyalty";
 
 export type Lang = "ar" | "en";
 
@@ -38,6 +39,7 @@ const namespaces = {
   about,
   contact,
   legal,
+  loyalty,
 };
 
 export type Namespace = keyof typeof namespaces;

@@ -78,6 +78,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
           image: item.product?.images?.[0] || item.product?.image || "",
           variant_item_id: item.product?.variant_item?.id,
           selections: item.product?.variant_item?.selections || [],
+          pointsPrice: item.product?.points_price ?? null,
         }));
         dispatch({ type: "SET_ITEMS", payload: items });
       }

@@ -8,10 +8,11 @@ import { useAuth } from '@/context/AuthContext'
 import { useLanguage } from '@/context/LanguageContext'
 import {
   Search, ShoppingCart, User, Menu, X, Heart,
-  ChevronDown, LogOut, Package, UserCircle
+  ChevronDown, LogOut, Package, UserCircle, Award
 } from 'lucide-react'
 import api from '@/lib/api'
 import { generateSlug, t as tApi } from '@/utils/helpers'
+import { useLoyaltySummary } from '@/utils/useLoyaltySummary'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import CategoryBar from './CategoryBar'
@@ -27,6 +28,7 @@ export default function Header() {
   const { state: cartState } = useCart()
   const { items: wishlistItems } = useWishlist()
   const { state: authState, logout } = useAuth()
+  const { summary: loyaltySummary } = useLoyaltySummary()
   const router = useRouter()
   const pathname = usePathname()
   const searchRef = useRef<HTMLDivElement>(null)
@@ -186,6 +188,17 @@ export default function Header() {
                       <Package className="h-4 w-4" />
                       {t('header.myOrders')}
                     </Link>
+                    {loyaltySummary?.is_active !== false && (
+                      <Link href="/account/points" onClick={() => setUserMenuOpen(false)} className="flex items-center justify-between gap-2 px-4 py-2 text-sm hover:bg-gray-100">
+                        <span className="flex items-center gap-2">
+                          <Award className="h-4 w-4" />
+                          {t('loyalty.navLabel')}
+                        </span>
+                        {loyaltySummary && (
+                          <span className="text-xs font-semibold text-gray-500">{loyaltySummary.balance}</span>
+                        )}
+                      </Link>
+                    )}
                     <button
                       onClick={handleLogout}
                       className="w-full text-start px-4 py-2 text-sm hover:bg-gray-100 flex items-center gap-2 text-red-600 border-top border-gray-100"
