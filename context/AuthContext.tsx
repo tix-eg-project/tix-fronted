@@ -1,9 +1,10 @@
-"use client";
+﻿"use client";
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from "react";
 import { setCookie, getCookie, deleteCookie } from "cookies-next";
 import api from "@/lib/api";
 import type { AuthContextType, AuthState } from "@/utils/Types/auth";
 import type { User } from "@/utils/Types/common";
+import { translateAuthError } from "@/utils/helpers";
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
@@ -15,12 +16,10 @@ const COOKIE_OPTIONS = {
 };
 
 function saveAuth(token: string, user: object) {
-  // localStorage is primary (works on all browsers/platforms)
   if (typeof window !== "undefined") {
     localStorage.setItem("token", token);
     localStorage.setItem("userData", JSON.stringify(user));
   }
-  // cookies are secondary (for Next.js middleware route protection)
   setCookie("auth_token", token, COOKIE_OPTIONS);
   setCookie("user_data", JSON.stringify(user), COOKIE_OPTIONS);
 }
@@ -44,6 +43,17 @@ function readAuth(): { token: string | null; userData: string | null } {
     (getCookie("user_data") as string | undefined) ||
     null;
   return { token, userData };
+}
+
+/** Extract a translated Arabic error message from any API response or error object. */
+function extractApiError(err: unknown): string {
+  if (err && typeof err === "object") {
+    // Axios error
+    const axiosData = (err as any)?.response?.data;
+    if (axiosData?.message) return translateAuthError(axiosData.message);
+    if ((err as Error).message) return translateAuthError((err as Error).message);
+  }
+  return translateAuthError(err);
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -77,77 +87,88 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = useCallback(async (email: string, password: string) => {
-    const response = await api.post("/auth/user/login", { email, password });
-    const data = response.data;
-
-    if (!data.status) {
-      throw new Error(data.message || "فشل تسجيل الدخول");
-    }
-
-    const token = data.data?.token || data.token;
-    const user = data.data?.user || data.user;
-
-    saveAuth(token, user ?? {});
-
-    setState({
-      user,
-      token,
-      isAuthenticated: true,
-      isLoading: false,
-    });
-  }, []);
-
-  const register = useCallback(
-    async (name: string, email: string, phone: string, password: string) => {
-      const response = await api.post("/auth/user/register", {
-        name,
-        email,
-        phone,
-        password,
-        password_confirmation: password,
-      });
-
+    try {
+      const response = await api.post("/auth/user/login", { email, password });
       const data = response.data;
+
       if (!data.status) {
-        throw new Error(data.message || "فشل إنشاء الحساب");
+        throw new Error(translateAuthError(data.message || "invalid_credentials"));
       }
 
       const token = data.data?.token || data.token;
       const user = data.data?.user || data.user;
 
-      if (token && user) {
-        saveAuth(token, user);
+      saveAuth(token, user ?? {});
 
-        setState({
-          user,
-          token,
-          isAuthenticated: true,
-          isLoading: false,
+      setState({
+        user,
+        token,
+        isAuthenticated: true,
+        isLoading: false,
+      });
+    } catch (err: unknown) {
+      throw new Error(extractApiError(err));
+    }
+  }, []);
+
+  const register = useCallback(
+    async (name: string, email: string, phone: string, password: string) => {
+      try {
+        const response = await api.post("/auth/user/register", {
+          name,
+          email,
+          phone,
+          password,
+          password_confirmation: password,
         });
+
+        const data = response.data;
+        if (!data.status) {
+          throw new Error(translateAuthError(data.message || "register_failed"));
+        }
+
+        const token = data.data?.token || data.token;
+        const user = data.data?.user || data.user;
+
+        if (token && user) {
+          saveAuth(token, user);
+          setState({
+            user,
+            token,
+            isAuthenticated: true,
+            isLoading: false,
+          });
+        }
+      } catch (err: unknown) {
+        throw new Error(extractApiError(err));
       }
     },
     [],
   );
 
   const loginWithGoogle = useCallback(async (googleToken: string) => {
-    const response = await api.post("/auth/user/google", { token: googleToken });
-    const data = response.data;
+    try {
+      const response = await api.post("/auth/user/google", { token: googleToken });
+      const data = response.data;
 
-    if (!data.status) {
-      throw new Error(data.message || "فشل تسجيل الدخول بجوجل");
+      if (!data.status) {
+        throw new Error(translateAuthError(data.message || "google_auth_failed"));
+      }
+
+      const token = data.data?.token || data.token;
+      const user = data.data?.user || data.user || {};
+
+      saveAuth(token, user);
+
+      setState({
+        user: Object.keys(user).length ? user : null,
+        token,
+        isAuthenticated: true,
+        isLoading: false,
+      });
+    } catch (err: unknown) {
+      throw new Error(extractApiError(err));
     }
-
-    const token = data.data?.token || data.token;
-    const user = data.data?.user || data.user || {};
-
-    saveAuth(token, user);
-
-    setState({
-      user: Object.keys(user).length ? user : null,
-      token,
-      isAuthenticated: true,
-      isLoading: false,
-    });
   }, []);
 
   const logout = useCallback(async () => {

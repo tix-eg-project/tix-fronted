@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import { Suspense, useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import Image from "next/image";
@@ -131,7 +131,7 @@ function ProductsContent() {
       .catch(() => {});
   }, [selectedCategory, categories, lang]);
 
-  // Fetch brands — brands are standalone and not filterable by category
+  // Fetch brands â€” brands are standalone and not filterable by category
   useEffect(() => {
     api.get("/brands").then((res) => {
       if (res.data.status) {
@@ -188,7 +188,15 @@ function ProductsContent() {
           mapped = mapped.filter((p: ProductCardProps) => selectedRatings.some((r) => (p.rating ?? 0) >= r));
         }
 
-        setProducts(mapped);
+        // Deduplicate products by id to prevent duplicates
+        const seenIds = new Set<string | number>();
+        const uniqueProducts = mapped.filter((p: ProductCardProps) => {
+          if (!p.id || seenIds.has(p.id)) return false;
+          seenIds.add(p.id);
+          return true;
+        });
+
+        setProducts(uniqueProducts);
         setPagination(res.data.pagination ?? null);
       }
     } catch {}
@@ -525,7 +533,7 @@ function ProductsContent() {
                       }, [])
                       .map((pnum, i) =>
                         pnum === "..." ? (
-                          <span key={`dots-${i}`} className="px-2 text-gray-400">…</span>
+                          <span key={`dots-${i}`} className="px-2 text-gray-400">â€¦</span>
                         ) : (
                           <button
                             key={pnum}
@@ -578,3 +586,5 @@ export default function ProductsPage() {
     </Suspense>
   );
 }
+
+

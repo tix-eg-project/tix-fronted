@@ -105,12 +105,7 @@ export default function VendorStorePage() {
         )}
         <div className="flex-1">
           <h1 className="text-2xl font-bold mb-1">{tApi(storeName, lang)}</h1>
-          {profile?.name && (
-            <p className="text-text-muted text-sm mb-1">{profile.name}</p>
-          )}
-          {description && (
-            <p className="text-text-muted text-sm mb-2">{description}</p>
-          )}
+
           <div className="flex flex-wrap items-center gap-4 text-sm text-text-muted">
             {avgRating > 0 && (
               <div className="flex items-center gap-1.5">
@@ -118,10 +113,7 @@ export default function VendorStorePage() {
                 <span className="font-medium text-text">{Number(avgRating).toFixed(1)}</span>
               </div>
             )}
-            <div className="flex items-center gap-1.5">
-              <Package className="w-4 h-4" />
-              <span>{products.length} {t('brand.productUnit')}</span>
-            </div>
+
           </div>
         </div>
       </div>

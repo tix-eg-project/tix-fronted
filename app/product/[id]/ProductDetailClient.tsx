@@ -12,7 +12,6 @@ import {
   ChevronRight,
   CheckCircle,
   Plus as PlusIcon,
-  Languages,
   X,
   ZoomIn,
 } from "lucide-react";
@@ -25,7 +24,7 @@ import { useLanguage } from "@/context/LanguageContext";
 import { useLoyaltySummary } from "@/utils/useLoyaltySummary";
 import { formatCurrency, calculateDiscount, t as tApi, generateSlug } from "@/utils/helpers";
 import ProductCard from "@/components/ProductCard";
-import type { Product, VariantGroup, VariantItem } from "@/utils/Types/common";
+import type { Product, VariantGroup, VariantItem, VariantOption, VariantItemFull } from "@/utils/Types/common";
 import { useRouter } from "next/navigation";
 
 function tLang(value: any, lang: 'ar' | 'en'): string {
@@ -95,8 +94,10 @@ function Accordion({
 export default function ProductDetailClient({ productId }: { productId: string }) {
   const [loading, setLoading] = useState(true);
   const [product, setProduct] = useState<any>(null);
+  // Legacy fallback path only (see the render section below): used when a
+  // product's data has no variant_options/variant_items to work with yet.
   const [selectedGroup, setSelectedGroup] = useState<VariantGroup | null>(null);
-  const [selectedItem, setSelectedItem] = useState<VariantItem | null>(null);
+  const [selectedItem, setSelectedItem] = useState<VariantItem | VariantItemFull | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [addingToCart, setAddingToCart] = useState(false);
   const [reviewRating, setReviewRating] = useState(5);
@@ -121,6 +122,7 @@ export default function ProductDetailClient({ productId }: { productId: string }
 
   // Fullscreen lightbox — works on touch (mobile/tablet) and desktop alike
   const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [sizeGuideOpen, setSizeGuideOpen] = useState(false);
   const [lightboxScale, setLightboxScale] = useState(1);
   const [lightboxOffset, setLightboxOffset] = useState({ x: 0, y: 0 });
   const lightboxDragRef = useRef<{ startX: number; startY: number; startOffsetX: number; startOffsetY: number } | null>(null);
@@ -189,10 +191,30 @@ export default function ProductDetailClient({ productId }: { productId: string }
   const { t, lang, dir } = useLanguage();
   const { summary: loyaltySummary } = useLoyaltySummary();
   const router = useRouter();
-  const [descLang, setDescLang] = useState<'ar' | 'en'>(lang);
 
-  // Reset quantity when variant changes
-  useEffect(() => { setQuantity(1); }, [selectedItem]);
+  // Reset quantity and jump the gallery to the variant's own image when the variant changes
+  useEffect(() => {
+    setQuantity(1);
+    setActiveImageIndex(0);
+  }, [selectedItem]);
+
+  /**
+   * A hex colour to show behind an item's card when the merchant did not
+   * upload a photo for that specific combination - taken from whichever of
+   * the item's own option values carries one (looked up in variant_options),
+   * so an unphotographed "Red" combo still gets a red box instead of a
+   * generic grey one.
+   */
+  const findSwatchColor = (item: VariantItemFull): string | undefined => {
+    if (!product?.variant_options?.length) return undefined;
+    for (const { value_id } of item.options) {
+      for (const option of product.variant_options as VariantOption[]) {
+        const value = option.values.find((v) => v.id === value_id);
+        if (value?.meta?.code) return value.meta.code;
+      }
+    }
+    return undefined;
+  };
 
   const fetchProduct = async () => {
     try {
@@ -202,7 +224,12 @@ export default function ProductDetailClient({ productId }: { productId: string }
         const p = response.data.data;
         setProduct(p);
         setActiveImageIndex(0);
-        if (p.groups?.length > 0) {
+        if (p.variant_items?.length > 0) {
+          // Preselect the first purchasable combination, whatever shape it
+          // is - full, or a single dimension - so price/stock/image are
+          // never blank on first load.
+          setSelectedItem(p.variant_items[0]);
+        } else if (p.groups?.length > 0) {
           setSelectedGroup(p.groups[0]);
           setSelectedItem(p.groups[0].items?.[0] || null);
         }
@@ -390,7 +417,31 @@ export default function ProductDetailClient({ productId }: { productId: string }
   const pointsShort =
     isPointsProduct && loyaltySummary ? Math.max(0, product.points_price! - loyaltySummary.balance) : 0;
   const insufficientPoints = isPointsProduct && loyaltySummary != null && pointsShort > 0;
-  const images = product.images?.length > 0 ? product.images : ["/pl1.jpg"];
+
+  const isSizeVariant = Boolean(
+    product?.variant_options?.some((opt: any) => {
+      const n = (typeof opt.name === 'string' ? opt.name : opt.name?.ar || opt.name?.en || '').toLowerCase();
+      return n.includes('مقاس') || n.includes('size');
+    }) ||
+    product?.variant_items?.some((it: any) =>
+      Object.keys(it.attrs || {}).some((k) => k.toLowerCase().includes('مقاس') || k.toLowerCase().includes('size'))
+    ) ||
+    (product?.variant_items?.length > 0 && product?.variant_items?.every((it: any) => {
+      const val = Object.values(it.attrs || {})[0];
+      const s = typeof val === 'string' ? val : (val as any)?.ar || (val as any)?.en || '';
+      return /^(xs|s|m|l|xl|[2-5]xl|[2-5]x|[0-9]{2})$/i.test(String(s).trim());
+    }))
+  );
+  const baseImages = product.images?.length > 0 ? product.images : ["/pl1.jpg"];
+  // A combination's own photos, if it has any, replace the gallery entirely -
+  // a customer picking "Red" should see red, not red mixed in with every
+  // other colour's product shots. Falls back to the product's own images
+  // only when this combination has none of its own.
+  const images = selectedItem?.images && selectedItem.images.length > 0
+    ? selectedItem.images
+    : selectedItem?.image
+      ? [selectedItem.image]
+      : baseImages;
   const features = Array.isArray(product.prod_features) && product.prod_features.length > 0
     ? product.prod_features.map((f: any) => typeof f === 'object' ? tApi(f.name || f, lang) : f)
     : Array.isArray(product.features)
@@ -581,7 +632,71 @@ export default function ProductDetailClient({ productId }: { productId: string }
         </div>
 
         {/* ═══ Lightbox: fullscreen viewer with double-tap/double-click zoom + drag-to-pan — works on mobile, tablet, and desktop ═══ */}
-        {lightboxOpen && (
+        
+      {/* Size Guide Modal */}
+      {sizeGuideOpen && (
+        <div
+          className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4"
+          onClick={() => setSizeGuideOpen(false)}
+        >
+          <div
+            className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl relative"
+            onClick={(e) => e.stopPropagation()}
+            dir={lang === 'ar' ? 'rtl' : 'ltr'}
+          >
+            <div className="flex items-center justify-between pb-4 border-b border-gray-100 mb-4">
+              <h3 className="text-lg font-bold text-gray-900">
+                {lang === 'ar' ? 'دليل المقاسات (سم)' : 'Size Guide (cm)'}
+              </h3>
+              <button
+                type="button"
+                onClick={() => setSizeGuideOpen(false)}
+                className="p-1 rounded-full text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-center text-sm border-collapse">
+                <thead>
+                  <tr className="bg-gray-50 border-b border-gray-200 text-gray-600 font-semibold">
+                    <th className="py-2.5 px-3">{lang === 'ar' ? 'المقاس' : 'Size'}</th>
+                    <th className="py-2.5 px-3">{lang === 'ar' ? 'الصدر' : 'Chest'}</th>
+                    <th className="py-2.5 px-3">{lang === 'ar' ? 'الخصر' : 'Waist'}</th>
+                    <th className="py-2.5 px-3">{lang === 'ar' ? 'الطول' : 'Length'}</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100 text-gray-700">
+                  {[
+                    { size: 'XS', chest: '86 - 91', waist: '71 - 76', length: '68' },
+                    { size: 'S',  chest: '91 - 96', waist: '76 - 81', length: '70' },
+                    { size: 'M',  chest: '96 - 101', waist: '81 - 86', length: '72' },
+                    { size: 'L',  chest: '101 - 106', waist: '86 - 91', length: '74' },
+                    { size: 'XL', chest: '106 - 111', waist: '91 - 96', length: '76' },
+                    { size: '2XL',chest: '111 - 116', waist: '96 - 101', length: '78' },
+                  ].map((row) => (
+                    <tr key={row.size} className="hover:bg-gray-50/70 transition-colors">
+                      <td className="py-2.5 px-3 font-bold text-gray-900">{row.size}</td>
+                      <td className="py-2.5 px-3">{row.chest}</td>
+                      <td className="py-2.5 px-3">{row.waist}</td>
+                      <td className="py-2.5 px-3">{row.length}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <p className="text-xs text-gray-400 mt-4 text-center">
+              {lang === 'ar'
+                ? '* القياسات تقريبية لمساعدتك في اختيار المقاس الأنسب.'
+                : '* Measurements are approximate to help you choose the best fit.'}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {lightboxOpen && (
           <div
             className="fixed inset-0 z-[1200] bg-black/95 flex items-center justify-center touch-none"
             onClick={closeLightbox}
@@ -746,50 +861,174 @@ export default function ProductDetailClient({ productId }: { productId: string }
             </p>
           )}
 
-          {/* ── Color Selection ── */}
-          {product.groups && product.groups.length > 0 && (
+          {/* ── Variant Selection ── */}
+          {/* Each purchasable combination is its own card, showing everything
+              that makes it distinct - its own photo when the merchant gave it
+              one, and every dimension merged into one label (e.g. "L / Orange")
+              rather than split into independent Size/Color rows. Picking a
+              card selects that exact item directly: no matching or fallback
+              logic needed, since the card already IS the item. */}
+          {product.variant_items && product.variant_items.length > 0 ? (
             <div className="mt-5">
-              <p className="text-sm font-medium mb-2" style={{ color: "#212121" }}>
-                {t('product.chooseColor')}
-              </p>
-              <div className="flex flex-wrap gap-2 mb-3">
-                {product.groups.map((group: VariantGroup, idx: number) => (
+              <div className="flex items-center justify-between mb-2.5">
+                <p className="text-sm font-semibold text-gray-900">
+                  {product.variant_options?.[0]?.name
+                    ? tApi(product.variant_options[0].name, lang)
+                    : isSizeVariant
+                    ? (lang === 'ar' ? 'المقاس' : 'Size')
+                    : t('product.chooseOption')}
+                </p>
+                {isSizeVariant && (
                   <button
-                    key={idx}
-                    className={`w-10 h-10 rounded-full border-2 transition-all hover:scale-110 ${selectedGroup?.value === group.value
-                      ? "border-black ring-2 ring-offset-2 ring-black"
-                      : "border-transparent"
-                      }`}
-                    style={{ backgroundColor: group.meta?.code || "#ddd" }}
-                    onClick={() => {
-                      setSelectedGroup(group);
-                      setSelectedItem(group.items?.[0] || null);
-                    }}
-                    aria-label={group.value}
-                  />
-                ))}
+                    type="button"
+                    onClick={() => setSizeGuideOpen(true)}
+                    className="text-xs text-primary hover:underline font-medium cursor-pointer"
+                  >
+                    {lang === 'ar' ? 'دليل المقاسات' : 'Size Guide'}
+                  </button>
+                )}
               </div>
+              <div className="flex flex-wrap items-center gap-2.5">
+                {product.variant_items.map((item: VariantItemFull) => {
+                  const isSelected = selectedItem?.id === item.id;
+                  const isOutOfStock = typeof item.quantity === 'number' && item.quantity <= 0;
+                  const label = Object.values(item.attrs).map((v) => tApi(v, lang)).join(' / ');
+                  const swatchColor = !item.image ? findSwatchColor(item) : undefined;
+                  const hasImage = Boolean(item.image);
+                  const hasColor = Boolean(swatchColor);
+                  const hasDifferentPrice = Boolean(item.price_after && item.price_after !== product.price_after);
 
-              {/* Size Selection */}
-              {selectedGroup && selectedGroup.items.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  {selectedGroup.items.map((item: VariantItem) => (
+                  // CASE 1: Variant has its own photo
+                  if (hasImage) {
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => setSelectedItem(item)}
+                        className={`flex flex-col items-center gap-1 p-1.5 rounded-xl border-2 transition-all ${
+                          isSelected
+                            ? "border-primary ring-2 ring-primary/20 bg-primary/5"
+                            : "border-gray-200 hover:border-gray-400 bg-white"
+                        } ${isOutOfStock ? "opacity-40 cursor-not-allowed" : ""}`}
+                        title={label}
+                      >
+                        <img
+                          src={item.image!}
+                          alt={label}
+                          className="w-14 h-14 rounded-lg object-cover"
+                        />
+                        <span className="text-xs font-medium max-w-[80px] truncate">{label || '—'}</span>
+                        {hasDifferentPrice && (
+                          <span className="text-[11px] text-gray-500 font-mono">
+                            {formatCurrency(item.price_after)}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  }
+
+                  // CASE 2: Variant has a color swatch (no photo)
+                  if (hasColor) {
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => setSelectedItem(item)}
+                        className={`flex items-center gap-2 px-3 py-2 rounded-xl border transition-all ${
+                          isSelected
+                            ? "border-primary ring-2 ring-primary/20 bg-primary/5 font-semibold text-primary"
+                            : "border-gray-200 hover:border-gray-400 bg-white text-gray-800"
+                        } ${isOutOfStock ? "opacity-40 border-dashed cursor-not-allowed" : ""}`}
+                        title={label}
+                      >
+                        <span
+                          className="w-4 h-4 rounded-full border border-black/10 shrink-0"
+                          style={{ backgroundColor: swatchColor }}
+                        />
+                        <span className="text-xs font-medium">{label}</span>
+                        {hasDifferentPrice && (
+                          <span className="text-[11px] text-gray-500 font-mono">
+                            {formatCurrency(item.price_after)}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  }
+
+                  // CASE 3: Text-only variant (Sizes like XS, S, M, L, XL, 2XL) - Matching user screenshot exactly
+                  return (
                     <button
                       key={item.id}
-                      className={`px-4 py-2 text-sm font-medium border-2 rounded-lg transition-colors ${selectedItem?.id === item.id
-                        ? "border-black bg-black text-white"
-                        : "border-gray-200 hover:border-gray-400"
-                        }`}
+                      type="button"
+                      disabled={isOutOfStock}
                       onClick={() => setSelectedItem(item)}
+                      className={`min-w-[48px] h-10 px-3.5 py-1.5 rounded-xl text-sm font-medium transition-all flex items-center justify-center gap-1.5 ${
+                        isOutOfStock
+                          ? "border border-dashed border-gray-200 text-gray-300 bg-gray-50/40 cursor-not-allowed"
+                          : isSelected
+                          ? "border-2 border-primary text-primary bg-primary/5 ring-2 ring-primary/20 font-bold"
+                          : "border border-gray-200 text-gray-800 bg-white hover:border-gray-400 hover:text-black"
+                      }`}
+                      title={label}
                     >
-                      {Object.entries(item.attrs).map(([k, v]) => (
-                        <span key={k}>{tApi(v, lang)}</span>
-                      ))}
+                      <span>{label || '—'}</span>
+                      {hasDifferentPrice && (
+                        <span className="text-[11px] text-gray-400 font-normal">
+                          ({formatCurrency(item.price_after)})
+                        </span>
+                      )}
                     </button>
+                  );
+                })}
+              </div>
+            </div>
+          ) : (
+            // Legacy fallback: only reached for a response with no
+            // variant_options/variant_items (an old cached payload during a
+            // deploy, for instance). Kept as-is; not the path new data takes.
+            product.groups && product.groups.length > 0 && (
+              <div className="mt-5">
+                <p className="text-sm font-medium mb-2" style={{ color: "#212121" }}>
+                  {t('product.chooseColor')}
+                </p>
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {product.groups.map((group: VariantGroup, idx: number) => (
+                    <button
+                      key={idx}
+                      className={`w-10 h-10 rounded-full border-2 transition-all hover:scale-110 ${selectedGroup?.value === group.value
+                        ? "border-black ring-2 ring-offset-2 ring-black"
+                        : "border-transparent"
+                        }`}
+                      style={{ backgroundColor: group.meta?.code || "#ddd" }}
+                      onClick={() => {
+                        setSelectedGroup(group);
+                        setSelectedItem(group.items?.[0] || null);
+                      }}
+                      aria-label={group.value}
+                    />
                   ))}
                 </div>
-              )}
-            </div>
+
+                {selectedGroup && selectedGroup.items.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {selectedGroup.items.map((item: VariantItem) => (
+                      <button
+                        key={item.id}
+                        className={`px-4 py-2 text-sm font-medium border-2 rounded-lg transition-colors ${selectedItem?.id === item.id
+                          ? "border-black bg-black text-white"
+                          : "border-gray-200 hover:border-gray-400"
+                          }`}
+                        onClick={() => setSelectedItem(item)}
+                      >
+                        {Object.entries(item.attrs).map(([k, v]) => (
+                          <span key={k}>{tApi(v, lang)}</span>
+                        ))}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )
           )}
 
           {/* ── Quantity ── */}
@@ -953,28 +1192,10 @@ export default function ProductDetailClient({ productId }: { productId: string }
               )}
 
               {product.long_description && (
-                <Accordion
-                  title={
-                    <div className="flex items-center justify-between w-full">
-                      <span>{t('product.description')}</span>
-                      {hasMultiLang(product.long_description) && (
-                        <button
-                          onClick={(e) => { e.stopPropagation(); setDescLang(l => l === 'ar' ? 'en' : 'ar'); }}
-                          className="flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full border border-gray-200 hover:border-gray-400 text-gray-500 hover:text-black transition-colors me-4"
-                        >
-                          <Languages className="w-3.5 h-3.5" />
-                          {descLang === 'ar' ? 'EN' : 'عربي'}
-                        </button>
-                      )}
-                    </div>
-                  }
-                  defaultOpen
-                >
+                <Accordion title={t('product.description')} defaultOpen>
                   <div
                     className="leading-relaxed prose prose-sm max-w-none text-gray-700 [&_p]:mb-3 [&_br]:block [&_ul]:list-disc [&_ul]:ps-5 [&_ol]:list-decimal [&_ol]:ps-5"
-                    dir={descLang === 'en' ? 'ltr' : 'rtl'}
-                    style={{ textAlign: descLang === 'en' ? 'left' : 'right' }}
-                    dangerouslySetInnerHTML={{ __html: tLang(product.long_description, descLang) }}
+                    dangerouslySetInnerHTML={{ __html: tLang(product.long_description, lang) }}
                   />
                 </Accordion>
               )}
