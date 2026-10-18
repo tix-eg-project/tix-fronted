@@ -4,16 +4,16 @@ const subcategory = {
     defaultSubsubcategoryName: "الفرع",
     browseBySubbranch: "تصفح حسب الفرع",
     productUnit: "منتج",
-    noProductsInSubcategory: "لا توجد منتجات في هذه الفئة حالياً",
-    noProductsInSubsubcategory: "لا توجد منتجات في هذا الفرع حالياً",
+    noProductsInSubcategory: "سوف تتوفر المنتجات قريبًا",
+    noProductsInSubsubcategory: "سوف تتوفر المنتجات قريبًا",
   },
   en: {
     defaultSubcategoryName: "Subcategory",
     defaultSubsubcategoryName: "Subbranch",
     browseBySubbranch: "Browse by subbranch",
     productUnit: "products",
-    noProductsInSubcategory: "No products in this category yet",
-    noProductsInSubsubcategory: "No products in this subbranch yet",
+    noProductsInSubcategory: "Products will be available soon",
+    noProductsInSubsubcategory: "Products will be available soon",
   },
 };
 

@@ -34,8 +34,6 @@ const loyalty = {
     addToCart: "أضف للسلة",
 
     checkoutSummaryTitle: "نقاط الولاء",
-    pointsRequiredLabel: "هيتخصم من رصيدك",
-    pointsAfterLabel: "هيفضل معاك",
     insufficientBalance: "رصيدك مش كافي لمنتج النقاط في السلة",
 
     orderPointsUsedLabel: "نقاط مستخدمة",
@@ -76,8 +74,6 @@ const loyalty = {
     addToCart: "Add to cart",
 
     checkoutSummaryTitle: "Loyalty Points",
-    pointsRequiredLabel: "Will be deducted from your balance",
-    pointsAfterLabel: "You'll have left",
     insufficientBalance: "Your balance isn't enough for the points product in your cart",
 
     orderPointsUsedLabel: "Points used",

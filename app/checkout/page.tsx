@@ -545,24 +545,6 @@ export default function CheckoutPage() {
                   {t("loyalty.checkoutSummaryTitle")}
                 </h4>
 
-                {loyaltyPreview.points_required > 0 && (
-                  <div className="flex justify-between text-sm">
-                    <span className="text-text-muted">{t("loyalty.pointsRequiredLabel")}</span>
-                    <span className="font-bold">
-                      {loyaltyPreview.points_required} {t("loyalty.pointsUnit")}
-                    </span>
-                  </div>
-                )}
-
-                {loyaltyPreview.points_required > 0 && loyaltyPreview.enough_points && (
-                  <div className="flex justify-between text-sm">
-                    <span className="text-text-muted">{t("loyalty.pointsAfterLabel")}</span>
-                    <span>
-                      {loyaltyPreview.points_after} {t("loyalty.pointsUnit")}
-                    </span>
-                  </div>
-                )}
-
                 {loyaltyPreview.points_required > 0 && !loyaltyPreview.enough_points && (
                   <p className="text-xs text-error flex items-center gap-1.5">
                     <AlertCircle className="w-3.5 h-3.5 shrink-0" />
