@@ -1,16 +1,18 @@
 'use client'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { User, Package, Heart, LogOut, RotateCcw, MapPin, Award } from 'lucide-react'
+import { User, Package, Heart, LogOut, RotateCcw, MapPin, Award, Gift } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 import { useLanguage } from '@/context/LanguageContext'
 import { useLoyaltySummary } from '@/utils/useLoyaltySummary'
+import { useReferral } from '@/utils/useReferral'
 
 export default function AccountLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const { logout } = useAuth()
   const { t } = useLanguage()
   const { summary: loyaltySummary } = useLoyaltySummary()
+  const { referral } = useReferral()
 
   const sidebarLinks = [
     { href: '/account', label: t('account.myData'), icon: User },
@@ -23,6 +25,9 @@ export default function AccountLayout({ children }: { children: React.ReactNode 
     ...(loyaltySummary?.is_active === false
       ? []
       : [{ href: '/account/points', label: t('loyalty.navLabel'), icon: Award }]),
+    ...(referral?.is_active === false
+      ? []
+      : [{ href: '/account/referral', label: t('referral.navLabel'), icon: Gift }]),
   ]
 
   return (

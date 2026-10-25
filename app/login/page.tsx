@@ -10,10 +10,15 @@ import { toast } from 'react-toastify'
 import { useAuth } from '@/context/AuthContext'
 import { useLanguage } from '@/context/LanguageContext'
 import GoogleAuthButton from '@/components/GoogleAuthButton'
-import GoogleOneTap from '@/components/GoogleOneTap'
 
 function LoginForm() {
-  const { t } = useLanguage()
+  const { t, dir } = useLanguage()
+  const isRtl = dir === 'rtl'
+  // Icon side follows the UI language, not each field's own ltr text
+  // direction (email/password stay ltr for readable typing either way).
+  const iconSide = isRtl ? 'right-3' : 'left-3'
+  const toggleSide = isRtl ? 'left-3' : 'right-3'
+  const fieldPadding = isRtl ? 'pr-10 pl-4' : 'pl-10 pr-4'
   const [showPassword, setShowPassword] = useState(false)
   const { login } = useAuth()
   const router = useRouter()
@@ -42,7 +47,6 @@ function LoginForm() {
 
   return (
     <div className="bg-white rounded-lg border border-border p-8">
-      <GoogleOneTap />
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <div>
           <label className="block text-sm font-semibold mb-2">{t('auth.email')}</label>
@@ -51,10 +55,10 @@ function LoginForm() {
               type="email"
               {...register('email')}
               placeholder="email@example.com"
-              className="input-field text-sm ps-4 pe-10 focus:border-dark focus:shadow-none"
+              className={`input-field text-sm ${fieldPadding} focus:border-dark focus:shadow-none`}
               dir="ltr"
             />
-            <Mail className="absolute end-3 top-1/2 -translate-y-1/2 w-5 h-5 text-text-faint" />
+            <Mail className={`absolute ${iconSide} top-1/2 -translate-y-1/2 w-5 h-5 text-text-faint`} />
           </div>
           {errors.email && <p className="text-error text-xs mt-1">{errors.email.message}</p>}
         </div>
@@ -66,14 +70,14 @@ function LoginForm() {
               type={showPassword ? 'text' : 'password'}
               {...register('password')}
               placeholder="••••••••"
-              className="input-field text-sm ps-10 pe-10 focus:border-dark focus:shadow-none"
+              className="input-field text-sm pl-10 pr-10 focus:border-dark focus:shadow-none"
               dir="ltr"
             />
-            <Lock className="absolute end-3 top-1/2 -translate-y-1/2 w-5 h-5 text-text-faint" />
+            <Lock className={`absolute ${iconSide} top-1/2 -translate-y-1/2 w-5 h-5 text-text-faint`} />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute start-3 top-1/2 -translate-y-1/2 text-text-faint hover:text-text transition-colors"
+              className={`absolute ${toggleSide} top-1/2 -translate-y-1/2 text-text-faint hover:text-text transition-colors`}
             >
               {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
             </button>

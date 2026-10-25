@@ -42,6 +42,21 @@ const nextConfig = {
 
   compress: true,
   output: 'standalone',
+
+  // Local dev only: NEXT_PUBLIC_API_URL in .env.local points at this same
+  // origin so the browser's /api/* calls go through this proxy instead of
+  // hitting admin.tix-eg.com directly (which blocks localhost via CORS).
+  // `fallback` so it only kicks in once no real route (e.g. /api/product-slug)
+  // has matched — production doesn't call relative /api paths, so this never
+  // fires there.
+  async rewrites() {
+    if (process.env.NODE_ENV === 'production') return []
+    return {
+      fallback: [
+        { source: '/api/:path*', destination: 'https://admin.tix-eg.com/api/:path*' },
+      ],
+    }
+  },
 }
 
 export default nextConfig

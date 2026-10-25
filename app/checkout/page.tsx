@@ -24,9 +24,11 @@ import { useAuth } from "@/context/AuthContext";
 import { useCart } from "@/context/CartContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { useLoyaltySummary } from "@/utils/useLoyaltySummary";
+import { useReferral } from "@/utils/useReferral";
 import { formatCurrency, t as tApi } from "@/utils/helpers";
 import type { ShippingCity, PaymentMethod, CartSummary } from "@/utils/Types/common";
 import type { LoyaltyCheckoutPreview } from "@/utils/Types/loyalty";
+import type { ReferralCheckResult } from "@/utils/Types/referral";
 
 interface SavedAddress {
   id: number;
@@ -46,6 +48,10 @@ export default function CheckoutPage() {
   const { t, lang } = useLanguage();
   const { summary: loyaltySummary } = useLoyaltySummary();
   const [loyaltyPreview, setLoyaltyPreview] = useState<LoyaltyCheckoutPreview | null>(null);
+  const { referral } = useReferral();
+  const [referralCode, setReferralCode] = useState("");
+  const [referralCheck, setReferralCheck] = useState<(ReferralCheckResult & { message?: string }) | null>(null);
+  const [checkingReferral, setCheckingReferral] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<string | number>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({ address: "", phone: "", order_note: "" });
@@ -94,8 +100,12 @@ export default function CheckoutPage() {
           if (pmRes.data.data.length > 0) setPaymentMethod(pmRes.data.data[0].id);
         }
 
-        const citiesList: ShippingCity[] = citiesRes.data?.status
-          ? (Array.isArray(citiesRes.data.data) ? citiesRes.data.data : [])
+        // /shipping/cities returns a bare array, unlike the {status,data}
+        // envelope every other endpoint here uses — handle both shapes.
+        const citiesList: ShippingCity[] = Array.isArray(citiesRes.data)
+          ? citiesRes.data
+          : Array.isArray(citiesRes.data?.data)
+          ? citiesRes.data.data
           : [];
         setCities(citiesList);
 
@@ -140,6 +150,31 @@ export default function CheckoutPage() {
         // Silent — loyalty preview is supplementary, checkout still works without it
       });
   }, [authState.isAuthenticated, loyaltySummary?.is_active, summary?.total]);
+
+  // Referral code check — debounced so a mistyped code is caught before
+  // checkout instead of silently falling back to paid shipping (step 3 in
+  // the referral flow is required, not optional, per the API docs).
+  useEffect(() => {
+    const code = referralCode.trim();
+    if (!authState.isAuthenticated || !referral?.is_active || !code) {
+      setReferralCheck(null);
+      setCheckingReferral(false);
+      return;
+    }
+    setCheckingReferral(true);
+    const timer = setTimeout(() => {
+      api
+        .get("/referral/check", { params: { code } })
+        .then((res) => {
+          if (res.data.status) {
+            setReferralCheck({ ...res.data.data, message: res.data.message });
+          }
+        })
+        .catch(() => setReferralCheck(null))
+        .finally(() => setCheckingReferral(false));
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [authState.isAuthenticated, referral?.is_active, referralCode]);
 
   // Close city dropdown on outside click
   useEffect(() => {
@@ -225,10 +260,12 @@ export default function CheckoutPage() {
       const fd = new FormData();
       fd.append("payment_method_id", String(paymentMethod));
       if (selectedAddressId) fd.append("address_id", String(selectedAddressId));
+      if (referralCode.trim()) fd.append("referral_code", referralCode.trim());
       const checkoutRes = await api.post("/checkout", fd);
 
       if (checkoutRes.data.status) {
-        const { redirect_url, total, loyalty_points_used } = checkoutRes.data.data || {};
+        const { redirect_url, total, loyalty_points_used, referral_applied, shipping_saved } =
+          checkoutRes.data.data || {};
         await refreshCart();
         if (redirect_url && redirect_url.trim()) {
           window.location.href = redirect_url;
@@ -240,6 +277,9 @@ export default function CheckoutPage() {
           );
           if (loyalty_points_used > 0) {
             toast.success(`${t("loyalty.orderPointsUsedLabel")}: ${loyalty_points_used}`);
+          }
+          if (referral_applied && shipping_saved > 0) {
+            toast.success(`${t("referral.shippingSavedLabel")}: ${formatCurrency(shipping_saved)}`);
           }
           setTimeout(() => router.push("/account/orders"), 1500);
         }
@@ -489,6 +529,33 @@ export default function CheckoutPage() {
                 ))}
               </div>
             </div>
+
+            {/* Referral code — checked live so a typo is caught here instead
+                of the customer paying full shipping without realizing it. */}
+            {referral?.is_active && (
+              <div className="card p-5">
+                <h3 className="font-bold flex items-center gap-2 mb-4">
+                  <Gift className="w-5 h-5 text-black" />
+                  {t("referral.checkoutCodeLabel")}
+                </h3>
+                <input
+                  type="text"
+                  value={referralCode}
+                  onChange={(e) => setReferralCode(e.target.value)}
+                  placeholder={t("referral.checkoutCodePlaceholder")}
+                  className="input-field"
+                  dir="ltr"
+                />
+                {checkingReferral && (
+                  <p className="text-xs text-text-faint mt-2">{t("referral.checkingCode")}</p>
+                )}
+                {!checkingReferral && referralCheck && (
+                  <p className={`text-xs mt-2 ${referralCheck.valid ? "text-success" : "text-error"}`}>
+                    {referralCheck.message || referralCheck.reason}
+                  </p>
+                )}
+              </div>
+            )}
 
             <button
               type="submit"

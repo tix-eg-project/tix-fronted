@@ -10,10 +10,15 @@ import { toast } from 'react-toastify'
 import { useAuth } from '@/context/AuthContext'
 import { useLanguage } from '@/context/LanguageContext'
 import GoogleAuthButton from '@/components/GoogleAuthButton'
-import GoogleOneTap from '@/components/GoogleOneTap'
 
 export default function RegisterPage() {
   const { t, dir } = useLanguage()
+  const isRtl = dir === 'rtl'
+  // Icon side follows the UI language, not each field's own ltr text
+  // direction (email/phone/password stay ltr for readable typing either way).
+  const iconSide = isRtl ? 'right-3' : 'left-3'
+  const toggleSide = isRtl ? 'left-3' : 'right-3'
+  const fieldPadding = isRtl ? 'pr-10 pl-4' : 'pl-10 pr-4'
   const [showPassword, setShowPassword] = useState(false)
   const { register: authRegister } = useAuth()
   const router = useRouter()
@@ -54,12 +59,15 @@ export default function RegisterPage() {
     <div className="min-h-[80vh] flex items-center justify-center py-12 px-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-primary mb-2">TIX</h1>
+          <div className="flex justify-center mb-4">
+            <div className="bg-dark rounded-full p-3 w-16 h-16 flex items-center justify-center">
+              <span className="text-white font-bold text-2xl">TIX</span>
+            </div>
+          </div>
           <p className="text-text-muted">{t('auth.registerSubtitle')}</p>
         </div>
 
         <div className="card p-6 md:p-8">
-          <GoogleOneTap />
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             {fields.map((field) => (
               <div key={field.name}>
@@ -69,10 +77,10 @@ export default function RegisterPage() {
                     type={field.type}
                     {...register(field.name)}
                     placeholder={field.placeholder}
-                    className="input-field ps-4 pe-10"
+                    className={`input-field ${fieldPadding}`}
                     dir={field.dir}
                   />
-                  <field.icon className="absolute end-3 top-1/2 -translate-y-1/2 w-5 h-5 text-text-faint" />
+                  <field.icon className={`absolute ${iconSide} top-1/2 -translate-y-1/2 w-5 h-5 text-text-faint`} />
                 </div>
                 {errors[field.name] && (
                   <p className="text-error text-xs mt-1">{errors[field.name]?.message}</p>
@@ -88,14 +96,14 @@ export default function RegisterPage() {
                   type={showPassword ? 'text' : 'password'}
                   {...register('password')}
                   placeholder="••••••••"
-                  className="input-field ps-10 pe-10"
+                  className="input-field pl-10 pr-10"
                   dir="ltr"
                 />
-                <Lock className="absolute end-3 top-1/2 -translate-y-1/2 w-5 h-5 text-text-faint" />
+                <Lock className={`absolute ${iconSide} top-1/2 -translate-y-1/2 w-5 h-5 text-text-faint`} />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute start-3 top-1/2 -translate-y-1/2 text-text-faint"
+                  className={`absolute ${toggleSide} top-1/2 -translate-y-1/2 text-text-faint`}
                 >
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
@@ -111,10 +119,10 @@ export default function RegisterPage() {
                   type={showPassword ? 'text' : 'password'}
                   {...register('confirmPassword')}
                   placeholder="••••••••"
-                  className="input-field ps-4 pe-10"
+                  className={`input-field ${fieldPadding}`}
                   dir="ltr"
                 />
-                <Lock className="absolute end-3 top-1/2 -translate-y-1/2 w-5 h-5 text-text-faint" />
+                <Lock className={`absolute ${iconSide} top-1/2 -translate-y-1/2 w-5 h-5 text-text-faint`} />
               </div>
               {errors.confirmPassword && <p className="text-error text-xs mt-1">{errors.confirmPassword.message}</p>}
             </div>
@@ -138,7 +146,7 @@ export default function RegisterPage() {
           <div className="text-center mt-6 space-y-4">
             <p className="text-sm text-text-muted">
               {t('auth.haveAccount')}{' '}
-              <Link href="/login" className="text-primary hover:underline font-medium">
+              <Link href="/login" className="text-error hover:underline font-medium">
                 {t('auth.loginButton')}
               </Link>
             </p>

@@ -17,6 +17,7 @@ import about from "./about";
 import contact from "./contact";
 import legal from "./legal";
 import loyalty from "./loyalty";
+import referral from "./referral";
 
 export type Lang = "ar" | "en";
 
@@ -40,6 +41,7 @@ const namespaces = {
   contact,
   legal,
   loyalty,
+  referral,
 };
 
 export type Namespace = keyof typeof namespaces;
