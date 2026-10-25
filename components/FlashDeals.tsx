@@ -127,7 +127,7 @@ export default function FlashDeals() {
             <div className="flex items-center gap-1 sm:gap-1.5 bg-black/20 rounded-lg px-2 py-1 sm:px-2.5 sm:py-1.5">
               {[countdown.h, countdown.m, countdown.s].map((val, i) => (
                 <span key={i} className="flex items-center gap-0.5 sm:gap-1">
-                  <span className="bg-white text-red-700 font-bold font-mono text-xs sm:text-sm w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center rounded">
+                  <span className="bg-white text-red-700 font-bold font-mono text-xs sm:text-sm h-6 sm:h-7 px-1.5 sm:px-2 flex items-center justify-center rounded">
                     {pad(val)}
                   </span>
                   {i < 2 && <span className="text-white/80 font-bold text-[10px] sm:text-xs">:</span>}
