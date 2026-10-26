@@ -26,8 +26,13 @@ export default function ReferralPage() {
   const [invitesPage, setInvitesPage] = useState(1);
   const [invitesLoading, setInvitesLoading] = useState(true);
 
+  // A code is needed either because the account truly has none yet, or
+  // because the backend reported needs_username:false without one (seen on
+  // some accounts) — treat both the same so we never show a blank code.
+  const needsCode = Boolean(referral?.needs_username) || !referral?.code;
+
   useEffect(() => {
-    if (!authState.isAuthenticated || !referral?.is_active || referral.needs_username) return;
+    if (!authState.isAuthenticated || !referral?.is_active || needsCode) return;
     setInvitesLoading(true);
     api
       .get("/referral/invites", { params: { page: invitesPage, per_page: INVITES_PER_PAGE } })
@@ -39,7 +44,7 @@ export default function ReferralPage() {
       })
       .catch(() => {})
       .finally(() => setInvitesLoading(false));
-  }, [authState.isAuthenticated, referral?.is_active, referral?.needs_username, invitesPage, lang]);
+  }, [authState.isAuthenticated, referral?.is_active, needsCode, invitesPage, lang]);
 
   const handleCopyCode = async () => {
     if (!referral?.code) return;
@@ -107,7 +112,7 @@ export default function ReferralPage() {
 
       {/* Code card */}
       <div className="card p-6">
-        {referral.needs_username ? (
+        {needsCode ? (
           <form onSubmit={handleCreateCode} className="space-y-3">
             <div className="flex items-center gap-4 mb-1">
               <div className="w-12 h-12 rounded-xl bg-black text-white flex items-center justify-center shrink-0">
@@ -158,7 +163,7 @@ export default function ReferralPage() {
       </div>
 
       {/* Stats */}
-      {!referral.needs_username && (
+      {!needsCode && (
         <div className="card p-5">
           <h3 className="font-bold flex items-center gap-2 mb-4">
             <Award className="w-5 h-5 text-black" />
@@ -181,7 +186,7 @@ export default function ReferralPage() {
       )}
 
       {/* Invites */}
-      {!referral.needs_username && (
+      {!needsCode && (
         <div className="card p-5">
           <h3 className="font-bold flex items-center gap-2 mb-4">
             <Users className="w-5 h-5 text-black" />

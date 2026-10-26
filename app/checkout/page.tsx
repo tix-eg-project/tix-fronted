@@ -88,7 +88,7 @@ export default function CheckoutPage() {
         const [summaryRes, pmRes, citiesRes, addressesRes, contactRes] = await Promise.all([
           api.get("/summary"),
           api.get("/payment-methods"),
-          api.get("/shipping/cities"),
+          api.get("/cities/1"),
           api.get("/addresses").catch(() => null),
           api.get("/contact").catch(() => null),
         ]);
@@ -100,12 +100,8 @@ export default function CheckoutPage() {
           if (pmRes.data.data.length > 0) setPaymentMethod(pmRes.data.data[0].id);
         }
 
-        // /shipping/cities returns a bare array, unlike the {status,data}
-        // envelope every other endpoint here uses — handle both shapes.
-        const citiesList: ShippingCity[] = Array.isArray(citiesRes.data)
-          ? citiesRes.data
-          : Array.isArray(citiesRes.data?.data)
-          ? citiesRes.data.data
+        const citiesList: ShippingCity[] = citiesRes.data?.status
+          ? (Array.isArray(citiesRes.data.data) ? citiesRes.data.data : [])
           : [];
         setCities(citiesList);
 
@@ -446,7 +442,6 @@ export default function CheckoutPage() {
                               onClick={() => handleCitySelect(city)}
                             >
                               <span>{tApi(city.name, lang)}</span>
-                              <span className="text-text-muted">{formatCurrency(city.price)}</span>
                             </button>
                           ))}
                         </div>

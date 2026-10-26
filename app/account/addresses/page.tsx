@@ -67,7 +67,7 @@ export default function AddressesPage() {
   useEffect(() => {
     if (!authState.isAuthenticated) return
     fetchAddresses()
-    api.get('/shipping/cities').then(res => {
+    api.get('/cities/1').then(res => {
       const list = res.data?.status
         ? (Array.isArray(res.data.data) ? res.data.data : [])
         : []

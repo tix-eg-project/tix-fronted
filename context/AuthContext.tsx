@@ -130,15 +130,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const token = data.data?.token || data.token;
         const user = data.data?.user || data.user;
 
-        if (token && user) {
-          saveAuth(token, user);
-          setState({
-            user,
-            token,
-            isAuthenticated: true,
-            isLoading: false,
-          });
+        if (!token) {
+          throw new Error(translateAuthError("register_failed"));
         }
+
+        saveAuth(token, user ?? {});
+        setState({
+          user: user && Object.keys(user).length ? user : null,
+          token,
+          isAuthenticated: true,
+          isLoading: false,
+        });
       } catch (err: unknown) {
         throw new Error(extractApiError(err));
       }

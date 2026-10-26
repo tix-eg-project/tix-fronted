@@ -219,7 +219,6 @@ export interface PaginatedResponse<T> {
 export interface ShippingCity {
   id: number | string;
   name: string;
-  price: number;
 }
 
 export interface PaymentMethod {
