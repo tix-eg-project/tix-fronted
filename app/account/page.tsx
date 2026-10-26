@@ -8,7 +8,13 @@ import api from '@/lib/api'
 
 export default function ProfilePage() {
   const { state: authState, updateUser } = useAuth()
-  const { t } = useLanguage()
+  const { t, dir } = useLanguage()
+  const isRtl = dir === 'rtl'
+  // Icon side follows the UI language (right in Arabic, left in English),
+  // not each field's own ltr text direction (username/email/phone stay ltr
+  // for readable typing either way) — matches the login/register pages.
+  const iconSide = isRtl ? 'right-3' : 'left-3'
+  const fieldPadding = isRtl ? 'pr-11 pl-4' : 'pl-11 pr-4'
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [form, setForm] = useState({
@@ -159,9 +165,9 @@ export default function ProfilePage() {
               required
               value={form.name}
               onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))}
-              className="input-field ps-4 pe-10"
+              className={`input-field ${fieldPadding}`}
             />
-            <User className="absolute end-3 top-1/2 -translate-y-1/2 w-5 h-5 text-text-faint" />
+            <User className={`absolute ${iconSide} top-1/2 -translate-y-1/2 w-5 h-5 text-text-faint`} />
           </div>
         </div>
 
@@ -179,10 +185,10 @@ export default function ProfilePage() {
                   username: e.target.value.toLowerCase().replace(/[^a-z0-9_.-]/g, ''),
                 }))
               }
-              className="input-field ps-4 pe-10 font-mono"
+              className={`input-field ${fieldPadding} font-mono`}
               dir="ltr"
             />
-            <AtSign className="absolute end-3 top-1/2 -translate-y-1/2 w-5 h-5 text-text-faint" />
+            <AtSign className={`absolute ${iconSide} top-1/2 -translate-y-1/2 w-5 h-5 text-text-faint`} />
           </div>
           <p className="text-xs text-gray-500 mt-1">حروف إنجليزية وأرقام ونقاط فقط</p>
         </div>
@@ -196,10 +202,10 @@ export default function ProfilePage() {
               required
               value={form.email}
               onChange={(e) => setForm((prev) => ({ ...prev, email: e.target.value }))}
-              className="input-field ps-4 pe-10"
+              className={`input-field ${fieldPadding}`}
               dir="ltr"
             />
-            <Mail className="absolute end-3 top-1/2 -translate-y-1/2 w-5 h-5 text-text-faint" />
+            <Mail className={`absolute ${iconSide} top-1/2 -translate-y-1/2 w-5 h-5 text-text-faint`} />
           </div>
         </div>
 
@@ -217,10 +223,10 @@ export default function ProfilePage() {
                   phone: e.target.value.replace(/[^0-9+]/g, ''),
                 }))
               }
-              className="input-field ps-4 pe-10"
+              className={`input-field ${fieldPadding}`}
               dir="ltr"
             />
-            <Phone className="absolute end-3 top-1/2 -translate-y-1/2 w-5 h-5 text-text-faint" />
+            <Phone className={`absolute ${iconSide} top-1/2 -translate-y-1/2 w-5 h-5 text-text-faint`} />
           </div>
         </div>
 
