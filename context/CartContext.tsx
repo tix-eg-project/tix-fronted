@@ -67,8 +67,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
     dispatch({ type: "SET_LOADING", payload: true });
     try {
       const response = await api.get("/cart");
-      if (response.data.status && response.data.data?.data) {
-        const items: CartItem[] = response.data.data.data.map((item: any) => ({
+      if (response.data.status && Array.isArray(response.data.data)) {
+        const items: CartItem[] = response.data.data.map((item: any) => ({
           id: item.id,
           productId: item.product?.id,
           name: item.product?.name || "",
