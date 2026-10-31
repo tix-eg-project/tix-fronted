@@ -85,6 +85,12 @@ const account = {
     notReturnable: "غير قابل للإرجاع",
     return: "إرجاع",
 
+    cancelOrder: "إلغاء الطلب",
+    cancelOrderConfirm: "هل أنت متأكد من إلغاء هذا الطلب؟",
+    confirmCancelOrder: "تأكيد الإلغاء",
+    orderCancelled: "تم إلغاء الطلب بنجاح",
+    cancelOrderError: "تعذر إلغاء الطلب",
+
     noReturnRequests: "لا توجد طلبات إرجاع",
     noReturnRequestsDesc: "لم تقم بطلب إرجاع أي منتج بعد",
     returnRequests: "طلبات الإرجاع",
@@ -183,6 +189,12 @@ const account = {
     returnable: "Returnable",
     notReturnable: "Not returnable",
     return: "Return",
+
+    cancelOrder: "Cancel Order",
+    cancelOrderConfirm: "Are you sure you want to cancel this order?",
+    confirmCancelOrder: "Confirm Cancellation",
+    orderCancelled: "Order cancelled successfully",
+    cancelOrderError: "Couldn't cancel the order",
 
     noReturnRequests: "No return requests",
     noReturnRequestsDesc: "You haven't requested a return for any product yet",

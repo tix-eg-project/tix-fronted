@@ -5,7 +5,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useLanguage } from "@/context/LanguageContext";
 import api from "@/lib/api";
 import { formatCurrency, t as tApi } from "@/utils/helpers";
-import { Package, ArrowRight, ArrowLeft, RotateCcw, X, Loader2 } from "lucide-react";
+import { Package, ArrowRight, ArrowLeft, RotateCcw, X, XCircle, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "react-toastify";
 
@@ -18,6 +18,10 @@ const STATUS_COLORS: Record<string, string> = {
   cancelled: "bg-red-100 text-red-700",
   returned: "bg-gray-100 text-gray-500",
 };
+
+// Only these statuses allow cancellation — matches the API's own rule
+// (it rejects with 422 past this point, e.g. once shipped).
+const CANCELLABLE_STATUSES = ["pending", "confirmed"];
 
 const RETURN_REASON_CODES = [1, 2, 3, 4, 5] as const;
 
@@ -175,6 +179,8 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
   const [loading, setLoading] = useState(true);
   const [orderId, setOrderId] = useState("");
   const [returnItem, setReturnItem] = useState<any>(null);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
 
   useEffect(() => {
     params.then((p) => setOrderId(p.id));
@@ -193,6 +199,25 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
     }
     fetchOrder();
   }, [orderId, authState.isAuthenticated, lang]);
+
+  async function handleCancelOrder() {
+    if (cancelling) return;
+    setCancelling(true);
+    try {
+      const res = await api.post(`/orders/${orderId}/cancel`);
+      if (res.data.status) {
+        setOrder(res.data.data);
+        setShowCancelConfirm(false);
+        toast.success(t('account.orderCancelled'));
+      } else {
+        toast.error(res.data.message || t('account.cancelOrderError'));
+      }
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || t('account.cancelOrderError'));
+    } finally {
+      setCancelling(false);
+    }
+  }
 
   if (loading) return <div className="skeleton h-60 rounded-xl" />;
 
@@ -218,10 +243,21 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
       </Link>
 
       <div className="card p-5">
-        <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
-          <Package className="w-5 h-5 text-black" />
-          {t('account.orderDetails')} {t('account.orderHash')}{order.id}
-        </h2>
+        <div className="flex items-center justify-between flex-wrap gap-2 mb-4">
+          <h2 className="text-lg font-bold flex items-center gap-2">
+            <Package className="w-5 h-5 text-black" />
+            {t('account.orderDetails')} {t('account.orderHash')}{order.id}
+          </h2>
+          {CANCELLABLE_STATUSES.includes(order.status) && (
+            <button
+              onClick={() => setShowCancelConfirm(true)}
+              className="flex items-center gap-1.5 text-xs font-medium text-error border border-error/30 rounded-lg px-3 py-1.5 hover:bg-red-50 transition-colors"
+            >
+              <XCircle className="w-3.5 h-3.5" />
+              {t('account.cancelOrder')}
+            </button>
+          )}
+        </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm mb-4">
           <div>
@@ -304,6 +340,35 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
           onClose={() => setReturnItem(null)}
           onSuccess={() => setReturnItem(null)}
         />
+      )}
+
+      {showCancelConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
+          <div className="card p-6 max-w-sm w-full text-center space-y-4 shadow-xl">
+            <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mx-auto">
+              <XCircle className="w-5 h-5 text-error" />
+            </div>
+            <div>
+              <p className="font-semibold">{t('account.cancelOrder')}</p>
+              <p className="text-sm text-text-muted mt-1">{t('account.cancelOrderConfirm')}</p>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowCancelConfirm(false)}
+                className="flex-1 btn-outline !py-2 text-sm"
+              >
+                {t('common.cancel')}
+              </button>
+              <button
+                onClick={handleCancelOrder}
+                disabled={cancelling}
+                className="flex-1 bg-error text-white rounded-lg py-2 text-sm font-medium hover:bg-red-700 transition-colors disabled:opacity-60 flex items-center justify-center"
+              >
+                {cancelling ? <Loader2 className="w-4 h-4 animate-spin" /> : t('account.confirmCancelOrder')}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
