@@ -27,6 +27,7 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
             image: item.images?.[0] || item.image || item.product?.images?.[0] || "",
             images: item.images || item.product?.images,
             discount: item.discount || 0,
+            colors: item.colors || item.product?.colors,
           })),
         );
       }

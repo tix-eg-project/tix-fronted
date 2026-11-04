@@ -1,3 +1,5 @@
+import type { ProductColor } from "./products";
+
 export interface WishlistItem {
   id: number | string;
   name: string;
@@ -6,6 +8,7 @@ export interface WishlistItem {
   image: string;
   images?: string[];
   discount?: number;
+  colors?: ProductColor[];
 }
 
 export interface WishlistContextType {

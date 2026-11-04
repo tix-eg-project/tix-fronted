@@ -58,6 +58,7 @@ export default function WishlistPage() {
             image={item.image}
             images={item.images}
             discount={item.discount}
+            colors={item.colors}
           />
         ))}
       </div>

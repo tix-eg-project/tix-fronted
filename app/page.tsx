@@ -48,6 +48,7 @@ async function fetchCategoryProducts(
         rating: p.reviews?.average_rating || 0,
         reviewsCount: p.reviews?.count || 0,
         discount: p.discount || 0,
+        colors: p.colors,
       }),
     );
   } catch {

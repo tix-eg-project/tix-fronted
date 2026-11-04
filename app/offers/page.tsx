@@ -29,6 +29,7 @@ export default function OffersPage() {
                 discount: p.discount || 0,
                 rating: p.reviews?.average_rating || 0,
                 reviewsCount: p.reviews?.count || 0,
+                colors: p.colors,
               }),
             ),
           );

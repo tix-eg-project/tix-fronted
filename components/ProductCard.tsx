@@ -16,6 +16,8 @@ import { Button } from "@/components/ui/button";
 const HOVER_CYCLE_MS = 1400;
 const FADE_MS = 900;
 
+const MAX_VISIBLE_SWATCHES = 5;
+
 export default function ProductCard({
   id,
   name,
@@ -27,6 +29,7 @@ export default function ProductCard({
   reviewsCount,
   discount,
   isFlashDeal = false,
+  colors,
 }: ProductCardProps) {
   const { addToCart } = useCart();
   const { toggleWishlist, isInWishlist } = useWishlist();
@@ -40,8 +43,19 @@ export default function ProductCard({
   const [activeIndex, setActiveIndex] = useState(0);
   const hoverTimer = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // Picking a color swatch previews that color's photo instead of the
+  // product's own gallery — purely visual, doesn't affect what's added to cart.
+  const [selectedColorIndex, setSelectedColorIndex] = useState<number | null>(null);
+  const selectedColor = selectedColorIndex != null ? colors?.[selectedColorIndex] : null;
+
+  const handleSelectColor = (e: React.MouseEvent, index: number) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setSelectedColorIndex((prev) => (prev === index ? null : index));
+  };
+
   const startHoverCycle = () => {
-    if (gallery.length <= 1) return;
+    if (selectedColor || gallery.length <= 1) return;
     hoverTimer.current = setInterval(() => {
       setActiveIndex((i) => (i + 1) % gallery.length);
     }, HOVER_CYCLE_MS);
@@ -101,49 +115,66 @@ export default function ProductCard({
           onMouseEnter={startHoverCycle}
           onMouseLeave={stopHoverCycle}
         >
-          {/* اللاب/الديسك توب — تبديل تلقائي بالـ hover */}
-          <div className="hidden lg:block absolute inset-0 p-1.5">
-            <div className="relative w-full h-full">
-              {gallery.map((img, i) => (
+          {selectedColor ? (
+            /* لون متاختار — صورة ثابتة بتاعته بدل الجاليري */
+            <div className="absolute inset-0 p-1.5">
+              <div className="relative w-full h-full">
                 <Image
-                  key={`fg-${i}`}
-                  src={img || "/pl1.jpg"}
-                  alt={i === 0 ? productName : ""}
-                  aria-hidden={i !== 0}
+                  src={selectedColor.image || "/pl1.jpg"}
+                  alt={`${productName} - ${selectedColor.name}`}
                   fill
                   className="object-contain"
-                  style={{
-                    opacity: i === activeIndex ? 1 : 0,
-                    transition: `opacity ${FADE_MS}ms ease-in-out`,
-                  }}
                   sizes="25vw"
                 />
-              ))}
+              </div>
             </div>
-          </div>
-
-          {/* الموبايل/التابلت — سحب بالإصبع (swipe) بين الصور */}
-          <div
-            className="lg:hidden absolute inset-0 flex overflow-x-auto snap-x snap-mandatory scrollbar-hide"
-            onScroll={handleMobileScroll}
-          >
-            {gallery.map((img, i) => (
-              <div key={`m-${i}`} className="w-full h-full flex-shrink-0 snap-center p-1">
+          ) : (
+            <>
+              {/* اللاب/الديسك توب — تبديل تلقائي بالـ hover */}
+              <div className="hidden lg:block absolute inset-0 p-1.5">
                 <div className="relative w-full h-full">
-                  <Image
-                    src={img || "/pl1.jpg"}
-                    alt={i === 0 ? productName : ""}
-                    aria-hidden={i !== 0}
-                    fill
-                    className="object-contain"
-                    sizes="(max-width: 640px) 100vw, 33vw"
-                  />
+                  {gallery.map((img, i) => (
+                    <Image
+                      key={`fg-${i}`}
+                      src={img || "/pl1.jpg"}
+                      alt={i === 0 ? productName : ""}
+                      aria-hidden={i !== 0}
+                      fill
+                      className="object-contain"
+                      style={{
+                        opacity: i === activeIndex ? 1 : 0,
+                        transition: `opacity ${FADE_MS}ms ease-in-out`,
+                      }}
+                      sizes="25vw"
+                    />
+                  ))}
                 </div>
               </div>
-            ))}
-          </div>
 
-          {gallery.length > 1 && (
+              {/* الموبايل/التابلت — سحب بالإصبع (swipe) بين الصور */}
+              <div
+                className="lg:hidden absolute inset-0 flex overflow-x-auto snap-x snap-mandatory scrollbar-hide"
+                onScroll={handleMobileScroll}
+              >
+                {gallery.map((img, i) => (
+                  <div key={`m-${i}`} className="w-full h-full flex-shrink-0 snap-center p-1">
+                    <div className="relative w-full h-full">
+                      <Image
+                        src={img || "/pl1.jpg"}
+                        alt={i === 0 ? productName : ""}
+                        aria-hidden={i !== 0}
+                        fill
+                        className="object-contain"
+                        sizes="(max-width: 640px) 100vw, 33vw"
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+
+          {!selectedColor && gallery.length > 1 && (
             <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 flex items-center gap-1 z-10 pointer-events-none">
               {gallery.map((_, i) => (
                 <span
@@ -182,6 +213,29 @@ export default function ProductCard({
             </div>
             <span className="text-[10px] text-gray-500 ms-0.5">({reviewsCount ?? 0})</span>
           </div>
+          {colors && colors.length > 0 && (
+            <div className="flex items-center gap-1.5 mb-2">
+              {colors.slice(0, MAX_VISIBLE_SWATCHES).map((color, i) => (
+                <button
+                  key={`${color.name}-${i}`}
+                  type="button"
+                  title={color.name}
+                  onClick={(e) => handleSelectColor(e, i)}
+                  className={`w-4 h-4 rounded-full shrink-0 border transition-all bg-cover bg-center ${
+                    selectedColorIndex === i ? "ring-2 ring-offset-1 ring-black border-white" : "border-gray-200"
+                  }`}
+                  style={
+                    color.code
+                      ? { backgroundColor: color.code }
+                      : { backgroundImage: `url(${color.image || "/pl1.jpg"})` }
+                  }
+                />
+              ))}
+              {colors.length > MAX_VISIBLE_SWATCHES && (
+                <span className="text-[10px] text-gray-400">+{colors.length - MAX_VISIBLE_SWATCHES}</span>
+              )}
+            </div>
+          )}
           <div className="mt-auto">
             <div className="flex items-center gap-2 mb-2.5">
               <span className={`font-bold text-base sm:text-lg ${discountPct > 0 ? "text-red-600" : "text-black"}`}>{formatCurrency(price)}</span>

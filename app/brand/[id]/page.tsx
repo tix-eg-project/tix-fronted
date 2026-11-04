@@ -38,6 +38,7 @@ export default function BrandPage() {
             discount: item.discount || 0,
             rating: item.avg_rating || 0,
             reviewsCount: item.reviews_count || 0,
+            colors: item.colors,
           }))
         );
         if (res.data.pagination) setPagination(res.data.pagination);

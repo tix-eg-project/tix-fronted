@@ -51,6 +51,7 @@ export default function VendorStorePage() {
               discount: p.discount || 0,
               rating: p.avg_rating || p.reviews?.average_rating || 0,
               reviewsCount: p.reviews?.count || 0,
+              colors: p.colors,
             }))
           );
         }

@@ -263,6 +263,7 @@ export default function ProductDetailClient({ productId }: { productId: string }
           discount: p.discount || 0,
           rating: p.reviews?.average_rating || 0,
           reviewsCount: p.reviews?.count || 0,
+          colors: p.colors,
         }));
 
     try {
@@ -1450,6 +1451,18 @@ export default function ProductDetailClient({ productId }: { productId: string }
                   ))}
                   <span className="text-xs text-gray-400 ms-1">({prod.reviewsCount || 0})</span>
                 </div>
+                {prod.colors && prod.colors.length > 0 && (
+                  <div className="flex items-center gap-1 mb-1">
+                    {prod.colors.slice(0, 5).map((color: any, i: number) => (
+                      <span
+                        key={`${color.name}-${i}`}
+                        title={color.name}
+                        className="w-3 h-3 rounded-full border border-gray-200 bg-cover bg-center shrink-0"
+                        style={color.code ? { backgroundColor: color.code } : { backgroundImage: `url(${color.image || "/pl1.jpg"})` }}
+                      />
+                    ))}
+                  </div>
+                )}
                 <div className="flex items-center justify-between">
                   <span className={`text-sm font-bold ${(prod.discount ?? 0) > 0 ? "text-red-600" : "text-black"}`}>
                     {formatCurrency(prod.price || 0)}
