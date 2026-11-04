@@ -578,7 +578,11 @@ export default function CheckoutPage() {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-text-muted">{t("checkout.shipping")}</span>
-                  <span>{summary.shipping_zone ? formatCurrency(summary.shipping_zone.price) : "—"}</span>
+                  <span>
+                    {!summary.shipping_zone || summary.shipping_zone.price === 0
+                      ? t("cart.free")
+                      : formatCurrency(summary.shipping_zone.price)}
+                  </span>
                 </div>
                 {summary.shipping_zone?.name && (
                   <div className="flex justify-between">

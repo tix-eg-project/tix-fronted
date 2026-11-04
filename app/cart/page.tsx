@@ -276,7 +276,9 @@ export default function CartPage() {
                       <div className="flex justify-between text-sm">
                         <span className="text-gray-600">{t("cart.shipping")}</span>
                         <span className="font-bold text-gray-900">
-                          {summary.shipping_zone?.price === 0 ? t("cart.free") : formatCurrency(summary.shipping_zone?.price || 0)}
+                          {!summary.shipping_zone || summary.shipping_zone.price === 0
+                            ? t("cart.free")
+                            : formatCurrency(summary.shipping_zone.price)}
                         </span>
                       </div>
 
