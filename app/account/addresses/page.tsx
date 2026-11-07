@@ -420,18 +420,27 @@ export default function AddressesPage() {
                         {filteredCities.length === 0 && (
                           <p className="text-center text-text-muted text-sm py-4">{t('common.noResults')}</p>
                         )}
-                        {filteredCities.map(city => (
-                          <button
-                            key={city.id}
-                            type="button"
-                            onClick={() => { setSelectedCity(city); setCityOpen(false); setCitySearch('') }}
-                            className={`w-full text-start px-4 py-2.5 text-sm hover:bg-surface-2 flex justify-between items-center ${
-                              selectedCity?.id === city.id ? 'bg-primary-light text-primary font-medium' : ''
-                            }`}
-                          >
-                            <span>{city.name}</span>
-                          </button>
-                        ))}
+                        {filteredCities.map(city => {
+                          const unavailable = city.shipping_price == null
+                          return (
+                            <button
+                              key={city.id}
+                              type="button"
+                              disabled={unavailable}
+                              onClick={() => { if (unavailable) return; setSelectedCity(city); setCityOpen(false); setCitySearch('') }}
+                              className={`w-full text-start px-4 py-2.5 text-sm flex justify-between items-center ${
+                                unavailable
+                                  ? 'text-text-faint cursor-not-allowed'
+                                  : 'hover:bg-surface-2'
+                              } ${selectedCity?.id === city.id ? 'bg-primary-light text-primary font-medium' : ''}`}
+                            >
+                              <span>{city.name}</span>
+                              {unavailable && (
+                                <span className="text-xs text-text-faint">{t('account.cityUnavailable')}</span>
+                              )}
+                            </button>
+                          )
+                        })}
                       </div>
                       {selectedCity && (
                         <div className="p-2 border-t border-divider">

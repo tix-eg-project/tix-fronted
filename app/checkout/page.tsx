@@ -213,13 +213,17 @@ export default function CheckoutPage() {
   const updateSummaryCity = async (cityId: number) => {
     try {
       const fd = new FormData();
-      fd.append("vsoft_city_id", String(cityId));
+      fd.append("city_id", String(cityId));
       const res = await api.post("/summary", fd);
       if (res.data.status) setSummary(res.data.data);
-    } catch {}
+    } catch (error: any) {
+      const cityError = error.response?.data?.errors?.city_id?.[0];
+      if (cityError) toast.error(cityError);
+    }
   };
 
   const handleCitySelect = (city: ShippingCity) => {
+    if (city.shipping_price == null) return;
     setSelectedCity(city);
     setCityOpen(false);
     setCitySearch("");
@@ -283,8 +287,9 @@ export default function CheckoutPage() {
         toast.error(checkoutRes.data.message || t("checkout.orderError"));
       }
     } catch (error: any) {
+      const cityError = error.response?.data?.errors?.city_id?.[0];
       const loyaltyError = error.response?.data?.errors?.loyalty_points?.[0];
-      toast.error(loyaltyError || error.response?.data?.message || t("checkout.orderErrorGeneric"));
+      toast.error(cityError || loyaltyError || error.response?.data?.message || t("checkout.orderErrorGeneric"));
     } finally {
       setIsSubmitting(false);
     }
@@ -432,18 +437,27 @@ export default function CheckoutPage() {
                           </div>
                         </div>
                         <div className="max-h-40 overflow-y-auto">
-                          {filteredCities.map((city) => (
-                            <button
-                              key={city.id}
-                              type="button"
-                              className={`w-full text-start px-4 py-2.5 text-sm hover:bg-surface-2 transition-colors flex justify-between ${
-                                selectedCity?.id === city.id ? "bg-black/5 font-bold" : ""
-                              }`}
-                              onClick={() => handleCitySelect(city)}
-                            >
-                              <span>{tApi(city.name, lang)}</span>
-                            </button>
-                          ))}
+                          {filteredCities.map((city) => {
+                            const unavailable = city.shipping_price == null;
+                            return (
+                              <button
+                                key={city.id}
+                                type="button"
+                                disabled={unavailable}
+                                className={`w-full text-start px-4 py-2.5 text-sm transition-colors flex justify-between items-center ${
+                                  unavailable
+                                    ? "text-text-faint cursor-not-allowed"
+                                    : "hover:bg-surface-2"
+                                } ${selectedCity?.id === city.id ? "bg-black/5 font-bold" : ""}`}
+                                onClick={() => handleCitySelect(city)}
+                              >
+                                <span>{tApi(city.name, lang)}</span>
+                                {unavailable && (
+                                  <span className="text-xs text-text-faint">{t("checkout.cityUnavailable")}</span>
+                                )}
+                              </button>
+                            );
+                          })}
                         </div>
                       </div>
                     )}
@@ -579,7 +593,9 @@ export default function CheckoutPage() {
                 <div className="flex justify-between">
                   <span className="text-text-muted">{t("checkout.shipping")}</span>
                   <span>
-                    {!summary.shipping_zone || summary.shipping_zone.price === 0
+                    {!summary.shipping_zone
+                      ? t("checkout.shippingNotCalculated")
+                      : summary.shipping_zone.price === 0
                       ? t("cart.free")
                       : formatCurrency(summary.shipping_zone.price)}
                   </span>
