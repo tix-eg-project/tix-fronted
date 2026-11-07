@@ -4,10 +4,9 @@ lib/product-slug-map.json
 out
 .vercel
 coverage
-.env
-.env.local
 .env.development.local
 .env.test.local
 .env.production.local
 *.log
 .DS_Store
+config.bat
