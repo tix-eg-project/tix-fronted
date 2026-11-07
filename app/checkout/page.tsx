@@ -88,7 +88,7 @@ export default function CheckoutPage() {
         const [summaryRes, pmRes, citiesRes, addressesRes, contactRes] = await Promise.all([
           api.get("/summary"),
           api.get("/payment-methods"),
-          api.get("/cities/1"),
+          api.get("/cities/1").catch(() => null),
           api.get("/addresses").catch(() => null),
           api.get("/contact").catch(() => null),
         ]);
@@ -100,10 +100,11 @@ export default function CheckoutPage() {
           if (pmRes.data.data.length > 0) setPaymentMethod(pmRes.data.data[0].id);
         }
 
-        const citiesList: ShippingCity[] = citiesRes.data?.status
+        const citiesList: ShippingCity[] = citiesRes?.data?.status
           ? (Array.isArray(citiesRes.data.data) ? citiesRes.data.data : [])
           : [];
         setCities(citiesList);
+        if (!citiesRes) toast.error(t("checkout.citiesLoadError"));
 
         const addrs: SavedAddress[] = Array.isArray(addressesRes?.data?.data)
           ? addressesRes.data.data
