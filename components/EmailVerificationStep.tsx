@@ -1,6 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { ShieldCheck, MailCheck, RotateCw, ArrowRight, ArrowLeft } from 'lucide-react'
+import { ShieldCheck, MailCheck, MailX, RotateCw, ArrowRight, ArrowLeft } from 'lucide-react'
 import { toast } from 'react-toastify'
 import { useAuth } from '@/context/AuthContext'
 import { useLanguage } from '@/context/LanguageContext'
@@ -76,12 +76,15 @@ export default function EmailVerificationStep({
   return (
     <form onSubmit={onSubmit} className="space-y-4">
       <div className="flex flex-col items-center text-center gap-2 mb-2">
-        <div className="w-12 h-12 rounded-full bg-green-50 text-green-600 flex items-center justify-center">
-          <MailCheck className="w-6 h-6" />
+        {/* Never "sent to ..." when it was not: the customer would wait for a
+            mail that is not coming instead of pressing resend. */}
+        <div className={`w-12 h-12 rounded-full flex items-center justify-center ${mailFailed ? 'bg-amber-50 text-amber-600' : 'bg-green-50 text-green-600'}`}>
+          {mailFailed ? <MailX className="w-6 h-6" /> : <MailCheck className="w-6 h-6" />}
         </div>
         <h2 className="text-lg font-bold">{t('auth.verifyEmailTitle')}</h2>
         <p className="text-sm text-text-muted">
-          {t('auth.enterCodeSentTo')} <strong dir="ltr" className="text-text">{pending.email}</strong>
+          {mailFailed ? t('auth.codeNotSentTo') : t('auth.enterCodeSentTo')}{' '}
+          <strong dir="ltr" className="text-text">{pending.email}</strong>
         </p>
       </div>
 
