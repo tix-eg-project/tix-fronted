@@ -1,7 +1,6 @@
 'use client'
 import { useState } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -10,6 +9,8 @@ import { toast } from 'react-toastify'
 import { useAuth } from '@/context/AuthContext'
 import { useLanguage } from '@/context/LanguageContext'
 import GoogleAuthButton from '@/components/GoogleAuthButton'
+import EmailVerificationStep from '@/components/EmailVerificationStep'
+import type { PendingVerification } from '@/utils/Types/auth'
 
 export default function RegisterPage() {
   const { t, dir } = useLanguage()
@@ -20,8 +21,10 @@ export default function RegisterPage() {
   const toggleSide = isRtl ? 'left-3' : 'right-3'
   const fieldPadding = isRtl ? 'pr-10 pl-4' : 'pl-10 pr-4'
   const [showPassword, setShowPassword] = useState(false)
+  // Set once the account is created and a code was emailed: the card switches
+  // to the code screen, and a correct code signs the customer straight in.
+  const [pendingVerification, setPendingVerification] = useState<PendingVerification | null>(null)
   const { register: authRegister } = useAuth()
-  const router = useRouter()
 
   const registerSchema = z.object({
     name: z.string().min(3, t('auth.nameMinLength')),
@@ -35,18 +38,26 @@ export default function RegisterPage() {
   })
   type RegisterForm = z.infer<typeof registerSchema>
 
+  // The form keeps its values while the code screen is up, so "edit details"
+  // brings the customer back to what they typed rather than an empty form.
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<RegisterForm>({
     resolver: zodResolver(registerSchema),
+    shouldUnregister: false,
   })
 
   const onSubmit = async (data: RegisterForm) => {
     try {
-      await authRegister(data.name, data.email, data.phone, data.password)
-      toast.success(t('auth.registerSuccess'))
-      window.location.href = '/'
+      const pending = await authRegister(data.name, data.email, data.phone, data.password)
+      if (pending.emailSent) toast.success(t('auth.accountCreatedCheckEmail'))
+      setPendingVerification(pending)
     } catch (error: any) {
       toast.error(error.message || t('auth.registerFailed'))
     }
+  }
+
+  const onVerified = () => {
+    toast.success(t('auth.welcomeAboard'))
+    window.location.href = '/'
   }
 
   const fields = [
@@ -68,7 +79,14 @@ export default function RegisterPage() {
         </div>
 
         <div className="card p-6 md:p-8">
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          {pendingVerification && (
+            <EmailVerificationStep
+              pending={pendingVerification}
+              onVerified={onVerified}
+              onBack={() => setPendingVerification(null)}
+            />
+          )}
+          <form onSubmit={handleSubmit(onSubmit)} className={`space-y-4 ${pendingVerification ? 'hidden' : ''}`}>
             {fields.map((field) => (
               <div key={field.name}>
                 <label className="text-sm font-medium mb-1.5 block">{field.label}</label>

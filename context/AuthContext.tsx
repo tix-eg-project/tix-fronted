@@ -2,7 +2,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from "react";
 import { setCookie, getCookie, deleteCookie } from "cookies-next";
 import api from "@/lib/api";
-import type { AuthContextType, AuthState } from "@/utils/Types/auth";
+import { EmailNotVerifiedError, type AuthContextType, type AuthState, type PendingVerification } from "@/utils/Types/auth";
 import type { User } from "@/utils/Types/common";
 import { translateAuthError } from "@/utils/helpers";
 
@@ -86,33 +86,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const login = useCallback(async (email: string, password: string) => {
-    try {
-      const response = await api.post("/auth/user/login", { email, password });
-      const data = response.data;
-
-      if (!data.status) {
-        throw new Error(translateAuthError(data.message || "invalid_credentials"));
-      }
-
-      const token = data.data?.token || data.token;
-      const user = data.data?.user || data.user;
-
-      saveAuth(token, user ?? {});
-
-      setState({
-        user,
-        token,
-        isAuthenticated: true,
-        isLoading: false,
-      });
-    } catch (err: unknown) {
-      throw new Error(extractApiError(err));
-    }
+  const signIn = useCallback((token: string, user: any) => {
+    saveAuth(token, user ?? {});
+    setState({
+      user: user && Object.keys(user).length ? user : null,
+      token,
+      isAuthenticated: true,
+      isLoading: false,
+    });
   }, []);
 
+  const login = useCallback(async (email: string, password: string) => {
+    let data: any;
+    try {
+      const response = await api.post("/auth/user/login", { email, password });
+      data = response.data;
+    } catch (err: unknown) {
+      // 403 + needs_verification: the password was right, the email was never
+      // confirmed, and the API has just emailed a fresh code.
+      const body = (err as any)?.response?.data;
+      if (body?.errors?.needs_verification) {
+        throw new EmailNotVerifiedError(translateAuthError("email_not_verified"), {
+          email: body.errors.email || email,
+          emailSent: body.errors.email_sent !== false,
+        });
+      }
+      throw new Error(extractApiError(err));
+    }
+
+    if (!data?.status) {
+      throw new Error(translateAuthError(data?.message || "invalid_credentials"));
+    }
+
+    signIn(data.data?.token || data.token, data.data?.user || data.user);
+  }, [signIn]);
+
+  // Registering never signs in by itself: the API emails a 6-digit code and
+  // the account is usable once verifyEmail() succeeds.
   const register = useCallback(
-    async (name: string, email: string, phone: string, password: string) => {
+    async (name: string, email: string, phone: string, password: string): Promise<PendingVerification> => {
       try {
         const response = await api.post("/auth/user/register", {
           name,
@@ -127,26 +139,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           throw new Error(translateAuthError(data.message || "register_failed"));
         }
 
-        const token = data.data?.token || data.token;
-        const user = data.data?.user || data.user;
-
-        if (!token) {
-          throw new Error(translateAuthError("register_failed"));
-        }
-
-        saveAuth(token, user ?? {});
-        setState({
-          user: user && Object.keys(user).length ? user : null,
-          token,
-          isAuthenticated: true,
-          isLoading: false,
-        });
+        return {
+          email: data.data?.email || email,
+          emailSent: data.data?.email_sent !== false,
+        };
       } catch (err: unknown) {
         throw new Error(extractApiError(err));
       }
     },
     [],
   );
+
+  const verifyEmail = useCallback(async (email: string, code: string) => {
+    let data: any;
+    try {
+      const response = await api.post("/auth/user/verify", { email, code: Number(code) });
+      data = response.data;
+    } catch (err: unknown) {
+      throw new Error(extractApiError(err));
+    }
+
+    if (!data?.status || !data.data?.token) {
+      throw new Error(translateAuthError(data?.message || "verify_code_failed"));
+    }
+
+    signIn(data.data.token, data.data.user);
+  }, [signIn]);
+
+  const resendVerificationCode = useCallback(async (email: string) => {
+    try {
+      const response = await api.post("/auth/user/resend-verify-code", { email });
+      return response.data?.data?.email_sent !== false;
+    } catch (err: unknown) {
+      throw new Error(extractApiError(err));
+    }
+  }, []);
 
   const loginWithGoogle = useCallback(async (googleToken: string) => {
     try {
@@ -200,7 +227,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ state, login, register, loginWithGoogle, logout, updateUser }}>
+    <AuthContext.Provider value={{ state, login, register, verifyEmail, resendVerificationCode, loginWithGoogle, logout, updateUser }}>
       {children}
     </AuthContext.Provider>
   );

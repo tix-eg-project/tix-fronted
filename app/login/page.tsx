@@ -1,7 +1,7 @@
 'use client'
 import { Suspense, useState } from 'react'
 import Link from 'next/link'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -10,6 +10,8 @@ import { toast } from 'react-toastify'
 import { useAuth } from '@/context/AuthContext'
 import { useLanguage } from '@/context/LanguageContext'
 import GoogleAuthButton from '@/components/GoogleAuthButton'
+import EmailVerificationStep from '@/components/EmailVerificationStep'
+import { EmailNotVerifiedError, type PendingVerification } from '@/utils/Types/auth'
 
 function LoginForm() {
   const { t, dir } = useLanguage()
@@ -20,8 +22,10 @@ function LoginForm() {
   const toggleSide = isRtl ? 'left-3' : 'right-3'
   const fieldPadding = isRtl ? 'pr-10 pl-4' : 'pl-10 pr-4'
   const [showPassword, setShowPassword] = useState(false)
+  // An account whose email was never confirmed: the API just emailed a fresh
+  // code, so the card shows the code screen instead of a dead-end error.
+  const [pendingVerification, setPendingVerification] = useState<PendingVerification | null>(null)
   const { login } = useAuth()
-  const router = useRouter()
   const searchParams = useSearchParams()
   const redirectPath = searchParams.get('redirect') || '/'
 
@@ -41,8 +45,28 @@ function LoginForm() {
       toast.success(t('auth.loginSuccess'))
       window.location.href = redirectPath
     } catch (error: any) {
+      if (error instanceof EmailNotVerifiedError) {
+        toast.info(t('auth.verifyBeforeLogin'))
+        setPendingVerification(error.pending)
+        return
+      }
       toast.error(error.message || t('auth.loginFailed'))
     }
+  }
+
+  if (pendingVerification) {
+    return (
+      <div className="bg-white rounded-lg border border-border p-8">
+        <EmailVerificationStep
+          pending={pendingVerification}
+          onVerified={() => {
+            toast.success(t('auth.welcomeAboard'))
+            window.location.href = redirectPath
+          }}
+          onBack={() => setPendingVerification(null)}
+        />
+      </div>
+    )
   }
 
   return (
