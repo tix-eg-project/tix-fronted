@@ -14,6 +14,8 @@ import {
   Plus as PlusIcon,
   X,
   ZoomIn,
+  BadgeCheck,
+  ShieldCheck,
 } from "lucide-react";
 import { toast } from "react-toastify";
 import api from "@/lib/api";
@@ -24,7 +26,8 @@ import { useLanguage } from "@/context/LanguageContext";
 import { useLoyaltySummary } from "@/utils/useLoyaltySummary";
 import { formatCurrency, calculateDiscount, t as tApi, generateSlug } from "@/utils/helpers";
 import ProductCard from "@/components/ProductCard";
-import type { Product, VariantGroup, VariantItem, VariantOption, VariantItemFull } from "@/utils/Types/common";
+import ProductVariantPicker from "@/components/ProductVariantPicker";
+import type { VariantGroup, VariantItem, VariantItemFull } from "@/utils/Types/common";
 import { useRouter } from "next/navigation";
 
 function tLang(value: any, lang: 'ar' | 'en'): string {
@@ -36,9 +39,29 @@ function tLang(value: any, lang: 'ar' | 'en'): string {
   return String(value);
 }
 
-function hasMultiLang(value: any): boolean {
-  return typeof value === 'object' && value !== null && !!(value.ar && value.en);
+/**
+ * Whether the merchant actually wrote something: the dashboard editor saves
+ * "<p>&nbsp;</p>" for an untouched field, and a table counts even when empty.
+ */
+function hasHtmlContent(html: string): boolean {
+  if (!html) return false;
+  if (/<(table|img)\b/i.test(html)) return true;
+  return html.replace(/<[^>]*>/g, "").replace(/&nbsp;| /g, " ").trim() !== "";
 }
+
+type ReviewsViewer = {
+  can_review: boolean;
+  reason: "login_required" | "not_purchased" | "not_delivered_yet" | null;
+  my_review: { rating: number; comment: string | null; image: string | null } | null;
+};
+
+type ReviewsState = {
+  list: any[];
+  summary: { average_rating: number; count: number; distribution: Record<string, number> };
+  viewer: ReviewsViewer | null;
+  page: number;
+  lastPage: number;
+};
 
 /* ─── Stars ─── */
 function StarRating({ value, size = 16 }: { value: number; size?: number }) {
@@ -105,7 +128,8 @@ export default function ProductDetailClient({ productId }: { productId: string }
   const [reviewText, setReviewText] = useState("");
   const [reviewImage, setReviewImage] = useState<File | null>(null);
   const [reviewSubmitting, setReviewSubmitting] = useState(false);
-  const [reviewsData, setReviewsData] = useState<any>(null);
+  const [reviewsData, setReviewsData] = useState<ReviewsState | null>(null);
+  const [loadingMoreReviews, setLoadingMoreReviews] = useState(false);
   const [relatedProducts, setRelatedProducts] = useState<any[]>([]);
   const [complementaryProducts, setComplementaryProducts] = useState<any[]>([]);
   const [selectedBoughtTogether, setSelectedBoughtTogether] = useState<string[]>([]);
@@ -198,24 +222,6 @@ export default function ProductDetailClient({ productId }: { productId: string }
     setActiveImageIndex(0);
   }, [selectedItem]);
 
-  /**
-   * A hex colour to show behind an item's card when the merchant did not
-   * upload a photo for that specific combination - taken from whichever of
-   * the item's own option values carries one (looked up in variant_options),
-   * so an unphotographed "Red" combo still gets a red box instead of a
-   * generic grey one.
-   */
-  const findSwatchColor = (item: VariantItemFull): string | undefined => {
-    if (!product?.variant_options?.length) return undefined;
-    for (const { value_id } of item.options) {
-      for (const option of product.variant_options as VariantOption[]) {
-        const value = option.values.find((v) => v.id === value_id);
-        if (value?.meta?.code) return value.meta.code;
-      }
-    }
-    return undefined;
-  };
-
   const fetchProduct = async () => {
     try {
       setLoading(true);
@@ -295,23 +301,56 @@ export default function ProductDetailClient({ productId }: { productId: string }
     }
   };
 
-  const fetchReviews = async () => {
+  /**
+   * The list, the totals over every review (not just this page) and what this
+   * visitor may do - review, or why not - all come from one call. The token,
+   * when there is one, lets the API recognise a customer who bought it.
+   */
+  const fetchReviews = async (page = 1) => {
     try {
-      const res = await api.get(`/products/${productId}/reviews`);
-      if (res.data.status) {
-        setReviewsData(res.data.data);
-      }
+      const res = await api.get(`/products/${productId}/reviews`, { params: { page, per_page: 10 } });
+      if (!res.data.status) return;
+      const list: any[] = Array.isArray(res.data.data) ? res.data.data : [];
+      setReviewsData((prev) => ({
+        list: page > 1 && prev ? [...prev.list, ...list] : list,
+        summary: res.data.summary ?? { average_rating: 0, count: list.length, distribution: {} },
+        viewer: res.data.viewer ?? null,
+        page: res.data.pagination?.current_page ?? page,
+        lastPage: res.data.pagination?.last_page ?? page,
+      }));
     } catch {
       // silent
     }
   };
 
+  const loadMoreReviews = async () => {
+    if (!reviewsData || loadingMoreReviews) return;
+    setLoadingMoreReviews(true);
+    await fetchReviews(reviewsData.page + 1);
+    setLoadingMoreReviews(false);
+  };
+
   useEffect(() => {
     fetchProduct();
-    fetchReviews();
     window.scrollTo(0, 0);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [productId, lang]);
+
+  // Again once the session is known: whether this visitor may review depends on it.
+  useEffect(() => {
+    if (authState.isLoading) return;
+    fetchReviews();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [productId, authState.isLoading, authState.isAuthenticated]);
+
+  // A customer editing their review starts from what they wrote before.
+  useEffect(() => {
+    const mine = reviewsData?.viewer?.my_review;
+    if (mine) {
+      setReviewRating(mine.rating || 5);
+      setReviewText(mine.comment || "");
+    }
+  }, [reviewsData?.viewer?.my_review]);
 
   const handleAddToCart = async () => {
     if (!authState.isAuthenticated) {
@@ -362,9 +401,7 @@ export default function ProductDetailClient({ productId }: { productId: string }
         headers: { "Content-Type": "multipart/form-data" },
       });
       toast.success(t('product.reviewSaved'));
-      setReviewText("");
       setReviewImage(null);
-      fetchProduct();
       fetchReviews();
     } catch (error: any) {
       toast.error(error.response?.data?.message || t('product.reviewSubmitFailed'));
@@ -419,20 +456,19 @@ export default function ProductDetailClient({ productId }: { productId: string }
     isPointsProduct && loyaltySummary ? Math.max(0, product.points_price! - loyaltySummary.balance) : 0;
   const insufficientPoints = isPointsProduct && loyaltySummary != null && pointsShort > 0;
 
-  const isSizeVariant = Boolean(
-    product?.variant_options?.some((opt: any) => {
-      const n = (typeof opt.name === 'string' ? opt.name : opt.name?.ar || opt.name?.en || '').toLowerCase();
-      return n.includes('مقاس') || n.includes('size');
-    }) ||
-    product?.variant_items?.some((it: any) =>
-      Object.keys(it.attrs || {}).some((k) => k.toLowerCase().includes('مقاس') || k.toLowerCase().includes('size'))
-    ) ||
-    (product?.variant_items?.length > 0 && product?.variant_items?.every((it: any) => {
-      const val = Object.values(it.attrs || {})[0];
-      const s = typeof val === 'string' ? val : (val as any)?.ar || (val as any)?.en || '';
-      return /^(xs|s|m|l|xl|[2-5]xl|[2-5]x|[0-9]{2})$/i.test(String(s).trim());
-    }))
-  );
+  // The merchant's own size chart from the dashboard. No chart, no link - the
+  // fixed measurements table this page used to show fitted almost nothing.
+  const sizeGuideHtml = tLang(product.size_guide, lang);
+  const hasSizeGuide = hasHtmlContent(sizeGuideHtml);
+  const sizeGuideLink = hasSizeGuide ? (
+    <button
+      type="button"
+      onClick={() => setSizeGuideOpen(true)}
+      className="text-xs text-primary hover:underline font-medium cursor-pointer shrink-0"
+    >
+      {t('product.sizeGuide')}
+    </button>
+  ) : null;
   const baseImages = product.images?.length > 0 ? product.images : ["/pl1.jpg"];
   // A combination's own photos, if it has any, replace the gallery entirely -
   // a customer picking "Red" should see red, not red mixed in with every
@@ -504,11 +540,14 @@ export default function ProductDetailClient({ productId }: { productId: string }
   const stockKnown = rawStock !== null;
   const inStock = product.in_stock !== false && product.quantity !== 0 && maxStock > 0;
 
-  // Reviews — API returns data as a direct array
-  const reviewsList: any[] = Array.isArray(reviewsData) ? reviewsData : reviewsData?.reviews || [];
-  const reviewCount = reviewsData?.total_reviews ?? reviewsList.length;
-  const avgRating = reviewsData?.average_rating ??
-    (reviewsList.length > 0 ? reviewsList.reduce((s: number, r: any) => s + (r.rating || 0), 0) / reviewsList.length : 0);
+  // Reviews: totals over every visible review come from the API (until they
+  // arrive, from the product payload), never from the one page in memory.
+  const reviewsList: any[] = reviewsData?.list ?? [];
+  const reviewCount = reviewsData?.summary.count ?? product.reviews?.count ?? 0;
+  const avgRating = Number(reviewsData?.summary.average_rating ?? product.reviews?.average_rating ?? 0);
+  const ratingDistribution = reviewsData?.summary.distribution ?? {};
+  const reviewViewer = reviewsData?.viewer ?? null;
+  const loginHref = `/login?redirect=${encodeURIComponent(`/product/${productId}`)}`;
 
   const wishlisted = product.is_fav || isInWishlist(product.id);
 
@@ -634,65 +673,33 @@ export default function ProductDetailClient({ productId }: { productId: string }
 
         {/* ═══ Lightbox: fullscreen viewer with double-tap/double-click zoom + drag-to-pan — works on mobile, tablet, and desktop ═══ */}
         
-      {/* Size Guide Modal */}
-      {sizeGuideOpen && (
+      {/* Size Guide Modal - the chart the merchant wrote for this product */}
+      {sizeGuideOpen && hasSizeGuide && (
         <div
           className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4"
           onClick={() => setSizeGuideOpen(false)}
         >
           <div
-            className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl relative"
+            className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl relative max-h-[85vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
-            dir={lang === 'ar' ? 'rtl' : 'ltr'}
+            dir={dir}
           >
             <div className="flex items-center justify-between pb-4 border-b border-gray-100 mb-4">
-              <h3 className="text-lg font-bold text-gray-900">
-                {lang === 'ar' ? 'دليل المقاسات (سم)' : 'Size Guide (cm)'}
-              </h3>
+              <h3 className="text-lg font-bold text-gray-900">{t('product.sizeGuide')}</h3>
               <button
                 type="button"
                 onClick={() => setSizeGuideOpen(false)}
                 className="p-1 rounded-full text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+                aria-label={t('common.close')}
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="overflow-x-auto">
-              <table className="w-full text-center text-sm border-collapse">
-                <thead>
-                  <tr className="bg-gray-50 border-b border-gray-200 text-gray-600 font-semibold">
-                    <th className="py-2.5 px-3">{lang === 'ar' ? 'المقاس' : 'Size'}</th>
-                    <th className="py-2.5 px-3">{lang === 'ar' ? 'الصدر' : 'Chest'}</th>
-                    <th className="py-2.5 px-3">{lang === 'ar' ? 'الخصر' : 'Waist'}</th>
-                    <th className="py-2.5 px-3">{lang === 'ar' ? 'الطول' : 'Length'}</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100 text-gray-700">
-                  {[
-                    { size: 'XS', chest: '86 - 91', waist: '71 - 76', length: '68' },
-                    { size: 'S',  chest: '91 - 96', waist: '76 - 81', length: '70' },
-                    { size: 'M',  chest: '96 - 101', waist: '81 - 86', length: '72' },
-                    { size: 'L',  chest: '101 - 106', waist: '86 - 91', length: '74' },
-                    { size: 'XL', chest: '106 - 111', waist: '91 - 96', length: '76' },
-                    { size: '2XL',chest: '111 - 116', waist: '96 - 101', length: '78' },
-                  ].map((row) => (
-                    <tr key={row.size} className="hover:bg-gray-50/70 transition-colors">
-                      <td className="py-2.5 px-3 font-bold text-gray-900">{row.size}</td>
-                      <td className="py-2.5 px-3">{row.chest}</td>
-                      <td className="py-2.5 px-3">{row.waist}</td>
-                      <td className="py-2.5 px-3">{row.length}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            <p className="text-xs text-gray-400 mt-4 text-center">
-              {lang === 'ar'
-                ? '* القياسات تقريبية لمساعدتك في اختيار المقاس الأنسب.'
-                : '* Measurements are approximate to help you choose the best fit.'}
-            </p>
+            <div
+              className="overflow-x-auto text-sm text-gray-700 leading-relaxed [&_p]:mb-2 [&_table]:w-full [&_table]:border-collapse [&_table]:text-center [&_td]:border [&_td]:border-gray-200 [&_td]:px-3 [&_td]:py-2 [&_th]:border [&_th]:border-gray-200 [&_th]:bg-gray-50 [&_th]:px-3 [&_th]:py-2 [&_th]:font-semibold [&_tr:first-child_td]:bg-gray-50 [&_tr:first-child_td]:font-semibold [&_img]:max-w-full [&_img]:h-auto"
+              dangerouslySetInnerHTML={{ __html: sizeGuideHtml }}
+            />
           </div>
         </div>
       )}
@@ -863,126 +870,25 @@ export default function ProductDetailClient({ productId }: { productId: string }
           )}
 
           {/* ── Variant Selection ── */}
-          {/* Each purchasable combination is its own card, showing everything
-              that makes it distinct - its own photo when the merchant gave it
-              one, and every dimension merged into one label (e.g. "L / Orange")
-              rather than split into independent Size/Color rows. Picking a
-              card selects that exact item directly: no matching or fallback
-              logic needed, since the card already IS the item. */}
+          {/* Colour first, then only that colour's sizes - see ProductVariantPicker. */}
           {product.variant_items && product.variant_items.length > 0 ? (
-            <div className="mt-5">
-              <div className="flex items-center justify-between mb-2.5">
-                <p className="text-sm font-semibold text-gray-900">
-                  {product.variant_options?.[0]?.name
-                    ? tApi(product.variant_options[0].name, lang)
-                    : isSizeVariant
-                    ? (lang === 'ar' ? 'المقاس' : 'Size')
-                    : t('product.chooseOption')}
-                </p>
-                {isSizeVariant && (
-                  <button
-                    type="button"
-                    onClick={() => setSizeGuideOpen(true)}
-                    className="text-xs text-primary hover:underline font-medium cursor-pointer"
-                  >
-                    {lang === 'ar' ? 'دليل المقاسات' : 'Size Guide'}
-                  </button>
-                )}
-              </div>
-              <div className="flex flex-wrap items-center gap-2.5">
-                {product.variant_items.map((item: VariantItemFull) => {
-                  const isSelected = selectedItem?.id === item.id;
-                  const isOutOfStock = typeof item.quantity === 'number' && item.quantity <= 0;
-                  const label = Object.values(item.attrs).map((v) => tApi(v, lang)).join(' / ');
-                  const swatchColor = !item.image ? findSwatchColor(item) : undefined;
-                  const hasImage = Boolean(item.image);
-                  const hasColor = Boolean(swatchColor);
-                  const hasDifferentPrice = Boolean(item.price_after && item.price_after !== product.price_after);
-
-                  // CASE 1: Variant has its own photo
-                  if (hasImage) {
-                    return (
-                      <button
-                        key={item.id}
-                        type="button"
-                        onClick={() => setSelectedItem(item)}
-                        className={`flex flex-col items-center gap-1 p-1.5 rounded-xl border-2 transition-all ${
-                          isSelected
-                            ? "border-primary ring-2 ring-primary/20 bg-primary/5"
-                            : "border-gray-200 hover:border-gray-400 bg-white"
-                        } ${isOutOfStock ? "opacity-40 cursor-not-allowed" : ""}`}
-                        title={label}
-                      >
-                        <img
-                          src={item.image!}
-                          alt={label}
-                          className="w-14 h-14 rounded-lg object-cover"
-                        />
-                        <span className="text-xs font-medium max-w-[80px] truncate">{label || '—'}</span>
-                        {hasDifferentPrice && (
-                          <span className="text-[11px] text-gray-500 font-mono">
-                            {formatCurrency(item.price_after)}
-                          </span>
-                        )}
-                      </button>
-                    );
-                  }
-
-                  // CASE 2: Variant has a color swatch (no photo)
-                  if (hasColor) {
-                    return (
-                      <button
-                        key={item.id}
-                        type="button"
-                        onClick={() => setSelectedItem(item)}
-                        className={`flex items-center gap-2 px-3 py-2 rounded-xl border transition-all ${
-                          isSelected
-                            ? "border-primary ring-2 ring-primary/20 bg-primary/5 font-semibold text-primary"
-                            : "border-gray-200 hover:border-gray-400 bg-white text-gray-800"
-                        } ${isOutOfStock ? "opacity-40 border-dashed cursor-not-allowed" : ""}`}
-                        title={label}
-                      >
-                        <span
-                          className="w-4 h-4 rounded-full border border-black/10 shrink-0"
-                          style={{ backgroundColor: swatchColor }}
-                        />
-                        <span className="text-xs font-medium">{label}</span>
-                        {hasDifferentPrice && (
-                          <span className="text-[11px] text-gray-500 font-mono">
-                            {formatCurrency(item.price_after)}
-                          </span>
-                        )}
-                      </button>
-                    );
-                  }
-
-                  // CASE 3: Text-only variant (Sizes like XS, S, M, L, XL, 2XL) - Matching user screenshot exactly
-                  return (
-                    <button
-                      key={item.id}
-                      type="button"
-                      disabled={isOutOfStock}
-                      onClick={() => setSelectedItem(item)}
-                      className={`min-w-[48px] h-10 px-3.5 py-1.5 rounded-xl text-sm font-medium transition-all flex items-center justify-center gap-1.5 ${
-                        isOutOfStock
-                          ? "border border-dashed border-gray-200 text-gray-300 bg-gray-50/40 cursor-not-allowed"
-                          : isSelected
-                          ? "border-2 border-primary text-primary bg-primary/5 ring-2 ring-primary/20 font-bold"
-                          : "border border-gray-200 text-gray-800 bg-white hover:border-gray-400 hover:text-black"
-                      }`}
-                      title={label}
-                    >
-                      <span>{label || '—'}</span>
-                      {hasDifferentPrice && (
-                        <span className="text-[11px] text-gray-400 font-normal">
-                          ({formatCurrency(item.price_after)})
-                        </span>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
+            <ProductVariantPicker
+              options={product.variant_options}
+              items={product.variant_items}
+              selectedItem={selectedItem as VariantItemFull | null}
+              onSelect={(item) => setSelectedItem(item)}
+              basePriceAfter={product.price_after}
+              lang={lang}
+              labels={{
+                color: t('product.color'),
+                allColors: t('product.allColors'),
+                chooseOption: t('product.chooseOption'),
+                outOfStock: t('product.outOfStock'),
+              }}
+              headerAction={sizeGuideLink}
+            />
+          ) : !(product.groups && product.groups.length > 0) ? (
+            sizeGuideLink && <div className="mt-4">{sizeGuideLink}</div>
           ) : (
             // Legacy fallback: only reached for a response with no
             // variant_options/variant_items (an old cached payload during a
@@ -1205,7 +1111,13 @@ export default function ProductDetailClient({ productId }: { productId: string }
             {/* Column B: Reviews + FAQ */}
             <div className="lg:ps-8">
             <Accordion title={`${t('product.reviews')} ${reviewCount > 0 ? `(${reviewCount})` : ""}`} defaultOpen={reviewCount > 0}>
-              {/* Rating Summary */}
+              {/* Only buyers review here, like Amazon - said up front, since it is what makes the stars worth reading */}
+              <p className="flex items-center gap-1.5 text-xs text-gray-500 mb-4">
+                <BadgeCheck className="w-4 h-4 text-green-600 shrink-0" />
+                {t('product.reviewsFromBuyersOnly')}
+              </p>
+
+              {/* Rating Summary - over every review, not just the page loaded */}
               {reviewCount > 0 && (
                 <div className="flex flex-col sm:flex-row gap-6 p-5 bg-gray-50 rounded-2xl mb-6">
                   {/* Big Average */}
@@ -1221,7 +1133,7 @@ export default function ProductDetailClient({ productId }: { productId: string }
                   {/* Bars */}
                   <div className="flex-1 space-y-1.5">
                     {[5, 4, 3, 2, 1].map(n => {
-                      const count = reviewsList.filter((r: any) => Math.round(r.rating) === n).length;
+                      const count = Number(ratingDistribution[String(n)] ?? 0);
                       const pct = reviewCount > 0 ? Math.round((count / reviewCount) * 100) : 0;
                       return (
                         <div key={n} className="flex items-center gap-2">
@@ -1255,10 +1167,18 @@ export default function ProductDetailClient({ productId }: { productId: string }
                           </div>
                           <div>
                             <p className="text-sm font-semibold text-gray-800">{r.user_name || r.user || r.name || t('product.anonymousUser')}</p>
-                            <div className="flex gap-0.5 mt-0.5">
-                              {[1, 2, 3, 4, 5].map(n => (
-                                <Star key={n} className={`w-3 h-3 ${n <= Math.round(r.rating) ? 'fill-yellow-400 text-yellow-400' : 'text-gray-200 fill-gray-200'}`} />
-                              ))}
+                            <div className="flex items-center gap-2 mt-0.5">
+                              <div className="flex gap-0.5">
+                                {[1, 2, 3, 4, 5].map(n => (
+                                  <Star key={n} className={`w-3 h-3 ${n <= Math.round(r.rating) ? 'fill-yellow-400 text-yellow-400' : 'text-gray-200 fill-gray-200'}`} />
+                                ))}
+                              </div>
+                              {r.verified_purchase && (
+                                <span className="inline-flex items-center gap-0.5 text-[11px] font-medium text-green-700">
+                                  <BadgeCheck className="w-3.5 h-3.5" />
+                                  {t('product.verifiedPurchase')}
+                                </span>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -1278,13 +1198,26 @@ export default function ProductDetailClient({ productId }: { productId: string }
                       )}
                     </div>
                   ))}
+                  {reviewsData && reviewsData.page < reviewsData.lastPage && (
+                    <button
+                      type="button"
+                      onClick={loadMoreReviews}
+                      disabled={loadingMoreReviews}
+                      className="w-full h-10 text-sm font-medium rounded-xl border border-gray-200 hover:border-gray-400 transition-colors disabled:opacity-50"
+                    >
+                      {loadingMoreReviews ? t('product.submitting') : t('product.showMoreReviews')}
+                    </button>
+                  )}
                 </div>
               )}
 
-              {/* Review Form */}
+              {/* Review Form - only for a customer whose order for this product was delivered */}
               <div className="border-t border-gray-100 pt-5 mt-2">
-                <h4 className="text-sm font-bold text-gray-800 mb-4">{t('product.addYourReview')}</h4>
-                {authState.isAuthenticated ? (
+                {reviewViewer?.can_review ? (
+                  <>
+                  <h4 className="text-sm font-bold text-gray-800 mb-4">
+                    {reviewViewer.my_review ? t('product.editYourReview') : t('product.addYourReview')}
+                  </h4>
                   <form onSubmit={handleReviewSubmit} className="space-y-4">
                     {/* Stars */}
                     <div>
@@ -1325,16 +1258,26 @@ export default function ProductDetailClient({ productId }: { productId: string }
                       disabled={reviewSubmitting}
                       className="h-11 px-8 bg-gray-900 text-white text-sm font-semibold rounded-xl hover:bg-black transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      {reviewSubmitting ? t('product.submitting') : t('product.submitReview')}
+                      {reviewSubmitting ? t('product.submitting') : reviewViewer.my_review ? t('product.updateReview') : t('product.submitReview')}
                     </button>
                   </form>
+                  </>
                 ) : (
-                  <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-xl">
-                    <Star className="w-5 h-5 text-yellow-400 fill-yellow-400 flex-shrink-0" />
-                    <p className="text-sm text-gray-600">
-                      <Link href="/login" className="font-semibold text-gray-900 hover:underline">{t('header.login')}</Link>{" "}
-                      {t('product.loginToReviewSuffix')}
-                    </p>
+                  <div className="flex items-start gap-3 p-4 bg-gray-50 rounded-xl">
+                    <ShieldCheck className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                    <div className="text-sm text-gray-600 space-y-1">
+                      <p className="font-semibold text-gray-800">{t('product.whoCanReviewTitle')}</p>
+                      {reviewViewer?.reason === 'not_delivered_yet' ? (
+                        <p>{t('product.reviewAfterDelivery')}</p>
+                      ) : !authState.isAuthenticated || reviewViewer?.reason === 'login_required' ? (
+                        <p>
+                          {t('product.reviewBuyersOnly')}{" "}
+                          <Link href={loginHref} className="font-semibold text-gray-900 hover:underline">{t('product.reviewLoginIfBought')}</Link>
+                        </p>
+                      ) : (
+                        <p>{t('product.reviewBuyersOnly')}</p>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>
