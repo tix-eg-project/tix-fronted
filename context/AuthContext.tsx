@@ -2,7 +2,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from "react";
 import { setCookie, getCookie, deleteCookie } from "cookies-next";
 import api from "@/lib/api";
-import { EmailNotVerifiedError, type AuthContextType, type AuthState, type PendingVerification } from "@/utils/Types/auth";
+import { ApiValidationError, EmailNotVerifiedError, type AuthContextType, type AuthState, type PendingVerification } from "@/utils/Types/auth";
 import type { User } from "@/utils/Types/common";
 import { translateAuthError } from "@/utils/helpers";
 
@@ -54,6 +54,18 @@ function extractApiError(err: unknown): string {
     if ((err as Error).message) return translateAuthError((err as Error).message);
   }
   return translateAuthError(err);
+}
+
+/** Laravel's 422 body `{errors: {phone: ["The phone has already been taken."]}}` as `{phone: "..."}`. */
+function extractFieldErrors(err: unknown): Record<string, string> {
+  const errors = (err as any)?.response?.data?.errors;
+  const fields: Record<string, string> = {};
+  if (!errors || typeof errors !== "object") return fields;
+  for (const [field, messages] of Object.entries(errors)) {
+    const first = Array.isArray(messages) ? messages[0] : messages;
+    if (typeof first === "string" && first) fields[field] = first;
+  }
+  return fields;
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -144,6 +156,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           emailSent: data.data?.email_sent !== false,
         };
       } catch (err: unknown) {
+        const fields = extractFieldErrors(err);
+        if (Object.keys(fields).length) {
+          throw new ApiValidationError(extractApiError(err), fields);
+        }
         throw new Error(extractApiError(err));
       }
     },

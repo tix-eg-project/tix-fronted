@@ -69,8 +69,9 @@ export default function ForgotPasswordPage() {
 
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (password.length < 6) {
-      toast.error(t("auth.passwordMinLength"));
+    // The API's reset-password rule is min:8.
+    if (password.length < 8) {
+      toast.error(t("auth.passwordMin8"));
       return;
     }
     if (password !== passwordConfirmation) {

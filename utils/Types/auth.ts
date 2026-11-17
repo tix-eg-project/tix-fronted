@@ -32,11 +32,30 @@ export class EmailNotVerifiedError extends Error {
   }
 }
 
+/**
+ * The API rejected some fields (HTTP 422), e.g. a phone number another
+ * account already uses. `fields` maps each API field name ("phone",
+ * "password_confirmation") to its first message as the API wrote it, so the
+ * form can show it under the right input.
+ */
+export class ApiValidationError extends Error {
+  fields: Record<string, string>;
+
+  constructor(message: string, fields: Record<string, string>) {
+    super(message);
+    this.name = "ApiValidationError";
+    this.fields = fields;
+  }
+}
+
 export interface AuthContextType {
   state: AuthState;
   /** Throws EmailNotVerifiedError when the email still needs its code. */
   login: (email: string, password: string) => Promise<void>;
-  /** Creates the account; it is usable once the emailed code is verified. */
+  /**
+   * Creates the account; it is usable once the emailed code is verified.
+   * Throws ApiValidationError when the API rejects a field.
+   */
   register: (name: string, email: string, phone: string, password: string) => Promise<PendingVerification>;
   /** Verifies the emailed code and signs the customer in. */
   verifyEmail: (email: string, code: string) => Promise<void>;
